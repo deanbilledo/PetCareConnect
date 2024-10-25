@@ -1,1 +1,1 @@
-My name is Christian Jude and this is my readme
+read me pinsan ni dean
