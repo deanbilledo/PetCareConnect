@@ -69,8 +69,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     <title>Sign Up - Pet Care Connect</title>
-    <link href="dist/css/styles.css" rel="stylesheet">
+    <link href="style.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+
     <script>
         function togglePassword(inputId) {
             var x = document.getElementById(inputId);
@@ -218,6 +220,5 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             </p>
         </div>
     </div>
-
 </body>
 </html>
