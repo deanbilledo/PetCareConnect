@@ -46,15 +46,25 @@
                         <td class="px-6 py-4 whitespace-nowrap">9:00 am</td>
                         <td class="px-6 py-4 whitespace-nowrap">10/7/2024</td>
                         <td class="px-6 py-4 whitespace-nowrap">
+                            @if($i % 3 == 0)
                             <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
                                 Pending
                             </span>
+                            @elseif($i % 3 == 1)
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                Completed
+                            </span>
+                            @else
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                                Cancelled
+                            </span>
+                            @endif
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">Alexandra Dolantos</td>
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             <button class="text-blue-600 hover:text-blue-900">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a 1 1 0 110-2 1 1 0 010 2z"/>
                                 </svg>
                             </button>
                         </td>

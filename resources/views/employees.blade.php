@@ -4,6 +4,12 @@
         <div class="max-w-7xl mx-auto">
             <h2 class="text-3xl font-bold text-gray-800 mb-8">Our Employees</h2>
             
+            <div class="mb-6">
+                <a href="{{ route('addemployee') }}" class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors">
+                    Create New Employee
+                </a>
+            </div>
+
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <!-- Employee Card 1 -->
                 <div class="bg-white rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300">
@@ -32,6 +38,7 @@
                     </div>
                 </div>
             </div>
+
         </div>
     </div>
 

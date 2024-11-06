@@ -30,3 +30,11 @@ Route::get('/analytics', function () {
 Route::get('/customers', function () {
     return view('customers');
 })->name('customers');
+
+Route::get('/addemployee', function () {
+    return view('addemployee');
+})->name('addemployee');
+
+Route::get('/account', function () {
+    return view('account');
+})->name('account');

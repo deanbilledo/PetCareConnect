@@ -1,4 +1,6 @@
+
 <x-shopsidebar/>
-<section class="ml-64">
+<x-header/>
+<section class="ml-64 ">
     {{ $slot }}
 </section>
