@@ -11,7 +11,15 @@
 
     <!-- Services Grid -->
     <div class="container mx-auto px-4 py-16">
+
+        <div class="mb-6">
+            <a href="{{ route('addservice') }}" class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors">
+                Create New Service
+            </a>
+        </div>
+
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            
             <!-- Service Card 1 -->
             <div class="bg-white rounded-lg shadow-lg p-6">
                 <div class="text-blue-600 text-4xl mb-4">

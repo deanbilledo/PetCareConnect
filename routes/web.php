@@ -3,6 +3,10 @@
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
+    return view('index');
+})->name('index');
+
+Route::get('/dashboard', function () {
     return view('dashboard');
 })->name('dashboard');
 
@@ -38,3 +42,15 @@ Route::get('/addemployee', function () {
 Route::get('/account', function () {
     return view('account');
 })->name('account');
+
+Route::get('/shopprofile', function () {
+    return view('shopprofile');
+})->name('shopprofile');
+
+Route::get('/addapointment', function () {
+    return view('addapointment');
+})->name('addapointment');
+
+Route::get('/addservice', function () {
+    return view('addservice');
+})->name('addservice');

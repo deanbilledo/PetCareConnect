@@ -1,7 +1,7 @@
 <x-layout>
     <div class="max-w-md mx-auto bg-white p-8 rounded-lg shadow-md">
-        <h2 class="text-2xl font-bold mb-6">Add Employee</h2>
-        <form action="/employees" method="POST">
+        <h2 class="text-2xl font-bold mb-6">Add Service</h2>
+        <form action="" method="POST">
             @csrf
             <div class="mb-4">
                 <label for="name" class="block text-gray-700">Employee Name</label>
