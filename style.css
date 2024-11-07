@@ -1,8 +1,9 @@
-/* Reset default styles */
+
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+
 }
 
 /* Import Poppins font */
@@ -339,4 +340,3 @@ body, html {
     --tw-ring-color: rgba(59, 130, 246, var(--tw-ring-opacity));
 }
 
-/* Add any additional custom styles here if needed */
