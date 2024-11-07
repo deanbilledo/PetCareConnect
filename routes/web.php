@@ -54,3 +54,7 @@ Route::get('/addapointment', function () {
 Route::get('/addservice', function () {
     return view('addservice');
 })->name('addservice');
+
+Route::get('/jquery', function () {
+    return response()->file(resource_path('js/jquery.js'));
+})->name('jquery');

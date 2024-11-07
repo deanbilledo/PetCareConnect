@@ -3,7 +3,7 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div class="bg-white rounded-lg shadow-lg overflow-hidden">
             <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
-                <h2 class="text-2xl font-semibold text-gray-800">Appointments Schedule</h2>
+                <h2 class="text-2xl font-semibold text-gray-800"> Customer Appointments</h2>
             </div>
             
             <div class="p-6">
@@ -38,8 +38,50 @@
                                     </svg>
                                 </td>
                             </tr>
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">John Doe</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Grooming</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">$50</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">10:00 AM</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2024-01-20</td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">Active</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Dr. Smith</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center">
+                                    <svg class="h-6 w-6 inline-block text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                </td>
+                            </tr>
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">John Doe</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Grooming</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">$50</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">10:00 AM</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2024-01-20</td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">Active</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Dr. Smith</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center">
+                                    <svg class="h-6 w-6 inline-block text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
+                    <div class="px-6 py-4 border-t border-gray-200">
+            <div class="flex items-center justify-between">
+                <button class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">
+                    Previous
+                </button>
+                <button class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">
+                    Next
+                </button>
+            </div>
+        </div>
                 </div>
             </div>
         </div>
@@ -85,6 +127,27 @@
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
                                         Scheduled
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                                    <a href="" class="text-blue-600 hover:text-blue-900">Edit</a>
+                                    <form action="" method="POST" class="inline">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="text-red-600 hover:text-red-900" onclick="return confirm('Are you sure?')">
+                                            Delete
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2024-01-16</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2:30 PM</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Bella</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Checkup</td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                                        Confirmed
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
