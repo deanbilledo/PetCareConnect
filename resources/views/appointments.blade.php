@@ -1,9 +1,24 @@
 <x-layout>
 
+    <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
+        <h2 class="text-2xl font-semibold text-gray-800"> Customer Appointments</h2>
+    </div>
+
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div class="bg-white rounded-lg shadow-lg overflow-hidden">
-            <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
-                <h2 class="text-2xl font-semibold text-gray-800"> Customer Appointments</h2>
+           
+            <div class="flex justify-between items-center mb-4 px-12">
+                <div class="flex items-center space-x-4">
+                    <input type="text" placeholder="Search..." class="px-4 py-2 border rounded-md text-sm">
+                    <div class="flex space-x-2">
+                        <a href="#" class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">Approved</a>
+                        <a href="#" class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">Pending</a>
+                        <a href="#" class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">No Show</a>
+                        <a href="#" class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">Cancelled</a>
+                        <a href="#" class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">Rescheduled</a>
+                        <a href="#" class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">Completed</a>
+                    </div>
+                </div>
             </div>
             
             <div class="p-6">
