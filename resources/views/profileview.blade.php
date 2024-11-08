@@ -38,7 +38,7 @@
     </header>
 
     <!-- Sidebar -->
-    <aside class="fixed left-0 top-0 h-full w-64 bg-white shadow-lg pt-16 overflow-y-auto">
+    <aside class="min-h-screen w-64 bg-white border-r border-gray-200 flex flex-col fixed top-0 left-0 transition-all duration-300 pt-16">
         <nav class="px-4 py-6">
             <div class="space-y-6">
                 <!-- Navigation Items -->
@@ -280,45 +280,118 @@
     </main>
 
     <!-- Footer -->
-    <footer class="bg-gray-800 text-white ml-64">
-        <div class="max-w-7xl mx-auto px-4 py-12 grid grid-cols-1 md:grid-cols-4 gap-8">
+    <footer class="bg-[#2D2D2D] text-white ml-64 w-[calc(100vw-16rem)] px-12 py-4">
+        <div class="max-w-7xl mx-auto px-4 py-8 grid grid-cols-1 md:grid-cols-5 gap-8">
+        <!-- Services Column -->
             <div>
-                <h3 class="text-lg font-semibold mb-4">Services</h3>
+                <h3 class="text-lg font-medium mb-4">Services</h3>
                 <ul class="space-y-2">
                     <li><a href="#" class="text-gray-300 hover:text-white">Grooming</a></li>
                     <li><a href="#" class="text-gray-300 hover:text-white">Veterinary</a></li>
                     <li><a href="#" class="text-gray-300 hover:text-white">Appointments</a></li>
                 </ul>
             </div>
+
             <div>
-                <h3 class="text-lg font-semibold mb-4">Shopping Online</h3>
+                <h3 class="text-lg font-medium mb-4">Services</h3>
                 <ul class="space-y-2">
-                    <li><a href="#" class="text-gray-300 hover:text-white
-                    ">Pet Supplies</a></li>
-                                        <li><a href="#" class="text-gray-300 hover:text-white">Pet Food</a></li>
-                                        <li><a href="#" class="text-gray-300 hover:text-white">Accessories</a></li>
-                                    </ul>
-                                </div>
-                                <div>
-                                    <h3 class="text-lg font-semibold mb-4">About Us</h3>
-                                    <ul class="space-y-2">
-                                        <li><a href="#" class="text-gray-300 hover:text-white">Our Story</a></li>
-                                        <li><a href="#" class="text-gray-300 hover:text-white">Team</a></li>
-                                        <li><a href="#" class="text-gray-300 hover:text-white">Careers</a></li>
-                                    </ul>
-                                </div>
-                                <div>
-                                    <h3 class="text-lg font-semibold mb-4">Contact Us</h3>
-                                    <ul class="space-y-2">
-                                        <li><a href="#" class="text-gray-300 hover:text-white">Support</a></li>
-                                        <li><a href="#" class="text-gray-300 hover:text-white">FAQs</a></li>
-                                        <li><a href="#" class="text-gray-300 hover:text-white">Live Chat</a></li>
-                                    </ul>
-                                </div>
-                            </div>
-                            <div class="bg-gray-900 text-center py-4">
-                                <p class="text-gray-500 text-sm">&copy; 2023 Pet Care Connect. All rights reserved.</p>
-                            </div>
-                        </footer>
-                    </body>
-                    </html>
+                    <li><a href="#" class="text-gray-300 hover:text-white">Grooming</a></li>
+                    <li><a href="#" class="text-gray-300 hover:text-white">Veterinary</a></li>
+                    <li><a href="#" class="text-gray-300 hover:text-white">Appointments</a></li>
+                </ul>
+            </div>
+
+            <!-- Shopping Online Column -->
+            <div>
+                <h3 class="text-lg font-medium mb-4">Shopping Online</h3>
+                <ul class="space-y-2">
+                    <li><a href="#" class="text-gray-300 hover:text-white">Security Policy</a></li>
+                    <li><a href="#" class="text-gray-300 hover:text-white">Privacy Policy</a></li>
+                    <li><a href="#" class="text-gray-300 hover:text-white">Conditions of Use</a></li>
+                    <li><a href="#" class="text-gray-300 hover:text-white">FAQs</a></li>
+                </ul>
+            </div>
+
+            <!-- About Us Column -->
+            <div>
+                <h3 class="text-lg font-medium mb-4">About Us</h3>
+                <ul class="space-y-2">
+                    <li><a href="#" class="text-gray-300 hover:text-white">About Us</a></li>
+                    <li><a href="#" class="text-gray-300 hover:text-white">Contact Us</a></li>
+                    <li><a href="#" class="text-gray-300 hover:text-white">Careers</a></li>
+                    <li><a href="#" class="text-gray-300 hover:text-white">Articles</a></li>
+                </ul>
+            </div>
+
+            <!-- Customer Service Column -->
+            <div class="bg-[#5487AA] p-6 rounded">
+                <h3 class="text-lg font-medium mb-4">Customer Service</h3>
+                
+                <!-- Phone Section -->
+                <div class="mb-6">
+                    <div class="flex items-center gap-2 mb-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                        </svg>
+                        <span>2134-4121-1231</span>
+                    </div>
+                </div>
+
+                <!-- Email Section -->
+                <div class="mb-6">
+                    <div class="flex items-center gap-2 mb-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                        <span>Email us at</span>
+                    </div>
+                    <span class="">DeanVHuescoq@gmail.com</span>
+                </div>
+
+                <!-- Follow Us Section -->
+                <div>
+                    <h4 class="text-lg font-medium mb-3">Follow Us</h4>
+                    <div class="flex gap-3">
+                        <a href="#" class="hover:text-gray-200">
+                            <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                            </svg>
+                        </a>
+                        <a href="#" class="hover:text-gray-200">
+                            <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                            </svg>
+                        </a>
+                        <a href="#" class="hover:text-gray-200">
+                            <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"/>
+                                <polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"/>
+                            </svg>
+                        </a>
+                        <a href="#" class="hover:text-gray-200">
+                            <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.115-1.333h2.885v-5h-3.808c-3.596 0-5.192 1.583-5.192 4.615v3.385z"/>
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    <!-- Copyright Section -->
+    <div class="border-t border-gray-700">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-wrap justify-between items-center text-sm text-gray-400">
+            <div class="flex space-x-4">
+                <a href="#" class="hover:text-white">Terms & Conditions</a>
+                <a href="#" class="hover:text-white">Privacy policy</a>
+                <a href="#" class="hover:text-white">Privacy notice</a>
+            </div>
+            <div>
+                <p>&copy; 2024 - PetCenter. All Rights Reserved.</p>
+            </div>
+        </div>
+    </div>
+
+</footer>
+
+</body>
+</html>
