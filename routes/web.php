@@ -55,6 +55,10 @@ Route::get('/addservice', function () {
     return view('addservice');
 })->name('addservice');
 
+Route::get('/profileview', function () {
+    return view('profileview');
+})->name('profileview');
+
 Route::get('/jquery', function () {
     return response()->file(resource_path('js/jquery.js'));
 })->name('jquery');
