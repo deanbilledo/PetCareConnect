@@ -5,36 +5,29 @@ use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SettingsController;
-use App\Http\Controllers\Auth\LoginController;
-use Illuminate\Support\Facades\Auth;
+use App\Http\Controllers\BookingController;
 use Illuminate\Support\Facades\Route;
 
-Auth::routes();
 // Public routes
-// Route::get('/', [HomeController::class, 'index'])->name('home');
-
-Route::get('/', function() {
-    return view('home');
-})->name('home');
-
-// Manually define login routes if need
+Route::get('/', [HomeController::class, 'index'])->name('home');
 
 // Authentication routes
-  // Uncomment if you're using Laravel's default authentication routes
+Auth::routes();
 
 // Protected routes
 Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::resource('appointments', AppointmentController::class);
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile');
+    Route::post('/profile/update-info', [ProfileController::class, 'updatePersonalInfo'])->name('profile.update-info');
+    Route::post('/profile/update-photo', [ProfileController::class, 'updateProfilePhoto'])->name('profile.update-photo');
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings');
-    
-    Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
-    Route::post('/login', [LoginController::class, 'login']);
-    Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
+    Route::post('/profile/update-location', [ProfileController::class, 'updateLocation'])->name('profile.update-location');
+    Route::post('/profile/pets', [ProfileController::class, 'storePet'])->name('profile.pets.store');
+    Route::put('/profile/pets/{pet}', [ProfileController::class, 'updatePet'])->name('profile.pets.update');
+    Route::delete('/profile/pets/{pet}', [ProfileController::class, 'deletePet'])->name('profile.pets.delete');
 });
 
-// Additional pages
 Route::get('/terms', function () {
     return view('pages.terms');
 })->name('terms');
@@ -42,3 +35,6 @@ Route::get('/terms', function () {
 Route::get('/privacy', function () {
     return view('pages.privacy');
 })->name('privacy');
+
+// Add this route with your existing routes
+Route::get('/book/{shop}', [BookingController::class, 'show'])->name('booking.show');
