@@ -43,6 +43,33 @@ class HomeController extends Controller
         // Use the same home view for both guests and authenticated users
         return view('home', compact('popularShops', 'services'));
     }
+    //Petlandingpage
+    public function petclinic()
+    {
+        // Get popular shops for both guests and authenticated users
+        $popularShops = Shop::withAvg('ratings', 'rating')
+            ->orderBy('ratings_avg_rating', 'desc')
+            ->take(6)
+            ->get();
+
+        $services = [
+            (object)[
+                'name' => 'Grooming',
+                'description' => 'Professional grooming services to keep your pet looking and feeling their best. Our expert groomers provide personalized care for all breeds.'
+            ],
+            (object)[
+                'name' => 'Bath',
+                'description' => 'Professional grooming services to keep your pet looking and feeling their best. Our expert groomers provide personalized care for all breeds.'
+            ],
+            (object)[
+                'name' => 'Check-Up',
+                'description' => 'Comprehensive veterinary check-ups to ensure your pet\'s health and well-being. Our experienced vets provide thorough examinations and preventive care.'
+            ]
+        ];
+
+        // Use the same home view for both guests and authenticated users
+        return view('petlandingpage', compact('popularShops', 'services'));
+    }
 
     public function dashboard()
     {

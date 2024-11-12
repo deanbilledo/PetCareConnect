@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Route;
 
 // Public routes
 Route::get('/', [HomeController::class, 'index'])->name('home');
+Route::get('/pet-landing-page', [HomeController::class, 'petclinic'])->name('petlandingpage');
 
 // Authentication routes
 Auth::routes();
