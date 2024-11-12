@@ -7,10 +7,12 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\BookingController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\VeterinarianController;
 
 // Public routes
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/pet-landing-page', [HomeController::class, 'petclinic'])->name('petlandingpage');
+Route::get('/veterinarian/{id}/ratings', [VeterinarianController::class, 'showVeterinarianRatings']);
 
 // Authentication routes
 Auth::routes();

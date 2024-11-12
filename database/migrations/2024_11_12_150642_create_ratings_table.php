@@ -5,24 +5,23 @@ use Illuminate\Support\Facades\Schema;
 
 class CreateRatingsTable extends Migration
 {
-    /**
-     * Run the migrations.
-     */
-    public function up(): void
+    public function up()
     {
         Schema::create('ratings', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('shop_id'); // Foreign key to `shops` table
-            $table->foreign('shop_id')->references('id')->on('shops')->onDelete('cascade');
-            $table->unsignedTinyInteger('rating'); // Rating value
-            $table->timestamps();
+            $table->engine = 'InnoDB'; // Ensure InnoDB engine for foreign key support
+            $table->id(); // Auto-incrementing primary key
+            $table->unsignedBigInteger('veterinarian_id');
+            $table->unsignedBigInteger('shop_id')->nullable(); // Nullable foreign key for shops
+            $table->unsignedTinyInteger('rating'); // Rating value between 1 and 5
+            $table->timestamps(); // Created and updated timestamps
+
+            // Foreign key constraints
+            $table->foreign('veterinarian_id')->references('id')->on('veterinarians')->onDelete('cascade');
+            $table->foreign('shop_id')->references('id')->on('shops')->onDelete('cascade'); // Optional foreign key for shop
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
+    public function down()
     {
         Schema::dropIfExists('ratings');
     }
