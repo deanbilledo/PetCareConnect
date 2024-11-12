@@ -1,90 +1,66 @@
-# Pet Care Connect Platform
+<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
 
-## Project Overview
+<p align="center">
+<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
+<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
+<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
+<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
+</p>
 
-Pet Care Connect is a comprehensive web-based platform developed as part of the Software Engineering 1 and 2 courses. This platform aims to connect pet owners with various pet care services, including grooming and veterinary care. The current implementation includes both the admin dashboard and the customer-facing interface.
+## About Laravel
 
-## Features
+Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
 
-- **User Management**: Tools for managing customers, shop owners, and staff accounts.
-- **Shop Management**: Oversight and control of registered pet care shops.
-- **Service Management**: Tools to manage and approve services offered by shops.
-- **Appointment Booking**: Allows customers to book appointments for various pet care services.
-- **Search Functionality**: Enables users to find nearby grooming and veterinary services.
-- **User Reviews and Ratings**: Customers can rate and review pet care services.
-- **Responsive Design**: Mobile-friendly interface for both admin and customer views.
+- [Simple, fast routing engine](https://laravel.com/docs/routing).
+- [Powerful dependency injection container](https://laravel.com/docs/container).
+- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
+- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
+- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
+- [Robust background job processing](https://laravel.com/docs/queues).
+- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
 
-## Technology Stack
+Laravel is accessible, powerful, and provides tools required for large, robust applications.
 
-- **Frontend**: HTML, CSS (Tailwind CSS), JavaScript
-- **Backend**: PHP
-- **Database**: MySQL (to be fully implemented)
-- **Authentication**: PHP Session-based (basic implementation)
-- **Additional Libraries**: 
-  - Alpine.js for reactive components
-  - Chart.js for data visualization (admin dashboard)
+## Learning Laravel
 
-## Project Status
+Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
 
-This project is currently in active development. The following components have been implemented:
+You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
 
-- Admin dashboard frontend
-- Customer-facing interface frontend
-- Basic PHP backend structure
-- Session-based authentication (login/logout functionality)
+If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
 
-Pending tasks include:
-- Full database integration
-- Complete backend functionality for all features
-- Payment processing integration
-- Enhanced security measures
+## Laravel Sponsors
 
-## Installation
+We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
 
-1. Clone the repository:
-   ```
-   git clone https://github.com/your-username/pet-care-connect.git
-   ```
-2. Navigate to the project directory:
-   ```
-   cd pet-care-connect
-   ```
-3. Set up a local PHP server (e.g., XAMPP, WAMP) and ensure MySQL is running.
-4. Import the database schema (when available).
-5. Configure the database connection in the PHP files.
-6. Access the application through your local server's URL.
+### Premium Partners
 
-## Future Development
-
-- Implement full MySQL database integration
-- Develop shop owner dashboard
-- Enhance authentication system with more secure methods
-- Add payment processing functionality
-- Implement real-time notifications for appointments and messages
-- Develop a mobile app version
+- **[Vehikl](https://vehikl.com/)**
+- **[Tighten Co.](https://tighten.co)**
+- **[WebReinvent](https://webreinvent.com/)**
+- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
+- **[64 Robots](https://64robots.com)**
+- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
+- **[Cyber-Duck](https://cyber-duck.co.uk)**
+- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
+- **[Jump24](https://jump24.co.uk)**
+- **[Redberry](https://redberry.international/laravel/)**
+- **[Active Logic](https://activelogic.com)**
+- **[byte5](https://byte5.de)**
+- **[OP.GG](https://op.gg)**
 
 ## Contributing
 
-This project is part of an academic course and is not open for external contributions at this time.
+Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
 
-## Team Members
+## Code of Conduct
 
-- Faminiano, Christian Jude
-- Billedo, Dean Reight
-- Valeros, Greybin
-- Cawili, Herwayne
-- Jimenez, Myke
+In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
 
-## Acknowledgments
+## Security Vulnerabilities
 
-- Jaydee Ballaho
-- RhamRhem Jaafar
-- Marjorie Rojas
-- Tailwind CSS for the UI framework
-- Font Awesome for icons
-- Chart.js for data visualization
-- Alpine.js for reactive JavaScript components
+If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
