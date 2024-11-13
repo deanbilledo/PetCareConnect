@@ -24,7 +24,7 @@
         <div class="border-t border-gray-200 my-2"></div>
         <div class="px-4 py-2">
             <h2 class="text-gray-500 text-sm font-semibold mb-2">CATEGORIES</h2>    
-            <a href="#" class="flex items-center py-2 px-4 text-gray-700 hover:bg-gray-200 hover:text-gray-900 rounded-md transition-colors duration-200">
+           <a href="{{ route('groomingShops') }}" class="flex items-center py-2 px-4 text-gray-700 hover:bg-gray-200 hover:text-gray-900 rounded-md transition-colors duration-200">
                 <img src="{{ asset('images/icons/groomIcon.png') }}" alt="Grooming" class="h-5 w-5 mr-2">
                 Grooming
             </a>
