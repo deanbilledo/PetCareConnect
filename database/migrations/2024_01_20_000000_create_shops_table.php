@@ -9,7 +9,7 @@ return new class extends Migration
     public function up()
     {
         Schema::create('shops', function (Blueprint $table) {
-            $table->id();
+            $table->bigIncrements('id');  // Explicitly use UNSIGNED BIGINT
             $table->string('name');
             $table->string('type');
             $table->string('image');
@@ -24,4 +24,4 @@ return new class extends Migration
     {
         Schema::dropIfExists('shops');
     }
-}; 
+};

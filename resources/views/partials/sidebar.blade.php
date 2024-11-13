@@ -28,11 +28,10 @@
                 <img src="{{ asset('images/icons/groomIcon.png') }}" alt="Grooming" class="h-5 w-5 mr-2">
                 Grooming
             </a>
-            <a href="#" class="flex items-center py-2 px-4 text-gray-700 hover:bg-gray-200 hover:text-gray-900 rounded-md transition-colors duration-200">
+            <a href="{{ route('petlandingpage') }}" class="flex items-center py-2 px-4 text-gray-700 hover:bg-gray-200 hover:text-gray-900 rounded-md transition-colors duration-200">
                 <img src="{{ asset('images/icons/vetIcon.png') }}" alt="Veterinary" class="h-5 w-5 mr-2">
                 Pet Clinic
             </a>
-        </div>
 
         <!-- Help Center Section -->
         <div class="border-t border-gray-200 my-2"></div>
