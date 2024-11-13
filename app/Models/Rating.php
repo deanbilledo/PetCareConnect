@@ -20,4 +20,9 @@ class Rating extends Model
     {
         return $this->belongsTo(Shop::class);
     }
+    
+    public function veterinarian()
+    {
+        return $this->belongsTo(Veterinarian::class, 'veterinarian_id');
+    }
 } 

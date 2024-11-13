@@ -168,7 +168,12 @@ foreach ($required_files as $file) {
                 </div>
                 <div class="flex items-center justify-between">
                     <div class="flex items-center">
-                        <input type="checkbox" id="remember-me" name="remember_me" class="h-4 w-4 text-custom-blue focus:ring-custom-blue border-gray-300 rounded">
+                        <label for="remember-me" class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="remember-me" name="remember_me" class="sr-only" />
+                            <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-custom-blue peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-custom-blue">
+                                <div class="dot w-4 h-4 bg-white rounded-full transition-all duration-200 transform peer-checked:translate-x-5"></div>
+                            </div>
+                        </label>
                         <label for="remember-me" class="ml-2 block text-sm text-gray-600">
                             Remember me
                         </label>
@@ -177,6 +182,7 @@ foreach ($required_files as $file) {
                         Forgot Password?
                     </a>
                 </div>
+
                 <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-custom-blue hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-blue">
                     Log In
                 </button>
