@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\GroomingController;
 use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProfileController;
@@ -11,6 +12,7 @@ use App\Http\Controllers\VeterinarianController;
 
 // Public routes
 Route::get('/', [HomeController::class, 'index'])->name('home');
+Route::get('/groomingShops', [GroomingController::class, 'groomingShops'])->name('groomingShops');
 Route::get('/pet-landing-page', [HomeController::class, 'petclinic'])->name('petlandingpage');
 Route::get('/veterinarian/{id}/ratings', [VeterinarianController::class, 'showVeterinarianRatings']);
 
