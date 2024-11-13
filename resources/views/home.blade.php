@@ -2,6 +2,7 @@
 
 @section('content')
     <!-- Hero Section -->
+    
     <section class="bg-gray-100 rounded-lg my-6 p-4 lg:p-8 relative overflow-hidden z-0">
         <div class="flex flex-col lg:flex-row justify-between items-center">
             <div class="z-10 mb-8 lg:mb-0 lg:w-1/2 text-left">
