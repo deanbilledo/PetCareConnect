@@ -12,9 +12,9 @@
         <!-- Example Shop 1 -->
         <div class="bg-white rounded-lg shadow-md overflow-hidden transition duration-300 ease-in-out transform hover:-translate-y-1 hover:shadow-xl">
             <div class="relative">
-                <img src="{{ asset('image.png') }}" alt="Shop 1" class="w-full h-40 object-cover">
+                <img src="{{ asset('images/shops/josep.svg') }}" alt="Shop 1" class="w-full h-40 object-cover">
                 <span class="absolute top-2 left-2 bg-white text-black text-xs font-semibold px-2 py-1 rounded-full">
-                    Veterinary Clinic
+                    Grooming Shop
                 </span>
                 <button class="absolute top-2 right-2 text-white hover:text-red-500 transition-colors duration-300">
                     <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -37,7 +37,7 @@
             <div class="relative">
                 <img src="{{ asset('images/shops/Pawssible Solutions Veterinary Clinic.svg') }}" alt="Shop 2" class="w-full h-40 object-cover">
                 <span class="absolute top-2 left-2 bg-white text-black text-xs font-semibold px-2 py-1 rounded-full">
-                    Veterinary Clinic
+                    Grooming Shop
                 </span>
                 <button class="absolute top-2 right-2 text-white hover:text-red-500 transition-colors duration-300">
                     <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -60,7 +60,7 @@
             <div class="relative">
                 <img src="{{ asset('images/shops/waltacvet.svg') }}" alt="Shop 3" class="w-full h-40 object-cover">
                 <span class="absolute top-2 left-2 bg-white text-black text-xs font-semibold px-2 py-1 rounded-full">
-                    Veterinary Clinic
+                    Grooming Shop
                 </span>
                 <button class="absolute top-2 right-2 text-white hover:text-red-500 transition-colors duration-300">
                     <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -92,7 +92,7 @@
             <div class="relative">
                 <img src="{{ asset('images/shops/Casadepero.svg') }}" alt="Shop 1" class="w-full h-40 object-cover">
                 <span class="absolute top-2 left-2 bg-white text-black text-xs font-semibold px-2 py-1 rounded-full">
-                    Veterinary Clinic
+                    Grooming Shop
                 </span>
                 <button class="absolute top-2 right-2 text-white hover:text-red-500 transition-colors duration-300">
                     <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -115,7 +115,7 @@
             <div class="relative">
                 <img src="{{ asset('images/shops/Pawssible Solutions Veterinary Clinic.svg') }}" alt="Shop 2" class="w-full h-40 object-cover">
                 <span class="absolute top-2 left-2 bg-white text-black text-xs font-semibold px-2 py-1 rounded-full">
-                    Veterinary Clinic
+                    Grooming Shop
                 </span>
                 <button class="absolute top-2 right-2 text-white hover:text-red-500 transition-colors duration-300">
                     <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -138,7 +138,7 @@
             <div class="relative">
                 <img src="{{ asset('images/shops/waltacvet.svg') }}" alt="Shop 3" class="w-full h-40 object-cover">
                 <span class="absolute top-2 left-2 bg-white text-black text-xs font-semibold px-2 py-1 rounded-full">
-                    Veterinary Clinic
+                    Grooming Shop
                 </span>
                 <button class="absolute top-2 right-2 text-white hover:text-red-500 transition-colors duration-300">
                     <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
