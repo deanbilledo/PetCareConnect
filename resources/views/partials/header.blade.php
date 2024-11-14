@@ -1,25 +1,32 @@
-<header class="bg-white shadow-sm sticky top-0 z-50 flex items-center">
-    <div class="flex-shrink-0 p-4 w-56">
-        <a href="{{ route('home') }}">
-            <img src="{{ asset('images/logo.png') }}" alt="Pet Care Connect Logo" class="h-auto w-full max-w-[200px]">
-        </a>
-    </div>
-    
-    <div class="flex-grow flex justify-between items-center px-4">
-        <div class="flex items-center">
-            <button @click="mobileMenuOpen = !mobileMenuOpen" class="lg:hidden mr-4">
-                <svg class="h-6 w-6 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-            </button>
-            
-            <div class="relative">
-                <input type="text" placeholder="Filter" class="pl-8 pr-4 py-2 border rounded-md">
-                <svg class="h-5 w-5 text-gray-400 absolute left-2 top-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-            </div>
+<header class="bg-white shadow-sm sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+        <!-- Logo -->
+        <div class="flex-shrink-0 p-4 w-56">
+            <a href="#">
+                <img src="{{ asset('images/logo.png') }}" alt="Pet Care Connect Logo" class="h-auto w-full max-w-[200px]">
+            </a>
         </div>
+
+        <!-- Modern Centered Navigation -->
+        <nav class="hidden lg:flex flex-1 justify-center">
+            <div class="flex items-center space-x-12">
+                <a href="{{ route('home') }}" class="group flex items-center py-2 px-4 rounded-md transition-colors duration-200 hover:bg-gray-200">
+                    <span class="text-base tracking-wide font-medium nav-active">Home</span>
+                </a>
+
+                <a href="#" class="group flex items-center py-2 px-4 rounded-md transition-colors duration-200 hover:bg-gray-200">
+                    <span class="text-base tracking-wide text-gray-700 hover:text-gray-900">Appointments</span>
+                </a>
+
+                <a href="#" class="group flex items-center py-2 px-4 rounded-md transition-colors duration-200 hover:bg-gray-200">
+                    <span class="text-base tracking-wide text-gray-700 hover:text-gray-900">Grooming</span>
+                </a>
+
+                <a href="#" class="group flex items-center py-2 px-4 rounded-md transition-colors duration-200 hover:bg-gray-200">
+                    <span class="text-base tracking-wide text-gray-700 hover:text-gray-900">Pet Clinics</span>
+                </a>
+            </div>
+        </nav>
 
         <div class="flex items-center space-x-2">
             @auth

@@ -9,13 +9,17 @@ return new class extends Migration
     public function up()
     {
         Schema::create('shops', function (Blueprint $table) {
-            $table->bigIncrements('id');  // Explicitly use UNSIGNED BIGINT
+            $table->id();
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->string('name');
             $table->string('type');
             $table->string('image');
             $table->decimal('rating', 2, 1)->default(0.0);
             $table->string('address');
             $table->text('description')->nullable();
+            $table->string('tin');
+            $table->enum('vat_status', ['registered', 'non_registered']);
+            $table->string('bir_certificate');
             $table->timestamps();
         });
     }
@@ -24,4 +28,4 @@ return new class extends Migration
     {
         Schema::dropIfExists('shops');
     }
-};
+}; 

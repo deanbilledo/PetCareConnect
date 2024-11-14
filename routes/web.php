@@ -1,20 +1,16 @@
 <?php
 
 use App\Http\Controllers\HomeController;
-use App\Http\Controllers\GroomingController;
 use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\BookingController;
+use App\Http\Controllers\ShopRegistrationController;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\VeterinarianController;
 
 // Public routes
 Route::get('/', [HomeController::class, 'index'])->name('home');
-Route::get('/groomingShops', [GroomingController::class, 'groomingShops'])->name('groomingShops');
-Route::get('/pet-landing-page', [HomeController::class, 'petclinic'])->name('petlandingpage');
-Route::get('/veterinarian/{id}/ratings', [VeterinarianController::class, 'showVeterinarianRatings']);
 
 // Authentication routes
 Auth::routes();
@@ -43,3 +39,14 @@ Route::get('/privacy', function () {
 
 // Add this route with your existing routes
 Route::get('/book/{shop}', [BookingController::class, 'show'])->name('booking.show');
+
+// Shop Registration Routes
+Route::prefix('shop')->name('shop.')->group(function () {
+    Route::get('/register', [ShopRegistrationController::class, 'showPreRegistration'])->name('register');
+    Route::get('/register/form', [ShopRegistrationController::class, 'showRegistrationForm'])->name('register.form')->middleware('auth');
+    Route::post('/register', [ShopRegistrationController::class, 'register'])->name('register.store')->middleware('auth');
+});
+
+Route::get('/shop/pre-register', [ShopRegistrationController::class, 'showPreRegistration'])->name('shop.register');
+Route::get('/shop/register', [ShopRegistrationController::class, 'showRegistrationForm'])->name('shop.register.form');
+Route::post('/shop/register', [ShopRegistrationController::class, 'register']);

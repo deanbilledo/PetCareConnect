@@ -10,9 +10,9 @@ class Rating extends Model
     use HasFactory;
 
     protected $fillable = [
-        'rating',
         'shop_id',
         'user_id',
+        'rating',
         'comment'
     ];
 
@@ -20,9 +20,9 @@ class Rating extends Model
     {
         return $this->belongsTo(Shop::class);
     }
-    
-    public function veterinarian()
+
+    public function user()
     {
-        return $this->belongsTo(Veterinarian::class, 'veterinarian_id');
+        return $this->belongsTo(User::class);
     }
 } 
