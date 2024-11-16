@@ -8,10 +8,12 @@ use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\ShopRegistrationController;
 use App\Http\Controllers\ShopDashboardController;
+use App\Http\Controllers\ShopController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
 Route::get('/', [HomeController::class, 'index'])->name('home');
+Route::get('/petlandingpage', [ShopController::class, 'index'])->name('petlandingpage');
 
 // Authentication routes
 Auth::routes();
@@ -58,3 +60,6 @@ Route::middleware(['auth', \App\Http\Middleware\HasShop::class])->group(function
     Route::get('/shop/dashboard', [ShopDashboardController::class, 'index'])->name('shop.dashboard');
     Route::post('/shop/mode/customer', [ShopDashboardController::class, 'switchToCustomerMode'])->name('shop.mode.customer');
 });
+
+// Add this with your existing routes
+Route::get('/grooming-shops', [ShopController::class, 'groomingShops'])->name('groomingShops');

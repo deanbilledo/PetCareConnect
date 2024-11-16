@@ -10,13 +10,14 @@
         <!-- Modern Centered Navigation -->
         <nav class="hidden lg:flex flex-1 justify-center">
             <div class="flex items-center space-x-12" x-data="{ showLoginPrompt: false }">
-                <a href="{{ route('home') }}" class="group flex items-center py-2 px-4 rounded-md transition-colors duration-200 hover:bg-gray-200">
-                    <span class="text-base tracking-wide font-medium nav-active">Home</span>
+                <a href="{{ route('home') }}" 
+                   class="group flex items-center py-2 px-4 rounded-md transition-colors duration-200 hover:bg-gray-200">
+                    <span class="text-base tracking-wide font-medium {{ request()->routeIs('home') ? 'nav-active' : 'text-gray-700 hover:text-gray-900' }}">Home</span>
                 </a>
 
                 @auth
                     <a href="#" class="group flex items-center py-2 px-4 rounded-md transition-colors duration-200 hover:bg-gray-200">
-                        <span class="text-base tracking-wide text-gray-700 hover:text-gray-900">Appointments</span>
+                        <span class="text-base tracking-wide {{ request()->routeIs('appointments*') ? 'nav-active' : 'text-gray-700 hover:text-gray-900' }}">Appointments</span>
                     </a>
                 @else
                     <button @click="showLoginPrompt = true" class="group flex items-center py-2 px-4 rounded-md transition-colors duration-200 hover:bg-gray-200">
@@ -94,12 +95,12 @@
                     </div>
                 @endauth
 
-                <a href="#" class="group flex items-center py-2 px-4 rounded-md transition-colors duration-200 hover:bg-gray-200">
-                    <span class="text-base tracking-wide text-gray-700 hover:text-gray-900">Grooming</span>
+                <a href="{{ route('groomingShops') }}" class="group flex items-center py-2 px-4 rounded-md transition-colors duration-200 hover:bg-gray-200">
+                    <span class="text-base tracking-wide {{ request()->routeIs('groomingShops') ? 'nav-active' : 'text-gray-700 hover:text-gray-900' }}">Grooming</span>
                 </a>
 
-                <a href="#" class="group flex items-center py-2 px-4 rounded-md transition-colors duration-200 hover:bg-gray-200">
-                    <span class="text-base tracking-wide text-gray-700 hover:text-gray-900">Pet Clinics</span>
+                <a href="{{ route('petlandingpage') }}" class="group flex items-center py-2 px-4 rounded-md transition-colors duration-200 hover:bg-gray-200">
+                    <span class="text-base tracking-wide {{ request()->routeIs('petlandingpage') ? 'nav-active' : 'text-gray-700 hover:text-gray-900' }}">Pet Clinics</span>
                 </a>
             </div>
         </nav>
