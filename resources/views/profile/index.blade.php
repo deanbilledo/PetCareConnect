@@ -15,7 +15,15 @@
     <!-- Profile Header -->
     <div class="flex flex-col items-center mb-8">
         <div class="relative inline-block">
-            <img src="{{ $user->profile_photo_url }}" alt="Profile Photo" class="w-32 h-32 rounded-full object-cover">
+            @if($user->profile_photo_url)
+                <img src="{{ $user->profile_photo_url }}" alt="Profile Photo" class="w-32 h-32 rounded-full object-cover">
+            @else
+                <div class="w-32 h-32 rounded-full bg-gray-200 flex items-center justify-center">
+                    <span class="text-gray-600 text-3xl">
+                        {{ substr($user->first_name, 0, 1) }}{{ substr($user->last_name, 0, 1) }}
+                    </span>
+                </div>
+            @endif
             <form action="{{ route('profile.update-photo') }}" method="POST" enctype="multipart/form-data" class="absolute bottom-0 right-0">
                 @csrf
                 <label for="profile_photo" class="cursor-pointer bg-white rounded-full p-2 shadow-lg hover:bg-gray-50 border border-gray-200 flex items-center justify-center w-8 h-8">
