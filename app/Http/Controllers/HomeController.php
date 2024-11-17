@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Shop;
 use Illuminate\Http\Request;
-use App\Models\Veterinarian;
 
 class HomeController extends Controller
 {
@@ -26,6 +25,8 @@ class HomeController extends Controller
             ->take(6)
             ->get();
 
+        \Log::info('Popular shops:', $popularShops->toArray());
+
         $services = [
             (object)[
                 'name' => 'Grooming',
@@ -45,57 +46,6 @@ class HomeController extends Controller
         return view('home', compact('popularShops', 'services'));
     }
 
-    /**
-     * Display the pet landing page with popular shops and veterinarians.
-     *
-     * @return \Illuminate\Contracts\Support\Renderable
-     */
-    public function petclinic()
-    {
-        // Get popular shops for both guests and authenticated users
-        $popularShops = Shop::withAvg('ratings', 'rating')
-            ->orderBy('ratings_avg_rating', 'desc')
-            ->take(6)
-            ->get();
-
-        // Fetch popular veterinarians and their average rating
-        $popularVeterinarians = Veterinarian::with('ratings')
-            ->withAvg('ratings', 'rating')
-            ->orderBy('ratings_avg_rating', 'desc')
-            ->take(6)
-            ->get();
-
-        return view('petlandingpage', compact('popularShops', 'popularVeterinarians'));
-    }
-
-    /**
-     * Show the ratings for a specific veterinarian.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function showVeterinarianRatings($id)
-{
-    // Find the veterinarian by ID and load their ratings
-    $veterinarian = Veterinarian::with('ratings')->find($id);
-
-    // Check if veterinarian exists
-    if (!$veterinarian) {
-        return response()->json(['message' => 'Veterinarian not found'], 404);
-    }
-
-    // Access the ratings for this veterinarian
-    $ratings = $veterinarian->ratings;
-
-    // Return a view with the veterinarian and their ratings
-    return view('veterinarian.show', compact('veterinarian', 'ratings'));
-}
-
-    /**
-     * Show the user dashboard with popular shops and services.
-     *
-     * @return \Illuminate\Contracts\Support\Renderable
-     */
     public function dashboard()
     {
         $popularShops = Shop::withAvg('ratings', 'rating')
@@ -120,4 +70,4 @@ class HomeController extends Controller
         
         return view('dashboard', compact('services', 'popularShops'));
     }
-}
+} 
