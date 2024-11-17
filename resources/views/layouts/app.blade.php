@@ -19,7 +19,19 @@
 
     <!-- Main Content with Sidebar -->
     <div class="flex flex-1">
+        @php
+            $showSidebar = auth()->check() && 
+                          auth()->user()->shop && 
+                          session()->has('shop_mode') && 
+                          session('shop_mode') === true &&
+                          !request()->routeIs('home') &&
+                          !request()->is('/');
+        @endphp
         
+        @if($showSidebar)
+            <!-- Sidebar - only included in shop mode -->
+            @include('partials.sidebar')
+        @endif
         
         <!-- Main Content -->
         <main class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -29,5 +41,14 @@
 
     <!-- Footer -->
     @include('partials.footer')
+
+    @if(session()->has('mode_switch'))
+    <script>
+        // Force a complete page reload when switching modes
+        if (performance && performance.navigation.type === performance.navigation.TYPE_BACK_FORWARD) {
+            location.reload(true);
+        }
+    </script>
+    @endif
 </body>
 </html> 

@@ -7,103 +7,105 @@
             </a>
         </div>
 
-        <!-- Modern Centered Navigation -->
-        <nav class="hidden lg:flex flex-1 justify-center">
-            <div class="flex items-center space-x-12" x-data="{ showLoginPrompt: false }">
-                <a href="{{ route('home') }}" 
-                   class="group flex items-center py-2 px-4 rounded-md transition-colors duration-200 hover:bg-gray-200">
-                    <span class="text-base tracking-wide font-medium {{ request()->routeIs('home') ? 'nav-active' : 'text-gray-700 hover:text-gray-900' }}">Home</span>
-                </a>
-
-                @auth
-                    <a href="#" class="group flex items-center py-2 px-4 rounded-md transition-colors duration-200 hover:bg-gray-200">
-                        <span class="text-base tracking-wide {{ request()->routeIs('appointments*') ? 'nav-active' : 'text-gray-700 hover:text-gray-900' }}">Appointments</span>
+        <!-- Modern Centered Navigation - Only show in customer mode -->
+        @if(!session('shop_mode'))
+            <nav class="hidden lg:flex flex-1 justify-center">
+                <div class="flex items-center space-x-12" x-data="{ showLoginPrompt: false }">
+                    <a href="{{ route('home') }}" 
+                       class="group flex items-center py-2 px-4 rounded-md transition-colors duration-200 hover:bg-gray-200">
+                        <span class="text-base tracking-wide font-medium {{ request()->routeIs('home') ? 'nav-active' : 'text-gray-700 hover:text-gray-900' }}">Home</span>
                     </a>
-                @else
-                    <button @click="showLoginPrompt = true" class="group flex items-center py-2 px-4 rounded-md transition-colors duration-200 hover:bg-gray-200">
-                        <span class="text-base tracking-wide text-gray-700 hover:text-gray-900">Appointments</span>
-                    </button>
 
-                    <!-- Login Prompt Modal -->
-                    <div x-show="showLoginPrompt" 
-                         x-cloak
-                         class="fixed inset-0 z-[60] overflow-y-auto"
-                         role="dialog"
-                         aria-modal="true">
-                        <!-- Backdrop -->
-                        <div x-show="showLoginPrompt"
-                             x-transition:enter="ease-out duration-300"
-                             x-transition:enter-start="opacity-0"
-                             x-transition:enter-end="opacity-100"
-                             x-transition:leave="ease-in duration-200"
-                             x-transition:leave-start="opacity-100"
-                             x-transition:leave-end="opacity-0"
-                             class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
+                    @auth
+                        <a href="#" class="group flex items-center py-2 px-4 rounded-md transition-colors duration-200 hover:bg-gray-200">
+                            <span class="text-base tracking-wide {{ request()->routeIs('appointments*') ? 'nav-active' : 'text-gray-700 hover:text-gray-900' }}">Appointments</span>
+                        </a>
+                    @else
+                        <button @click="showLoginPrompt = true" class="group flex items-center py-2 px-4 rounded-md transition-colors duration-200 hover:bg-gray-200">
+                            <span class="text-base tracking-wide text-gray-700 hover:text-gray-900">Appointments</span>
+                        </button>
 
-                        <!-- Modal Panel -->
-                        <div class="fixed inset-0 z-[70] flex items-center justify-center p-4">
+                        <!-- Login Prompt Modal -->
+                        <div x-show="showLoginPrompt" 
+                             x-cloak
+                             class="fixed inset-0 z-[60] overflow-y-auto"
+                             role="dialog"
+                             aria-modal="true">
+                            <!-- Backdrop -->
                             <div x-show="showLoginPrompt"
                                  x-transition:enter="ease-out duration-300"
-                                 x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                                 x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                                 x-transition:enter-start="opacity-0"
+                                 x-transition:enter-end="opacity-100"
                                  x-transition:leave="ease-in duration-200"
-                                 x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
-                                 x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                                 @click.away="showLoginPrompt = false"
-                                 class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all w-full max-w-sm mx-auto">
-                                
-                                <!-- Close button -->
-                                <div class="absolute right-0 top-0 pr-4 pt-4">
-                                    <button @click="showLoginPrompt = false" type="button" class="text-gray-400 hover:text-gray-500">
-                                        <span class="sr-only">Close</span>
-                                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                                        </svg>
-                                    </button>
-                                </div>
+                                 x-transition:leave-start="opacity-100"
+                                 x-transition:leave-end="opacity-0"
+                                 class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
 
-                                <!-- Modal content -->
-                                <div class="p-6">
-                                    <div class="flex flex-col items-center text-center">
-                                        <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
-                                            <svg class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
+                            <!-- Modal Panel -->
+                            <div class="fixed inset-0 z-[70] flex items-center justify-center p-4">
+                                <div x-show="showLoginPrompt"
+                                     x-transition:enter="ease-out duration-300"
+                                     x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                                     x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                                     x-transition:leave="ease-in duration-200"
+                                     x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                                     x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                                     @click.away="showLoginPrompt = false"
+                                     class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all w-full max-w-sm mx-auto">
+                                    
+                                    <!-- Close button -->
+                                    <div class="absolute right-0 top-0 pr-4 pt-4">
+                                        <button @click="showLoginPrompt = false" type="button" class="text-gray-400 hover:text-gray-500">
+                                            <span class="sr-only">Close</span>
+                                            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                                             </svg>
-                                        </div>
-                                        <h3 class="mt-4 text-lg font-semibold text-gray-900">Login Required</h3>
-                                        <p class="mt-2 text-sm text-gray-500">Please login or create an account to access appointments.</p>
+                                        </button>
                                     </div>
 
-                                    <!-- Buttons -->
-                                    <div class="mt-6 flex flex-col gap-2">
-                                        <a href="{{ route('login') }}" 
-                                           class="w-full inline-flex justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus:outline-none">
-                                            Login
-                                        </a>
-                                        <a href="{{ route('register') }}" 
-                                           class="w-full inline-flex justify-center rounded-md bg-white px-4 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
-                                            Register
-                                        </a>
-                                        <button @click="showLoginPrompt = false" 
-                                                class="w-full inline-flex justify-center rounded-md bg-white px-4 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
-                                            Cancel
-                                        </button>
+                                    <!-- Modal content -->
+                                    <div class="p-6">
+                                        <div class="flex flex-col items-center text-center">
+                                            <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
+                                                <svg class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
+                                                </svg>
+                                            </div>
+                                            <h3 class="mt-4 text-lg font-semibold text-gray-900">Login Required</h3>
+                                            <p class="mt-2 text-sm text-gray-500">Please login or create an account to access appointments.</p>
+                                        </div>
+
+                                        <!-- Buttons -->
+                                        <div class="mt-6 flex flex-col gap-2">
+                                            <a href="{{ route('login') }}" 
+                                               class="w-full inline-flex justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus:outline-none">
+                                                Login
+                                            </a>
+                                            <a href="{{ route('register') }}" 
+                                               class="w-full inline-flex justify-center rounded-md bg-white px-4 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+                                                Register
+                                            </a>
+                                            <button @click="showLoginPrompt = false" 
+                                                    class="w-full inline-flex justify-center rounded-md bg-white px-4 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+                                                Cancel
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                @endauth
+                    @endauth
 
-                <a href="{{ route('groomingShops') }}" class="group flex items-center py-2 px-4 rounded-md transition-colors duration-200 hover:bg-gray-200">
-                    <span class="text-base tracking-wide {{ request()->routeIs('groomingShops') ? 'nav-active' : 'text-gray-700 hover:text-gray-900' }}">Grooming</span>
-                </a>
+                    <a href="{{ route('groomingShops') }}" class="group flex items-center py-2 px-4 rounded-md transition-colors duration-200 hover:bg-gray-200">
+                        <span class="text-base tracking-wide {{ request()->routeIs('groomingShops') ? 'nav-active' : 'text-gray-700 hover:text-gray-900' }}">Grooming</span>
+                    </a>
 
-                <a href="{{ route('petlandingpage') }}" class="group flex items-center py-2 px-4 rounded-md transition-colors duration-200 hover:bg-gray-200">
-                    <span class="text-base tracking-wide {{ request()->routeIs('petlandingpage') ? 'nav-active' : 'text-gray-700 hover:text-gray-900' }}">Pet Clinics</span>
-                </a>
-            </div>
-        </nav>
+                    <a href="{{ route('petlandingpage') }}" class="group flex items-center py-2 px-4 rounded-md transition-colors duration-200 hover:bg-gray-200">
+                        <span class="text-base tracking-wide {{ request()->routeIs('petlandingpage') ? 'nav-active' : 'text-gray-700 hover:text-gray-900' }}">Pet Clinics</span>
+                    </a>
+                </div>
+            </nav>
+        @endif
 
         <div class="flex items-center space-x-2">
             @auth
