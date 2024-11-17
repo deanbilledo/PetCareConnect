@@ -14,14 +14,24 @@ class ShopDashboardController extends Controller
     public function index()
     {
         $shop = auth()->user()->shop;
+        // Set shop mode in session
         session(['shop_mode' => true]);
+        session()->save();
+        session()->regenerate(); // Force session regeneration
+        \Log::info('Switched to shop mode');
         
         return view('shop.dashboard', compact('shop'));
     }
 
     public function switchToCustomerMode()
     {
+        // Clear shop mode completely
         session()->forget('shop_mode');
-        return redirect()->route('home');
+        session()->save();
+        session()->regenerate(); // Force session regeneration
+        \Log::info('Switched to customer mode');
+        
+        // Force a complete page reload when switching to customer mode
+        return redirect()->route('home', ['refresh' => time()])->with('mode_switch', true);
     }
 } 

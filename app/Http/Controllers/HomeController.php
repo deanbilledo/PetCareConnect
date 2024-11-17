@@ -19,6 +19,12 @@ class HomeController extends Controller
      */
     public function index()
     {
+        // If not in shop mode, ensure it's cleared from session
+        if (!session('shop_mode')) {
+            session()->forget('shop_mode');
+            session()->save();
+        }
+        
         // Get popular shops for both guests and authenticated users
         $popularShops = Shop::withAvg('ratings', 'rating')
             ->orderBy('ratings_avg_rating', 'desc')
