@@ -17,7 +17,6 @@ class ShopDashboardController extends Controller
         // Set shop mode in session
         session(['shop_mode' => true]);
         session()->save();
-        session()->regenerate(); // Force session regeneration
         \Log::info('Switched to shop mode');
         
         return view('shop.dashboard', compact('shop'));
@@ -28,10 +27,11 @@ class ShopDashboardController extends Controller
         // Clear shop mode completely
         session()->forget('shop_mode');
         session()->save();
-        session()->regenerate(); // Force session regeneration
         \Log::info('Switched to customer mode');
         
-        // Force a complete page reload when switching to customer mode
-        return redirect()->route('home', ['refresh' => time()])->with('mode_switch', true);
+        // Redirect with history state
+        return redirect()->route('home')
+            ->with('mode_switch', true)
+            ->with('previous_mode', 'shop');
     }
 } 
