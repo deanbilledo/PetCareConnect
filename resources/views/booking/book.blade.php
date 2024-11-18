@@ -15,21 +15,23 @@
     <!-- Shop Header -->
     <div class="bg-white rounded-lg shadow-md overflow-hidden mb-6">
         <div class="relative h-64">
-            <img src="{{ asset('images/shops/shop1.png') }}" alt="Shop Banner" class="w-full h-full object-cover">
+            <img src="{{ $shop->image ? asset('storage/' . $shop->image) : asset('images/default-shop.png') }}" 
+                 alt="Shop Banner" 
+                 class="w-full h-full object-cover">
             <div class="absolute top-4 left-4">
-                <span class="bg-green-500 text-green-500 !text-green-500 px-3 py-1 rounded-full text-sm">Open</span>
+                <span class="bg-white text-green-500 px-3 py-1 rounded-full text-sm shadow-sm">Open</span>
             </div>
         </div>
         
         <div class="p-6">
             <div class="flex justify-between items-start">
                 <div>
-                    <h1 class="text-2xl font-bold mb-2">{{ $shop->name ?? 'Paws and Claws' }}</h1>
+                    <h1 class="text-2xl font-bold mb-2">{{ $shop->name }}</h1>
                     <div class="flex items-center mb-2">
                         <div class="flex text-yellow-400">★★★★★</div>
-                        <span class="ml-2 text-gray-600">(38)</span>
+                        <span class="ml-2 text-gray-600">({{ $shop->ratings_count ?? 0 }})</span>
                     </div>
-                    <p class="text-gray-600">Open MON-SAT from 8:30 AM - 5:00 PM • Zamboanga City</p>
+                    <p class="text-gray-600">Open MON-SAT from 8:30 AM - 5:00 PM • {{ $shop->address }}</p>
                 </div>
                 <div class="flex space-x-4">
                     <button class="text-gray-600 hover:text-gray-800">
@@ -58,54 +60,99 @@
 
         <!-- Services Section -->
         <div class="p-6">
-            <!-- Service Type Toggle -->
-            <div class="flex space-x-4 mb-6">
-                <button class="px-4 py-2 rounded-full bg-gray-100 text-gray-800 hover:bg-gray-200">Dog</button>
-                <button class="px-4 py-2 rounded-full bg-blue-500 text-white">Cat</button>
-            </div>
-
-            <!-- Services List -->
-            <div class="space-y-4">
-                <div class="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
-                    <div>
-                        <h3 class="font-medium">Cat bathing and blow dry</h3>
-                        <p class="text-sm text-gray-500">Service</p>
-                    </div>
-                    <div class="text-right">
-                        <p class="font-medium">PHP 749</p>
-                    </div>
+            @if($shop->type === 'grooming')
+                <!-- Service Type Toggle for Grooming -->
+                <div class="flex space-x-4 mb-6">
+                    <button class="px-4 py-2 rounded-full bg-gray-100 text-gray-800 hover:bg-gray-200">Dog</button>
+                    <button class="px-4 py-2 rounded-full bg-blue-500 text-white">Cat</button>
                 </div>
 
-                <div class="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
-                    <div>
-                        <h3 class="font-medium">Cat ear cleaning</h3>
-                        <p class="text-sm text-gray-500">Service</p>
+                <!-- Grooming Services List -->
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
+                        <div>
+                            <h3 class="font-medium">Full Grooming Service</h3>
+                            <p class="text-sm text-gray-500">Bath, Haircut, Nail Trimming, Ear Cleaning</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-medium">PHP 1,499</p>
+                        </div>
                     </div>
-                    <div class="text-right">
-                        <p class="font-medium">PHP 499</p>
-                    </div>
-                </div>
 
-                <div class="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
-                    <div>
-                        <h3 class="font-medium">Cat full service grooming</h3>
-                        <p class="text-sm text-gray-500">Full Service</p>
+                    <div class="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
+                        <div>
+                            <h3 class="font-medium">Basic Bath Package</h3>
+                            <p class="text-sm text-gray-500">Bath and Blow Dry</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-medium">PHP 749</p>
+                        </div>
                     </div>
-                    <div class="text-right">
-                        <p class="font-medium">PHP 1,499</p>
-                    </div>
-                </div>
 
-                <div class="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
-                    <div>
-                        <h3 class="font-medium">Cat Nail Trimming</h3>
-                        <p class="text-sm text-gray-500">Service</p>
+                    <div class="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
+                        <div>
+                            <h3 class="font-medium">Nail Trimming</h3>
+                            <p class="text-sm text-gray-500">Service</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-medium">PHP 199</p>
+                        </div>
                     </div>
-                    <div class="text-right">
-                        <p class="font-medium">PHP 199</p>
+
+                    <div class="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
+                        <div>
+                            <h3 class="font-medium">Ear Cleaning</h3>
+                            <p class="text-sm text-gray-500">Service</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-medium">PHP 499</p>
+                        </div>
                     </div>
                 </div>
-            </div>
+            @else
+                <!-- Veterinary Services List -->
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
+                        <div>
+                            <h3 class="font-medium">General Check-up</h3>
+                            <p class="text-sm text-gray-500">Complete Physical Examination</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-medium">PHP 800</p>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
+                        <div>
+                            <h3 class="font-medium">Vaccination</h3>
+                            <p class="text-sm text-gray-500">Core Vaccines Available</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-medium">PHP 1,500</p>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
+                        <div>
+                            <h3 class="font-medium">Deworming</h3>
+                            <p class="text-sm text-gray-500">Internal Parasite Treatment</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-medium">PHP 500</p>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
+                        <div>
+                            <h3 class="font-medium">Laboratory Tests</h3>
+                            <p class="text-sm text-gray-500">Blood Work, Urinalysis, etc.</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-medium">PHP 2,000</p>
+                        </div>
+                    </div>
+                </div>
+            @endif
         </div>
     </div>
 
@@ -114,38 +161,40 @@
         <div class="p-6">
             <h2 class="text-xl font-semibold mb-4">Rating & Reviews</h2>
             <div class="flex items-center mb-6">
-                <div class="text-4xl font-bold mr-4">5.0</div>
+                <div class="text-4xl font-bold mr-4">{{ number_format($shop->rating, 1) }}</div>
                 <div class="flex-grow">
                     <div class="flex items-center text-yellow-400 mb-1">★★★★★</div>
-                    <p class="text-sm text-gray-500">24 ratings</p>
+                    <p class="text-sm text-gray-500">{{ $shop->ratings_count ?? 0 }} ratings</p>
                 </div>
             </div>
 
             <!-- Reviews List -->
             <div class="space-y-6">
+                @forelse($shop->ratings ?? [] as $rating)
                 <div class="border-t pt-4">
                     <div class="flex items-center mb-2">
-                        <img src="{{ asset('images/avatar1.jpg') }}" alt="Reviewer" class="w-10 h-10 rounded-full mr-3">
+                        <img src="{{ $rating->user->profile_photo ?? asset('images/default-profile.png') }}" 
+                             alt="Reviewer" 
+                             class="w-10 h-10 rounded-full mr-3">
                         <div>
-                            <h3 class="font-medium">Aziell Ahamad</h3>
-                            <p class="text-sm text-gray-500">Thu, Oct 5, 2023 at 3:23 PM</p>
+                            <h3 class="font-medium">{{ $rating->user->name }}</h3>
+                            <p class="text-sm text-gray-500">{{ $rating->created_at->format('D, M d, Y \a\t h:i A') }}</p>
                         </div>
                     </div>
-                    <div class="flex text-yellow-400 mb-2">★★★★★</div>
-                    <p class="text-gray-700">First of all pogi si bossmon and 2nd this shop almost has everything for dogs and cats.</p>
-                </div>
-
-                <div class="border-t pt-4">
-                    <div class="flex items-center mb-2">
-                        <img src="{{ asset('images/avatar2.jpg') }}" alt="Reviewer" class="w-10 h-10 rounded-full mr-3">
-                        <div>
-                            <h3 class="font-medium">Kenken Ibrahim</h3>
-                            <p class="text-sm text-gray-500">Fri, Oct 6, 2023 at 10:55 AM</p>
-                        </div>
+                    <div class="flex text-yellow-400 mb-2">
+                        @for($i = 0; $i < 5; $i++)
+                            @if($i < $rating->rating)
+                                ★
+                            @else
+                                ☆
+                            @endif
+                        @endfor
                     </div>
-                    <div class="flex text-yellow-400 mb-2">★★★★★</div>
-                    <p class="text-gray-700">Ambait bing kung katrabaho nw pero ikaw talaga yung nag ggrooming kay fireman up compartable mejo pens.</p>
+                    <p class="text-gray-700">{{ $rating->comment }}</p>
                 </div>
+                @empty
+                <p class="text-gray-500">No reviews yet.</p>
+                @endforelse
             </div>
         </div>
     </div>
@@ -167,7 +216,7 @@
                     Report Shop
                 </button>
             </div>
-            <button class="w-full bg-blue-500 text-white py-3 rounded-lg font-medium hover:bg-blue-600 transition-colors">
+            <button onclick="window.location.href='{{ route('booking.process', $shop) }}'" class="w-full bg-blue-500 text-white py-3 rounded-lg font-medium hover:bg-blue-600 transition-colors">
                 Book Now
             </button>
         </div>
