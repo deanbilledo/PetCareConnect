@@ -30,6 +30,22 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/profile/pets', [ProfileController::class, 'storePet'])->name('profile.pets.store');
     Route::put('/profile/pets/{pet}', [ProfileController::class, 'updatePet'])->name('profile.pets.update');
     Route::delete('/profile/pets/{pet}', [ProfileController::class, 'deletePet'])->name('profile.pets.delete');
+    
+    // Booking routes
+    Route::get('/book/{shop}', [BookingController::class, 'show'])->name('booking.show');
+    Route::get('/book/{shop}/process', [BookingController::class, 'process'])->name('booking.process');
+    Route::post('/book/{shop}/select-service', [BookingController::class, 'selectService'])->name('booking.select-service');
+    Route::post('/book/{shop}/select-datetime', [BookingController::class, 'selectDateTime'])->name('booking.select-datetime');
+    Route::post('/book/{shop}/confirm', [BookingController::class, 'confirm'])->name('booking.confirm');
+    Route::post('/book/{shop}/store', [BookingController::class, 'store'])->name('booking.store');
+    
+    // Add this new route
+    Route::get('/booking/thank-you', function () {
+        if (!session()->has('booking_details')) {
+            return redirect()->route('home');
+        }
+        return view('booking.thank-you');
+    })->name('booking.thank-you');
 });
 
 Route::get('/terms', function () {
@@ -39,9 +55,6 @@ Route::get('/terms', function () {
 Route::get('/privacy', function () {
     return view('pages.privacy');
 })->name('privacy');
-
-// Add this route with your existing routes
-Route::get('/book/{shop}', [BookingController::class, 'show'])->name('booking.show');
 
 // Shop Registration Routes
 Route::prefix('shop')->name('shop.')->group(function () {

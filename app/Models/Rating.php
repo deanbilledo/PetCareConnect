@@ -9,20 +9,11 @@ class Rating extends Model
 {
     use HasFactory;
 
-    protected $fillable = [
-        'shop_id',
-        'user_id',
-        'rating',
-        'comment'
-    ];
+    protected $fillable = ['rating', 'comment', 'user_id'];
 
-    protected $casts = [
-        'rating' => 'decimal:1'
-    ];
-
-    public function shop()
+    public function rateable()
     {
-        return $this->belongsTo(Shop::class);
+        return $this->morphTo();
     }
 
     public function user()
