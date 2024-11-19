@@ -7,17 +7,33 @@ use App\Models\Pet;
 use App\Models\Appointment;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Storage;
 
 class BookingController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('auth');
+        $this->middleware('auth')->except(['show']);
         $this->middleware('web');
     }
 
     public function show(Shop $shop)
     {
+        $shop->load(['ratings.user' => function($query) {
+            $query->select('id', 'first_name', 'last_name', 'profile_photo_path');
+        }]);
+
+        // Add detailed debugging
+        foreach($shop->ratings as $rating) {
+            \Log::info('Rating ID: ' . $rating->id);
+            \Log::info('User ID: ' . $rating->user->id);
+            \Log::info('User Name: ' . $rating->user->name);
+            \Log::info('Profile Photo Path: ' . $rating->user->profile_photo_path);
+            \Log::info('Profile Photo URL: ' . $rating->user->profile_photo_url);
+            \Log::info('Storage Path: ' . storage_path('app/public/' . $rating->user->profile_photo_path));
+            \Log::info('File Exists: ' . (Storage::disk('public')->exists($rating->user->profile_photo_path) ? 'Yes' : 'No'));
+        }
+
         return view('booking.book', compact('shop'));
     }
 

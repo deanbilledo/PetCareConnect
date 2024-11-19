@@ -12,6 +12,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    @yield('styles')
 </head>
 <body class="bg-gray-100 font-[Poppins] min-h-screen flex flex-col">
     <!-- Header -->
@@ -50,5 +51,7 @@
         }
     </script>
     @endif
+
+    @yield('scripts')
 </body>
 </html> 
