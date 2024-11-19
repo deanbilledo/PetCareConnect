@@ -104,27 +104,34 @@ class BookingController extends Controller
 
         $appointmentDateTime = Carbon::parse($request->appointment_date . ' ' . $request->appointment_time);
 
-        foreach ($request->pet_ids as $index => $petId) {
-            Appointment::create([
-                'user_id' => auth()->id(),
-                'shop_id' => $shop->id,
-                'pet_id' => $petId,
-                'service_type' => $request->services[$index],
-                'service_price' => $this->getServicePrice($shop, $request->services[$index]),
-                'appointment_date' => $appointmentDateTime,
-                'notes' => $request->notes,
-                'status' => 'pending'
+        try {
+            foreach ($request->pet_ids as $index => $petId) {
+                $appointment = Appointment::create([
+                    'user_id' => auth()->id(),
+                    'shop_id' => $shop->id,
+                    'pet_id' => $petId,
+                    'service_type' => $request->services[$index],
+                    'service_price' => $this->getServicePrice($shop, $request->services[$index]),
+                    'appointment_date' => $appointmentDateTime,
+                    'notes' => $request->notes,
+                    'status' => 'pending'
+                ]);
+                
+                \Log::info('Created appointment:', $appointment->toArray());
+            }
+
+            // Store booking details in session for thank you page
+            session()->flash('booking_details', [
+                'shop_name' => $shop->name,
+                'date' => $appointmentDateTime->format('F j, Y'),
+                'time' => $appointmentDateTime->format('g:i A'),
             ]);
+
+            return redirect()->route('booking.thank-you');
+        } catch (\Exception $e) {
+            \Log::error('Error creating appointment: ' . $e->getMessage());
+            return back()->with('error', 'There was an error creating your appointment. Please try again.');
         }
-
-        // Store booking details in session for thank you page
-        session()->flash('booking_details', [
-            'shop_name' => $shop->name,
-            'date' => $appointmentDateTime->format('F j, Y'),
-            'time' => $appointmentDateTime->format('g:i A'),
-        ]);
-
-        return redirect()->route('booking.thank-you');
     }
 
     private function getServicesByShopType(Shop $shop)

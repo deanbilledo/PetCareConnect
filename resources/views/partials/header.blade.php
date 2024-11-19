@@ -17,7 +17,7 @@
                     </a>
 
                     @auth
-                        <a href="#" class="group flex items-center py-2 px-4 rounded-md transition-colors duration-200 hover:bg-gray-200">
+                        <a href="{{ route('appointments.index') }}" class="group flex items-center py-2 px-4 rounded-md transition-colors duration-200 hover:bg-gray-200">
                             <span class="text-base tracking-wide {{ request()->routeIs('appointments*') ? 'nav-active' : 'text-gray-700 hover:text-gray-900' }}">Appointments</span>
                         </a>
                     @else

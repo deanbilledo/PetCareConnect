@@ -2,16 +2,34 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Appointment;
 use Illuminate\Http\Request;
 
 class AppointmentController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
+    public function __construct()
+    {
+        $this->middleware('auth');
+    }
+
     public function index()
     {
-        //
+        $user = auth()->user();
+        $appointments = $user->appointments()
+            ->with(['shop', 'pet'])
+            ->orderBy('appointment_date', 'desc')
+            ->get();
+        
+        // Add debugging
+        \Log::info('User ID: ' . $user->id);
+        \Log::info('Appointments count: ' . $appointments->count());
+        \Log::info('Raw appointments:', $appointments->toArray());
+
+        $groupedAppointments = $appointments->groupBy(function($appointment) {
+            return $appointment->appointment_date->format('Y-m-d');
+        });
+
+        return view('appointments.index', compact('groupedAppointments'));
     }
 
     /**
