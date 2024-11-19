@@ -50,13 +50,17 @@ class User extends Authenticatable
         return $this->hasMany(Pet::class);
     }
 
+    public function getNameAttribute()
+    {
+        return "{$this->first_name} {$this->last_name}";
+    }
+
     public function getProfilePhotoUrlAttribute()
     {
         if ($this->profile_photo_path) {
             return asset('storage/' . $this->profile_photo_path);
         }
-        
-        return null;
+        return asset('images/default-profile.png');
     }
 
     public function shop()

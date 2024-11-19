@@ -35,6 +35,8 @@ class Shop extends Model
         'terms_accepted' => 'boolean'
     ];
 
+    protected $appends = ['ratings_avg_rating', 'ratings_count'];
+
     public function user()
     {
         return $this->belongsTo(User::class);
@@ -42,6 +44,21 @@ class Shop extends Model
 
     public function ratings()
     {
-        return $this->hasMany(Rating::class);
+        return $this->hasMany(Rating::class)->with('user')->orderBy('created_at', 'desc');
+    }
+
+    public function getRatingsAvgRatingAttribute()
+    {
+        return $this->ratings()->avg('rating') ?? 0;
+    }
+
+    public function getRatingsCountAttribute()
+    {
+        return $this->ratings()->count();
+    }
+
+    public function getIsOpenAttribute()
+    {
+        return true;
     }
 } 

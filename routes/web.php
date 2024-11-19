@@ -14,13 +14,21 @@ use Illuminate\Support\Facades\Route;
 // Public routes
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/petlandingpage', [ShopController::class, 'index'])->name('petlandingpage');
+Route::get('/book/{shop}', [BookingController::class, 'show'])->name('booking.show');
 
 // Authentication routes
 Auth::routes();
 
 // Protected routes
 Route::middleware(['auth'])->group(function () {
+    // Booking process routes (protected)
+    Route::get('/book/{shop}/process', [BookingController::class, 'process'])->name('booking.process');
+    Route::post('/book/{shop}/select-service', [BookingController::class, 'selectService'])->name('booking.select-service');
+    Route::post('/book/{shop}/select-datetime', [BookingController::class, 'selectDateTime'])->name('booking.select-datetime');
+    Route::post('/book/{shop}/confirm', [BookingController::class, 'confirm'])->name('booking.confirm');
+    Route::post('/book/{shop}/store', [BookingController::class, 'store'])->name('booking.store');
     
+    // Other protected routes...
     Route::resource('appointments', AppointmentController::class);
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index');
     Route::post('/profile/update-info', [ProfileController::class, 'updatePersonalInfo'])->name('profile.update-info');
@@ -31,14 +39,6 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/profile/pets/{pet}', [ProfileController::class, 'updatePet'])->name('profile.pets.update');
     Route::delete('/profile/pets/{pet}', [ProfileController::class, 'deletePet'])->name('profile.pets.delete');
     
-    // Booking routes
-    Route::get('/book/{shop}', [BookingController::class, 'show'])->name('booking.show');
-    Route::get('/book/{shop}/process', [BookingController::class, 'process'])->name('booking.process');
-    Route::post('/book/{shop}/select-service', [BookingController::class, 'selectService'])->name('booking.select-service');
-    Route::post('/book/{shop}/select-datetime', [BookingController::class, 'selectDateTime'])->name('booking.select-datetime');
-    Route::post('/book/{shop}/confirm', [BookingController::class, 'confirm'])->name('booking.confirm');
-    Route::post('/book/{shop}/store', [BookingController::class, 'store'])->name('booking.store');
-    
     // Add this new route
     Route::get('/booking/thank-you', function () {
         if (!session()->has('booking_details')) {
@@ -46,6 +46,9 @@ Route::middleware(['auth'])->group(function () {
         }
         return view('booking.thank-you');
     })->name('booking.thank-you');
+
+    // Add this inside your auth middleware group
+    Route::post('/shop/{shop}/review', [ShopController::class, 'submitReview'])->name('shop.review');
 });
 
 Route::get('/terms', function () {
