@@ -61,4 +61,9 @@ class Shop extends Model
     {
         return true;
     }
+
+    public function appointments()
+    {
+        return $this->hasMany(Appointment::class);
+    }
 } 

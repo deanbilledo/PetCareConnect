@@ -59,6 +59,10 @@ Route::middleware(['auth'])->group(function () {
         ->name('appointments.reschedule');
     Route::put('/appointments/{appointment}/reschedule', [AppointmentController::class, 'updateSchedule'])
         ->name('appointments.update-schedule');
+
+    // Shop Dashboard Routes
+    Route::get('/shop/dashboard', [ShopDashboardController::class, 'index'])->name('shop.dashboard');
+    Route::get('/switch-to-customer', [ShopDashboardController::class, 'switchToCustomerMode'])->name('switch.to.customer');
 });
 
 Route::get('/terms', function () {
@@ -85,6 +89,8 @@ Route::prefix('shop')->name('shop.')->group(function () {
 Route::middleware(['auth', \App\Http\Middleware\HasShop::class])->group(function () {
     Route::get('/shop/dashboard', [ShopDashboardController::class, 'index'])->name('shop.dashboard');
     Route::post('/shop/mode/customer', [ShopDashboardController::class, 'switchToCustomerMode'])->name('shop.mode.customer');
+    Route::post('/appointments/{appointment}/accept', [AppointmentController::class, 'accept'])
+        ->name('appointments.accept');
 });
 
 // Add this with your existing routes

@@ -19,14 +19,13 @@ class Appointment extends Model
         'status',
         'notes',
         'cancellation_reason',
-        'reschedule_reason',
-        'last_reschedule_at'
+        'accepted_at'
     ];
 
     protected $casts = [
         'appointment_date' => 'datetime',
         'service_price' => 'decimal:2',
-        'last_reschedule_at' => 'datetime'
+        'accepted_at' => 'datetime'
     ];
 
     public function user()

@@ -147,4 +147,61 @@ class AppointmentController extends Controller
             return back()->with('error', 'Failed to reschedule appointment. Please try again.');
         }
     }
+
+    public function accept(Appointment $appointment)
+    {
+        try {
+            \Log::info('Accept request received', [
+                'appointment_id' => $appointment->id,
+                'shop_id' => auth()->user()->shop->id
+            ]);
+
+            // Verify the shop owner owns this appointment
+            if ($appointment->shop_id !== auth()->user()->shop->id) {
+                \Log::warning('Unauthorized accept attempt', [
+                    'appointment_id' => $appointment->id,
+                    'shop_id' => auth()->user()->shop->id
+                ]);
+                return response()->json([
+                    'error' => 'Unauthorized to accept this appointment'
+                ], 403);
+            }
+
+            // Check if appointment is pending
+            if ($appointment->status !== 'pending') {
+                \Log::info('Invalid status for acceptance', [
+                    'appointment_id' => $appointment->id,
+                    'current_status' => $appointment->status
+                ]);
+                return response()->json([
+                    'error' => 'Can only accept pending appointments'
+                ], 400);
+            }
+
+            // Update appointment status
+            $appointment->update([
+                'status' => 'accepted',
+                'accepted_at' => now()
+            ]);
+
+            \Log::info('Appointment accepted successfully', [
+                'appointment_id' => $appointment->id
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Appointment accepted successfully'
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error accepting appointment: ' . $e->getMessage(), [
+                'exception' => $e,
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'error' => 'Failed to accept appointment',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
 }
