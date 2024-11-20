@@ -5,6 +5,8 @@
     showCancelModal: false,
     appointmentToCancel: null,
     currentFilter: 'all',
+    dateFilter: '',
+    showFilters: false,
     
     viewAppointmentDetails(id, event) {
         if (event.target.tagName === 'BUTTON' || event.target.closest('button')) {
@@ -54,46 +56,146 @@
         this.showCancelModal = false;
     },
 
-    isAppointmentVisible(status) {
-        if (this.currentFilter === 'all') return true;
-        if (this.currentFilter === 'upcoming') return status === 'pending';
-        return status === this.currentFilter;
+    isAppointmentVisible(status, date) {
+        if (this.currentFilter !== 'all') {
+            if (this.currentFilter === 'upcoming' && status !== 'pending') return false;
+            if (this.currentFilter !== 'upcoming' && status !== this.currentFilter) return false;
+        }
+        
+        if (this.dateFilter) {
+            const appointmentDate = new Date(date).toISOString().split('T')[0];
+            if (appointmentDate !== this.dateFilter) return false;
+        }
+        
+        return true;
     }
 }" class="container mx-auto px-4 py-6">
-    <div class="mb-6">
+    <div class="flex justify-between items-center mb-6">
         <h1 class="text-2xl font-bold">My Appointments</h1>
+        
+        <!-- Filter Toggle Button -->
+        <button @click="showFilters = !showFilters"
+                class="flex items-center gap-2 px-4 py-2 bg-white rounded-lg shadow-sm hover:bg-gray-50 transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+            </svg>
+            <span x-text="showFilters ? 'Hide Filters' : 'Show Filters'"></span>
+        </button>
     </div>
 
-    <!-- Appointment Filters -->
-    <div class="bg-white rounded-lg shadow-md p-4 mb-6">
-        <div class="flex flex-wrap gap-4">
-            <button @click="currentFilter = 'all'" 
-                    :class="{'bg-blue-500 text-white': currentFilter === 'all', 'bg-gray-100 text-gray-700 hover:bg-gray-200': currentFilter !== 'all'}"
-                    class="px-4 py-2 rounded-full transition-colors">
-                All
-            </button>
-            <button @click="currentFilter = 'upcoming'"
-                    :class="{'bg-blue-500 text-white': currentFilter === 'upcoming', 'bg-gray-100 text-gray-700 hover:bg-gray-200': currentFilter !== 'upcoming'}"
-                    class="px-4 py-2 rounded-full transition-colors">
-                Upcoming
-            </button>
-            <button @click="currentFilter = 'completed'"
-                    :class="{'bg-blue-500 text-white': currentFilter === 'completed', 'bg-gray-100 text-gray-700 hover:bg-gray-200': currentFilter !== 'completed'}"
-                    class="px-4 py-2 rounded-full transition-colors">
-                Completed
-            </button>
-            <button @click="currentFilter = 'cancelled'"
-                    :class="{'bg-blue-500 text-white': currentFilter === 'cancelled', 'bg-gray-100 text-gray-700 hover:bg-gray-200': currentFilter !== 'cancelled'}"
-                    class="px-4 py-2 rounded-full transition-colors">
-                Cancelled
-            </button>
+    <!-- Enhanced Filters Section -->
+    <div x-show="showFilters" 
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0 transform -translate-y-2"
+         x-transition:enter-end="opacity-100 transform translate-y-0"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100 transform translate-y-0"
+         x-transition:leave-end="opacity-0 transform -translate-y-2"
+         class="bg-white rounded-lg shadow-md p-6 mb-6">
+        
+        <!-- Status Filters -->
+        <div class="mb-6">
+            <h3 class="text-sm font-semibold text-gray-700 mb-3">Appointment Status</h3>
+            <div class="flex flex-wrap gap-3">
+                <button @click="currentFilter = 'all'" 
+                        :class="{
+                            'bg-blue-500 text-white ring-2 ring-blue-300': currentFilter === 'all',
+                            'bg-gray-100 text-gray-700 hover:bg-gray-200': currentFilter !== 'all'
+                        }"
+                        class="px-4 py-2 rounded-full transition-all duration-200 focus:outline-none">
+                    <span class="flex items-center gap-2">
+                        <svg x-show="currentFilter === 'all'" class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                        </svg>
+                        All
+                    </span>
+                </button>
+                <button @click="currentFilter = 'upcoming'"
+                        :class="{
+                            'bg-blue-500 text-white ring-2 ring-blue-300': currentFilter === 'upcoming',
+                            'bg-gray-100 text-gray-700 hover:bg-gray-200': currentFilter !== 'upcoming'
+                        }"
+                        class="px-4 py-2 rounded-full transition-all duration-200 focus:outline-none">
+                    <span class="flex items-center gap-2">
+                        <svg x-show="currentFilter === 'upcoming'" class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                        </svg>
+                        Upcoming
+                    </span>
+                </button>
+                <button @click="currentFilter = 'completed'"
+                        :class="{
+                            'bg-blue-500 text-white ring-2 ring-blue-300': currentFilter === 'completed',
+                            'bg-gray-100 text-gray-700 hover:bg-gray-200': currentFilter !== 'completed'
+                        }"
+                        class="px-4 py-2 rounded-full transition-all duration-200 focus:outline-none">
+                    <span class="flex items-center gap-2">
+                        <svg x-show="currentFilter === 'completed'" class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                        </svg>
+                        Completed
+                    </span>
+                </button>
+                <button @click="currentFilter = 'cancelled'"
+                        :class="{
+                            'bg-blue-500 text-white ring-2 ring-blue-300': currentFilter === 'cancelled',
+                            'bg-gray-100 text-gray-700 hover:bg-gray-200': currentFilter !== 'cancelled'
+                        }"
+                        class="px-4 py-2 rounded-full transition-all duration-200 focus:outline-none">
+                    <span class="flex items-center gap-2">
+                        <svg x-show="currentFilter === 'cancelled'" class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                        </svg>
+                        Cancelled
+                    </span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Date Filter -->
+        <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+            <div class="flex-1">
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Select Date</label>
+                <div class="relative">
+                    <input type="date" 
+                           x-model="dateFilter"
+                           class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200">
+                    <div x-show="dateFilter" 
+                         @click="dateFilter = ''"
+                         class="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-gray-600">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <span x-show="dateFilter || currentFilter !== 'all'" 
+                      class="text-sm text-gray-600">
+                    Active Filters: 
+                    <span x-show="currentFilter !== 'all'" 
+                          class="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
+                        Status: <span class="font-medium ml-1" x-text="currentFilter"></span>
+                    </span>
+                    <span x-show="dateFilter" 
+                          class="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
+                        Date: <span class="font-medium ml-1" x-text="dateFilter"></span>
+                    </span>
+                </span>
+                <button x-show="dateFilter || currentFilter !== 'all'"
+                        @click="dateFilter = ''; currentFilter = 'all'"
+                        class="text-sm text-red-600 hover:text-red-800">
+                    Clear All
+                </button>
+            </div>
         </div>
     </div>
 
     <!-- Appointments List -->
     <div class="space-y-6">
         @forelse($groupedAppointments as $date => $dayAppointments)
-            <div class="bg-white rounded-lg shadow-md overflow-hidden">
+            <div x-show="dateFilter === '' || dateFilter === '{{ \Carbon\Carbon::parse($date)->format('Y-m-d') }}'"
+                 class="bg-white rounded-lg shadow-md overflow-hidden">
                 <!-- Date Header -->
                 <div class="bg-gray-50 px-6 py-4 border-b">
                     <h2 class="font-semibold">{{ \Carbon\Carbon::parse($date)->format('l, F j, Y') }}</h2>
@@ -102,7 +204,7 @@
                 <!-- Appointments for the day -->
                 <div class="divide-y">
                     @foreach($dayAppointments as $appointment)
-                        <div x-show="isAppointmentVisible('{{ $appointment->status }}')"
+                        <div x-show="isAppointmentVisible('{{ $appointment->status }}', '{{ $date }}')"
                              class="p-6 hover:bg-gray-50 cursor-pointer" 
                              x-on:click="viewAppointmentDetails({{ $appointment->id }}, $event)">
                             <div class="flex items-start justify-between">
@@ -171,6 +273,12 @@
                 <a href="{{ route('home') }}" class="text-blue-500 hover:underline mt-2 inline-block">Book an appointment</a>
             </div>
         @endforelse
+
+        <!-- No Results Message -->
+        <div x-show="$el.querySelectorAll('[x-show]:not([x-show=\'false\'])').length === 0" 
+             class="bg-white rounded-lg shadow-md p-6 text-center">
+            <p class="text-gray-600">No appointments found for the selected filters</p>
+        </div>
     </div>
 
     <!-- Add the Cancel Modal -->
