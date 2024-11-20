@@ -21,6 +21,12 @@ Auth::routes();
 
 // Protected routes
 Route::middleware(['auth'])->group(function () {
+    // Move this route before the resource route to prevent conflicts
+    Route::post('/appointments/{appointment}/cancel', [AppointmentController::class, 'cancel'])
+        ->name('appointments.cancel');
+    
+    Route::resource('appointments', AppointmentController::class);
+    
     // Booking process routes (protected)
     Route::get('/book/{shop}/process', [BookingController::class, 'process'])->name('booking.process');
     Route::post('/book/{shop}/select-service', [BookingController::class, 'selectService'])->name('booking.select-service');
@@ -29,7 +35,6 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/book/{shop}/store', [BookingController::class, 'store'])->name('booking.store');
     
     // Other protected routes...
-    Route::resource('appointments', AppointmentController::class);
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index');
     Route::post('/profile/update-info', [ProfileController::class, 'updatePersonalInfo'])->name('profile.update-info');
     Route::post('/profile/update-photo', [ProfileController::class, 'updateProfilePhoto'])->name('profile.update-photo');
@@ -49,6 +54,11 @@ Route::middleware(['auth'])->group(function () {
 
     // Add this inside your auth middleware group
     Route::post('/shop/{shop}/review', [ShopController::class, 'submitReview'])->name('shop.review');
+
+    Route::get('/appointments/{appointment}/reschedule', [AppointmentController::class, 'reschedule'])
+        ->name('appointments.reschedule');
+    Route::put('/appointments/{appointment}/reschedule', [AppointmentController::class, 'updateSchedule'])
+        ->name('appointments.update-schedule');
 });
 
 Route::get('/terms', function () {
