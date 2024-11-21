@@ -17,7 +17,7 @@
                     </a>
 
                     @auth
-                        <a href="#" class="group flex items-center py-2 px-4 rounded-md transition-colors duration-200 hover:bg-gray-200">
+                        <a href="{{ route('appointments.index') }}" class="group flex items-center py-2 px-4 rounded-md transition-colors duration-200 hover:bg-gray-200">
                             <span class="text-base tracking-wide {{ request()->routeIs('appointments*') ? 'nav-active' : 'text-gray-700 hover:text-gray-900' }}">Appointments</span>
                         </a>
                     @else
@@ -120,17 +120,10 @@
                 <div class="relative" x-data="{ open: false }">
                     <button @click="open = !open" class="flex items-center space-x-2 focus:outline-none">
                         <!-- Profile Image -->
-                        @if(auth()->user()->profile_photo_url)
-                            <img src="{{ auth()->user()->profile_photo_url }}" 
-                                 alt="Profile Photo" 
-                                 class="h-8 w-8 rounded-full object-cover">
-                        @else
-                            <div class="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center">
-                                <span class="text-gray-600 text-sm">
-                                    {{ substr(auth()->user()->first_name, 0, 1) }}{{ substr(auth()->user()->last_name, 0, 1) }}
-                                </span>
-                            </div>
-                        @endif
+                        <img src="{{ auth()->user()->profile_photo_url }}" 
+                             alt="{{ auth()->user()->name }}" 
+                             class="h-8 w-8 rounded-full object-cover"
+                             onerror="this.src='{{ asset('images/default-profile.png') }}'">
                         <span class="text-gray-700">{{ auth()->user()->first_name }}</span>
                         <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
