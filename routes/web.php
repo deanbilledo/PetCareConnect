@@ -14,27 +14,14 @@ use Illuminate\Support\Facades\Route;
 // Public routes
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/petlandingpage', [ShopController::class, 'index'])->name('petlandingpage');
-Route::get('/book/{shop}', [BookingController::class, 'show'])->name('booking.show');
 
 // Authentication routes
 Auth::routes();
 
 // Protected routes
 Route::middleware(['auth'])->group(function () {
-    // Move this route before the resource route to prevent conflicts
-    Route::post('/appointments/{appointment}/cancel', [AppointmentController::class, 'cancel'])
-        ->name('appointments.cancel');
     
     Route::resource('appointments', AppointmentController::class);
-    
-    // Booking process routes (protected)
-    Route::get('/book/{shop}/process', [BookingController::class, 'process'])->name('booking.process');
-    Route::post('/book/{shop}/select-service', [BookingController::class, 'selectService'])->name('booking.select-service');
-    Route::post('/book/{shop}/select-datetime', [BookingController::class, 'selectDateTime'])->name('booking.select-datetime');
-    Route::post('/book/{shop}/confirm', [BookingController::class, 'confirm'])->name('booking.confirm');
-    Route::post('/book/{shop}/store', [BookingController::class, 'store'])->name('booking.store');
-    
-    // Other protected routes...
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index');
     Route::post('/profile/update-info', [ProfileController::class, 'updatePersonalInfo'])->name('profile.update-info');
     Route::post('/profile/update-photo', [ProfileController::class, 'updateProfilePhoto'])->name('profile.update-photo');
@@ -43,26 +30,6 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/profile/pets', [ProfileController::class, 'storePet'])->name('profile.pets.store');
     Route::put('/profile/pets/{pet}', [ProfileController::class, 'updatePet'])->name('profile.pets.update');
     Route::delete('/profile/pets/{pet}', [ProfileController::class, 'deletePet'])->name('profile.pets.delete');
-    
-    // Add this new route
-    Route::get('/booking/thank-you', function () {
-        if (!session()->has('booking_details')) {
-            return redirect()->route('home');
-        }
-        return view('booking.thank-you');
-    })->name('booking.thank-you');
-
-    // Add this inside your auth middleware group
-    Route::post('/shop/{shop}/review', [ShopController::class, 'submitReview'])->name('shop.review');
-
-    Route::get('/appointments/{appointment}/reschedule', [AppointmentController::class, 'reschedule'])
-        ->name('appointments.reschedule');
-    Route::put('/appointments/{appointment}/reschedule', [AppointmentController::class, 'updateSchedule'])
-        ->name('appointments.update-schedule');
-
-    // Shop Dashboard Routes
-    Route::get('/shop/dashboard', [ShopDashboardController::class, 'index'])->name('shop.dashboard');
-    Route::get('/switch-to-customer', [ShopDashboardController::class, 'switchToCustomerMode'])->name('switch.to.customer');
 });
 
 Route::get('/terms', function () {
@@ -72,6 +39,9 @@ Route::get('/terms', function () {
 Route::get('/privacy', function () {
     return view('pages.privacy');
 })->name('privacy');
+
+// Add this route with your existing routes
+Route::get('/book/{shop}', [BookingController::class, 'show'])->name('booking.show');
 
 // Shop Registration Routes
 Route::prefix('shop')->name('shop.')->group(function () {
@@ -89,8 +59,6 @@ Route::prefix('shop')->name('shop.')->group(function () {
 Route::middleware(['auth', \App\Http\Middleware\HasShop::class])->group(function () {
     Route::get('/shop/dashboard', [ShopDashboardController::class, 'index'])->name('shop.dashboard');
     Route::post('/shop/mode/customer', [ShopDashboardController::class, 'switchToCustomerMode'])->name('shop.mode.customer');
-    Route::post('/appointments/{appointment}/accept', [AppointmentController::class, 'accept'])
-        ->name('appointments.accept');
 });
 
 // Add this with your existing routes

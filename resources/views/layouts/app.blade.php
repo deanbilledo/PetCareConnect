@@ -12,56 +12,43 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    @yield('styles')
 </head>
-<body class="bg-gray-100 font-[Poppins] min-h-screen min-h-screen flex flex-col">
-    @php
-        $showSidebar = auth()->check() && 
-                      auth()->user()->shop && 
-                      session()->has('shop_mode') && 
-                      session('shop_mode') === true &&
-                      !request()->routeIs('home') &&
-                      !request()->is('/');
-    @endphp
-
-    <!-- Fixed Header -->
-    <div class="fixed top-0 left-0 right-0 z-50 bg-white shadow-sm">
-        @include('partials.header')
-    </div>
+<body class="bg-gray-100 font-[Poppins] min-h-screen flex flex-col">
+    <!-- Header -->
+    @include('partials.header')
 
     <!-- Main Content with Sidebar -->
-    <div class="pt-16"> <!-- Add padding-top for fixed header -->
+    <div class="flex flex-1">
+        @php
+            $showSidebar = auth()->check() && 
+                          auth()->user()->shop && 
+                          session()->has('shop_mode') && 
+                          session('shop_mode') === true &&
+                          !request()->routeIs('home') &&
+                          !request()->is('/');
+        @endphp
+        
         @if($showSidebar)
-            <!-- Fixed Sidebar -->
-            <div class="fixed left-0 top-16 bottom-0 w-56 bg-white shadow-md overflow-y-auto">
-                @include('partials.sidebar')
-            </div>
-            <!-- Main Content with margin for sidebar -->
-            <div class="ml-56 ">
-                <main class="p-6 ">
-                    @yield('content')
-                </main>
-            </div>
-        @else
-            <!-- Main Content without sidebar -->
-            <div>
-                <main class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    @yield('content')
-                </main>
-            </div>
-            <!-- Only show footer in non-shop mode -->
-            @include('partials.footer')
+            <!-- Sidebar - only included in shop mode -->
+            @include('partials.sidebar')
         @endif
+        
+        <!-- Main Content -->
+        <main class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            @yield('content')   
+        </main>
     </div>
+
+    <!-- Footer -->
+    @include('partials.footer')
 
     @if(session()->has('mode_switch'))
     <script>
+        // Force a complete page reload when switching modes
         if (performance && performance.navigation.type === performance.navigation.TYPE_BACK_FORWARD) {
             location.reload(true);
         }
     </script>
     @endif
-
-    @stack('scripts')
 </body>
 </html> 

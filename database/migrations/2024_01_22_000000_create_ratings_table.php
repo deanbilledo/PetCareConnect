@@ -10,14 +10,14 @@ return new class extends Migration
     {
         Schema::create('ratings', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->foreignId('shop_id')->constrained()->onDelete('cascade');
-            $table->integer('rating');
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->decimal('rating', 2, 1);
             $table->text('comment')->nullable();
             $table->timestamps();
 
             // Prevent duplicate ratings from the same user for the same shop
-            $table->unique(['user_id', 'shop_id']);
+            $table->unique(['shop_id', 'user_id']);
         });
     }
 

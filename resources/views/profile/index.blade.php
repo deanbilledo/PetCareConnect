@@ -1,17 +1,5 @@
 @extends('layouts.app')
 
-@section('styles')
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-      crossorigin="anonymous"/>
-@endsection
-
-@section('scripts')
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-        crossorigin="anonymous"></script>
-@endsection
-
 @section('content')
 <div class="container mx-auto px-4 py-8">
     <!-- Back Button -->
@@ -27,11 +15,15 @@
     <!-- Profile Header -->
     <div class="flex flex-col items-center mb-8">
         <div class="relative inline-block">
-            <img src="{{ $user->profile_photo_url }}" 
-                 alt="Profile Photo" 
-                 class="w-32 h-32 rounded-full object-cover"
-                 onerror="this.src='{{ asset('images/default-profile.png') }}'"
-            >
+            @if($user->profile_photo_url)
+                <img src="{{ $user->profile_photo_url }}" alt="Profile Photo" class="w-32 h-32 rounded-full object-cover">
+            @else
+                <div class="w-32 h-32 rounded-full bg-gray-200 flex items-center justify-center">
+                    <span class="text-gray-600 text-3xl">
+                        {{ substr($user->first_name, 0, 1) }}{{ substr($user->last_name, 0, 1) }}
+                    </span>
+                </div>
+            @endif
             <form action="{{ route('profile.update-photo') }}" method="POST" enctype="multipart/form-data" class="absolute bottom-0 right-0">
                 @csrf
                 <label for="profile_photo" class="cursor-pointer bg-white rounded-full p-2 shadow-lg hover:bg-gray-50 border border-gray-200 flex items-center justify-center w-8 h-8">
@@ -74,83 +66,7 @@
     </div>
 
     <!-- Location Section -->
-    <div class="bg-white rounded-lg shadow-md p-6 mb-8 relative" 
-         x-data="{ 
-            isEditing: false,
-            map: null,
-            marker: null,
-            async initMap() {
-                // Wait for the editing state to be true and the map container to be visible
-                await this.$nextTick();
-                
-                // Add a small delay to ensure DOM is ready
-                setTimeout(() => {
-                    const mapContainer = document.getElementById('map');
-                    if (!mapContainer || this.map) return;
-
-                    try {
-                        this.map = L.map('map').setView([8.1479, 123.8370], 13);
-                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                            attribution: '© OpenStreetMap contributors'
-                        }).addTo(this.map);
-
-                        // Force a map refresh
-                            this.map.invalidateSize();
-
-                        // Add click event to map
-                        this.map.on('click', (e) => {
-                            if (this.marker) {
-                                this.map.removeLayer(this.marker);
-                            }
-                            this.marker = L.marker(e.latlng).addTo(this.map);
-                            this.updateAddressFromLatLng(e.latlng.lat, e.latlng.lng);
-                        });
-                    } catch (error) {
-                        console.error('Map initialization error:', error);
-                    }
-                }, 250); // Added delay of 250ms
-            },
-            async getCurrentLocation() {
-                if (!navigator.geolocation) {
-                    alert('Geolocation is not supported by your browser');
-                    return;
-                }
-
-                try {
-                    const position = await new Promise((resolve, reject) => {
-                        navigator.geolocation.getCurrentPosition(resolve, reject);
-                    });
-
-                    const { latitude, longitude } = position.coords;
-                    
-                    // Initialize map if it hasn't been initialized yet
-                    if (!this.map) {
-                        await this.initMap();
-                    }
-                    
-                    if (this.marker) {
-                        this.map.removeLayer(this.marker);
-                    }
-                    
-                    this.map.setView([latitude, longitude], 16);
-                    this.marker = L.marker([latitude, longitude]).addTo(this.map);
-                    
-                    await this.updateAddressFromLatLng(latitude, longitude);
-                } catch (error) {
-                    alert('Error getting location: ' + error.message);
-                }
-            },
-            async updateAddressFromLatLng(lat, lng) {
-                try {
-                    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`);
-                    const data = await response.json();
-                    document.getElementById('address-input').value = data.display_name;
-                } catch (error) {
-                    console.error('Error fetching address:', error);
-                }
-            }
-         }"
-         x-init="$watch('isEditing', value => { if (value) initMap() })">
+    <div class="bg-white rounded-lg shadow-md p-6 mb-8 relative" x-data="{ isEditing: false }">
         <div class="flex justify-between items-center mb-4">
             <h2 class="text-xl font-semibold">Location</h2>
             <button type="button" 
@@ -159,7 +75,6 @@
                 <span x-text="isEditing ? 'Cancel' : 'Edit'"></span>
             </button>
         </div>
-        
         <!-- Location Display -->
         <div x-show="!isEditing" 
              x-transition:enter="transition ease-out duration-300"
@@ -168,7 +83,6 @@
              class="min-h-[24px]">
             <p class="text-gray-600">{{ $user->address ?? 'No address set' }}</p>
         </div>
-
         <!-- Location Edit Form -->
         <div x-show="isEditing"
              x-transition:enter="transition ease-out duration-300"
@@ -180,29 +94,13 @@
             <form action="{{ route('profile.update-location') }}" method="POST">
                 @csrf
                 <div class="space-y-4">
-                    <div class="flex gap-2">
-                        <div class="flex-1">
-                            <label class="block text-sm font-medium text-gray-700">Address</label>
-                            <input type="text" 
-                                   id="address-input"
-                                   name="address" 
-                                   value="{{ $user->address }}" 
-                                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
-                        </div>
-                        <div class="flex items-end">
-                            <button type="button" 
-                                    @click="getCurrentLocation()"
-                                    class="h-10 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
-                                </svg>
-                            </button>
-                        </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Address</label>
+                        <input type="text" 
+                               name="address" 
+                               value="{{ $user->address }}" 
+                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
                     </div>
-
-                    <!-- Map Container -->
-                    <div id="map" class="h-64 rounded-lg border border-gray-300"></div>
-
                     <div class="flex justify-end space-x-3">
                         <button type="button" 
                                 @click="isEditing = false" 
@@ -332,13 +230,6 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                     </svg>
                                 </button>
-                                <form id="delete-pet-form-{{ $pet->id }}" 
-                                      action="{{ route('profile.pets.delete', $pet) }}" 
-                                      method="POST" 
-                                      class="hidden">
-                                    @csrf
-                                    @method('DELETE')
-                                </form>
                             </div>
                         </td>
                     </tr>

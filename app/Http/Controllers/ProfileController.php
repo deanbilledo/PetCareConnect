@@ -65,51 +65,32 @@ class ProfileController extends Controller
             'profile_photo' => 'required|image|mimes:jpeg,png,jpg|max:2048'
         ]);
 
-        try {
-            $user = auth()->user();
-            \Log::info('Updating profile photo for user: ' . $user->id);
+        $user = auth()->user();
 
-            if ($request->hasFile('profile_photo')) {
-                // Delete old profile photo if exists
-                if ($user->profile_photo_path && Storage::disk('public')->exists($user->profile_photo_path)) {
-                    \Log::info('Deleting old profile photo: ' . $user->profile_photo_path);
-                    Storage::disk('public')->delete($user->profile_photo_path);
-                }
-
-                // Store new profile photo
-                $file = $request->file('profile_photo');
-                $path = $file->store('profile-photos', 'public');
-                \Log::info('New profile photo stored at: ' . $path);
-                
-                // Verify file exists
-                if (!Storage::disk('public')->exists($path)) {
-                    throw new \Exception('Failed to store profile photo');
-                }
-
-                // Update user with new photo path
-                $user->update([
-                    'profile_photo_path' => $path
-                ]);
-
-                // Log the full URL that should be used
-                \Log::info('Full URL should be: ' . Storage::disk('public')->url($path));
-                \Log::info('Asset URL would be: ' . asset('storage/' . $path));
-
-                return back()->with('success', 'Profile photo updated successfully');
+        if ($request->hasFile('profile_photo')) {
+            // Delete old profile photo if exists
+            if ($user->profile_photo_path && Storage::disk('public')->exists($user->profile_photo_path)) {
+                Storage::disk('public')->delete($user->profile_photo_path);
             }
 
-            return back()->with('error', 'No photo uploaded');
-        } catch (\Exception $e) {
-            \Log::error('Error updating profile photo: ' . $e->getMessage());
-            \Log::error($e->getTraceAsString());
-            return back()->with('error', 'Failed to update profile photo: ' . $e->getMessage());
+            // Store new profile photo
+            $path = $request->file('profile_photo')->store('profile-photos', 'public');
+            
+            // Update user with new photo path
+            $user->update([
+                'profile_photo_path' => $path
+            ]);
+
+            return back()->with('success', 'Profile photo updated successfully');
         }
+
+        return back()->with('error', 'No photo uploaded');
     }
 
     public function updateLocation(Request $request)
     {
         $request->validate([
-            'address' => 'required|string|max:500',
+            'address' => 'required|string|max:255',
         ]);
 
         $user = auth()->user();
