@@ -7,11 +7,7 @@
             <div class="z-10 mb-8 lg:mb-0 lg:w-1/2 text-left">
                 <p class="text-gray-600 mb-2">No need to worry,</p>
                 <h2 class="text-4xl font-bold mb-4">We Provide Grooming and Vet Checks</h2>
-                <button 
-                    onclick="window.location.href='{{ route('appointments.create') }}'"
-                    class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-full transition duration-300 ease-in-out mb-4">
-                    Book new appointment
-                </button>
+               
                 <div class="relative">
                     <input 
                         type="text" 
