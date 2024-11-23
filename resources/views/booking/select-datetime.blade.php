@@ -3,7 +3,7 @@
 @section('content')
 <div class="container mx-auto px-4 py-6">
     <!-- Back Button -->
-    <div class="mb-4">
+    <div class="mb-4 mt-8">
         <form action="{{ route('booking.select-service', $shop) }}" method="POST" id="backForm">
             @csrf
             @foreach(request('pet_ids') as $petId)

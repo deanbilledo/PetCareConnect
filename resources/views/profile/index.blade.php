@@ -15,7 +15,7 @@
 @section('content')
 <div class="container mx-auto px-4 py-8">
     <!-- Back Button -->
-    <div class="mb-6 mt-8">
+    <div class="mb-6 mt-8   ">
         <a href="{{ route('home') }}" class="flex items-center text-gray-600 hover:text-gray-900">
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
@@ -27,23 +27,32 @@
     <!-- Profile Header -->
     <div class="flex flex-col items-center mb-8">
         <div class="relative inline-block">
-            <img src="{{ $user->profile_photo_url }}" 
+            <img src="{{ auth()->user()->profile_photo_url }}" 
                  alt="Profile Photo" 
-                 class="w-32 h-32 rounded-full object-cover"
-                 onerror="this.src='{{ asset('images/default-profile.png') }}'"
-            >
-            <form action="{{ route('profile.update-photo') }}" method="POST" enctype="multipart/form-data" class="absolute bottom-0 right-0">
+                 class="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg"
+                 onerror="this.src='{{ asset('images/default-profile.png') }}'">
+
+            <form action="{{ route('profile.update-photo') }}" 
+                  method="POST" 
+                  enctype="multipart/form-data" 
+                  id="profile-photo-form"
+                  class="absolute bottom-0 right-0">
                 @csrf
-                <label for="profile_photo" class="cursor-pointer bg-white rounded-full p-2 shadow-lg hover:bg-gray-50 border border-gray-200 flex items-center justify-center w-8 h-8">
+                <label for="profile_photo" 
+                       class="cursor-pointer bg-white rounded-full p-2 shadow-lg hover:bg-gray-50 border border-gray-200 flex items-center justify-center w-8 h-8">
                     <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
                 </label>
-                <input type="file" id="profile_photo" name="profile_photo" class="hidden" onchange="this.form.submit()">
+                <input type="file" 
+                       id="profile_photo" 
+                       name="profile_photo" 
+                       class="hidden" 
+                       accept="image/*">
             </form>
         </div>
-        <h1 class="text-2xl font-bold mt-6">{{ $user->first_name }} {{ $user->last_name }}</h1>
+        <h1 class="text-2xl font-bold mt-4">{{ $user->first_name }} {{ $user->last_name }}</h1>
     </div>
 
     <!-- Add this right after the profile header section -->
@@ -255,6 +264,7 @@
             showAddForm: false,
             editingPet: null,
             toggleEdit(petId) {
+                // Fixed: Changed petIds to petId in the comparison
                 this.editingPet = this.editingPet === petId ? null : petId;
             },
             deletePet(petId) {
@@ -307,12 +317,16 @@
                         <input type="text" name="breed" required class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Weight (kg)</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Weight</label>
                         <input type="text" name="weight" required class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Height (cm)</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Height</label>
                         <input type="text" name="height" required class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
+                        <input type="date" name="date_of_birth" required class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
                     </div>
                 </div>
                 <div class="flex justify-end space-x-3">
@@ -419,12 +433,16 @@
                                         <input type="text" name="breed" value="{{ $pet->breed }}" required class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
                                     </div>
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Weight (kg)</label>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Weight</label>
                                         <input type="text" name="weight" value="{{ $pet->weight }}" required class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
                                     </div>
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Height (cm)</label>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Height</label>
                                         <input type="text" name="height" value="{{ $pet->height }}" required class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
+                                        <input type="date" name="date_of_birth" value="{{ $pet->date_of_birth ?? '' }}" required class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
                                     </div>
                                 </div>
                                 <div class="flex justify-end space-x-3">
@@ -489,3 +507,29 @@
     
 </div>
 @endsection 
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const profilePhotoInput = document.getElementById('profile_photo');
+    const form = document.getElementById('profile-photo-form');
+    const label = form.querySelector('label');
+
+    profilePhotoInput.addEventListener('change', function() {
+        if (this.files && this.files[0]) {
+            // Show loading state
+            const originalContent = label.innerHTML;
+            label.innerHTML = `
+                <svg class="animate-spin h-4 w-4 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+            `;
+
+            // Submit form
+            form.submit();
+        }
+    });
+});
+</script>
+@endpush

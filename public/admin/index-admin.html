@@ -173,6 +173,99 @@
                         </table>
                     </div>
                 </div>
+
+                <!-- User Management -->
+                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 mb-6 transform hover:scale-105 transition-transform duration-300">
+                    <h3 class="text-lg font-semibold mb-4">User Management</h3>
+                    <div class="flex mb-4 gap-4">
+                        <input type="text" placeholder="Search users..." class="flex-1 p-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <select class="p-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="">All Roles</option>
+                            <option value="customer">Customer</option>
+                            <option value="shop_owner">Shop Owner</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                        <button class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 rounded-xl">
+                            Add User
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto rounded-xl">
+                        <table class="w-full table-auto">
+                            <thead>
+                                <tr class="bg-gray-200 dark:bg-gray-700">
+                                    <th class="px-4 py-2 text-left rounded-tl-xl">Name</th>
+                                    <th class="px-4 py-2 text-left">Email</th>
+                                    <th class="px-4 py-2 text-left">Role</th>
+                                    <th class="px-4 py-2 text-left">Status</th>
+                                    <th class="px-4 py-2 text-left">Joined Date</th>
+                                    <th class="px-4 py-2 text-left rounded-tr-xl">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="border-b dark:border-gray-700">
+                                    <td class="px-4 py-3">
+                                        <div class="flex items-center">
+                                            <img class="h-8 w-8 rounded-full mr-3" src="../images/01.jpg" alt="User">
+                                            <span>John Smith</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-3">john.smith@email.com</td>
+                                    <td class="px-4 py-3"><span class="px-2 py-1 bg-blue-200 text-blue-800 rounded-full text-sm">Customer</span></td>
+                                    <td class="px-4 py-3"><span class="px-2 py-1 bg-green-200 text-green-800 rounded-full text-sm">Active</span></td>
+                                    <td class="px-4 py-3">2024-01-15</td>
+                                    <td class="px-4 py-3">
+                                        <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded-lg mr-2">Edit</button>
+                                        <button class="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded-lg">Delete</button>
+                                    </td>
+                                </tr>
+                                <tr class="border-b dark:border-gray-700">
+                                    <td class="px-4 py-3">
+                                        <div class="flex items-center">
+                                            <img class="h-8 w-8 rounded-full mr-3" src="../images/02.jpg" alt="User">
+                                            <span>Sarah Johnson</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-3">sarah.j@email.com</td>
+                                    <td class="px-4 py-3"><span class="px-2 py-1 bg-purple-200 text-purple-800 rounded-full text-sm">Shop Owner</span></td>
+                                    <td class="px-4 py-3"><span class="px-2 py-1 bg-green-200 text-green-800 rounded-full text-sm">Active</span></td>
+                                    <td class="px-4 py-3">2024-02-01</td>
+                                    <td class="px-4 py-3">
+                                        <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded-lg mr-2">Edit</button>
+                                        <button class="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded-lg">Delete</button>
+                                    </td>
+                                </tr>
+                                <tr class="border-b dark:border-gray-700">
+                                    <td class="px-4 py-3">
+                                        <div class="flex items-center">
+                                            <img class="h-8 w-8 rounded-full mr-3" src="../images/03.jpg" alt="User">
+                                            <span>Mike Wilson</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-3">mike.w@email.com</td>
+                                    <td class="px-4 py-3"><span class="px-2 py-1 bg-yellow-200 text-yellow-800 rounded-full text-sm">Admin</span></td>
+                                    <td class="px-4 py-3"><span class="px-2 py-1 bg-green-200 text-green-800 rounded-full text-sm">Active</span></td>
+                                    <td class="px-4 py-3">2023-12-10</td>
+                                    <td class="px-4 py-3">
+                                        <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded-lg mr-2">Edit</button>
+                                        <button class="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded-lg">Delete</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="mt-4 flex items-center justify-between">
+                        <div class="text-sm text-gray-600 dark:text-gray-400">
+                            Showing 1 to 3 of 50 entries
+                        </div>
+                        <div class="flex gap-2">
+                            <button class="px-3 py-1 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600">Previous</button>
+                            <button class="px-3 py-1 rounded-lg bg-indigo-500 text-white hover:bg-indigo-600">1</button>
+                            <button class="px-3 py-1 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600">2</button>
+                            <button class="px-3 py-1 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600">3</button>
+                            <button class="px-3 py-1 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600">Next</button>
+                        </div>
+                    </div>
+                </div>
             </main>
         </div>
     </div>

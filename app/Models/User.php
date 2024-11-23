@@ -55,11 +55,15 @@ class User extends Authenticatable
         return "{$this->first_name} {$this->last_name}";
     }
 
+    /**
+     * Get the user's profile photo URL.
+     */
     public function getProfilePhotoUrlAttribute()
     {
         if ($this->profile_photo_path) {
-            return asset('storage/' . $this->profile_photo_path);
+            return Storage::disk('public')->url($this->profile_photo_path);
         }
+
         return asset('images/default-profile.png');
     }
 
@@ -72,4 +76,4 @@ class User extends Authenticatable
     {
         return $this->hasMany(Appointment::class);
     }
-} 
+}

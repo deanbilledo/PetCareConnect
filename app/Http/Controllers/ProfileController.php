@@ -17,6 +17,11 @@ class ProfileController extends Controller
     public function index()
     {
         $user = auth()->user();
+        
+        // Add this debug code temporarily
+        \Log::info('Profile photo path: ' . $user->profile_photo_path);
+        \Log::info('Full URL: ' . asset('storage/' . $user->profile_photo_path));
+        
         $pets = $user->pets;
         $recentTransactions = [
             [
@@ -67,33 +72,21 @@ class ProfileController extends Controller
 
         try {
             $user = auth()->user();
-            \Log::info('Updating profile photo for user: ' . $user->id);
 
             if ($request->hasFile('profile_photo')) {
                 // Delete old profile photo if exists
                 if ($user->profile_photo_path && Storage::disk('public')->exists($user->profile_photo_path)) {
-                    \Log::info('Deleting old profile photo: ' . $user->profile_photo_path);
                     Storage::disk('public')->delete($user->profile_photo_path);
                 }
 
-                // Store new profile photo
-                $file = $request->file('profile_photo');
-                $path = $file->store('profile-photos', 'public');
-                \Log::info('New profile photo stored at: ' . $path);
+                // Store new profile photo with timestamp to prevent caching issues
+                $fileName = time() . '_' . $request->file('profile_photo')->getClientOriginalName();
+                $path = $request->file('profile_photo')->storeAs('profile-photos', $fileName, 'public');
                 
-                // Verify file exists
-                if (!Storage::disk('public')->exists($path)) {
-                    throw new \Exception('Failed to store profile photo');
-                }
-
                 // Update user with new photo path
                 $user->update([
                     'profile_photo_path' => $path
                 ]);
-
-                // Log the full URL that should be used
-                \Log::info('Full URL should be: ' . Storage::disk('public')->url($path));
-                \Log::info('Asset URL would be: ' . asset('storage/' . $path));
 
                 return back()->with('success', 'Profile photo updated successfully');
             }
@@ -101,8 +94,7 @@ class ProfileController extends Controller
             return back()->with('error', 'No photo uploaded');
         } catch (\Exception $e) {
             \Log::error('Error updating profile photo: ' . $e->getMessage());
-            \Log::error($e->getTraceAsString());
-            return back()->with('error', 'Failed to update profile photo: ' . $e->getMessage());
+            return back()->with('error', 'Failed to update profile photo');
         }
     }
 
@@ -222,4 +214,14 @@ class ProfileController extends Controller
             ->route('profile.pets.details', $pet)
             ->with('success', 'Vaccination record added successfully');
     }
-} 
+
+    public function showAddHealthRecord(Pet $pet)
+    {
+        // Ensure the user can only access their own pets
+        if ($pet->user_id !== auth()->id()) {
+            abort(403);
+        }
+
+        return view('profile.pets.add-health-record', compact('pet'));
+    }
+}

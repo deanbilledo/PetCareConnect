@@ -18,6 +18,11 @@ Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/petlandingpage', [ShopController::class, 'index'])->name('petlandingpage');
 Route::get('/book/{shop}', [BookingController::class, 'show'])->name('booking.show');
 
+// Add this route where other public routes are defined
+Route::get('/grooming', function () {
+    return view('groomVetLandingPage.groominglandingpage');
+})->name('grooming');
+
 // Authentication routes
 Auth::routes();
 
@@ -101,11 +106,13 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/profile/pets/{pet}/details', [ProfileController::class, 'showPetDetails'])
         ->name('profile.pets.details');
 
-    Route::get('/profile/pets/{pet}/add-health-record', function(Pet $pet) {
-        if ($pet->user_id !== auth()->id()) {
-            abort(403);
-        }
-        return view('profile.pets.add-health-record', compact('pet'));
+    Route::get('/profile/pets/{id}/add-health-record', function($id) {
+        return view('profile.pets.add-health-record', ['pet' => (object)[
+            'id' => $id, 
+            'name' => 'Pet',
+            // Add __toString method by converting to array
+            '__toString' => fn() => $id
+        ]]);
     })->name('profile.pets.add-health-record');
 
     // Add this inside your auth middleware group
@@ -123,6 +130,18 @@ Route::middleware(['auth'])->group(function () {
         }
         return view('pets.health-record', compact('pet'));
     })->name('pets.health-record');
+
+    // Add these routes for health records
+    Route::get('/pets/{pet}/add-health-record', [ProfileController::class, 'showAddHealthRecord'])
+        ->name('profile.pets.add-health-record');
+    Route::post('/pets/{pet}/store-health-record', [ProfileController::class, 'storeHealthRecord'])
+        ->name('profile.pets.store-health-record');
+    Route::post('/pets/{pet}/store-vaccination', [ProfileController::class, 'storeVaccination'])
+        ->name('profile.pets.store-vaccination');
+    Route::post('/pets/{pet}/store-parasite-control', [ProfileController::class, 'storeParasiteControl'])
+        ->name('profile.pets.store-parasite-control');
+    Route::post('/pets/{pet}/store-health-issue', [ProfileController::class, 'storeHealthIssue'])
+        ->name('profile.pets.store-health-issue');
 });
 
 Route::get('/terms', function () {
@@ -154,6 +173,4 @@ Route::middleware(['auth', \App\Http\Middleware\HasShop::class])->group(function
 });
 
 // Add this with your existing routes
-Route::get('/grooming-shops', function() {
-    return view('groomVetLandingPage.groominglandingpage');
-})->name('groomingShops');
+Route::get('/grooming-shops', [ShopController::class, 'groomingShops'])->name('groomingShops');

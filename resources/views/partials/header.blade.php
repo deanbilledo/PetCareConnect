@@ -96,8 +96,8 @@
                         </div>
                     @endauth
 
-                    <a href="{{ route('groomingShops') }}" class="group flex items-center py-2 px-4 rounded-md transition-colors duration-200 hover:bg-gray-200">
-                        <span class="text-base tracking-wide {{ request()->routeIs('groomingShops') ? 'nav-active' : 'text-gray-700 hover:text-gray-900' }}">Grooming</span>
+                    <a href="{{ route('grooming') }}" class="group flex items-center py-2 px-4 rounded-md transition-colors duration-200 hover:bg-gray-200">
+                        <span class="text-base tracking-wide {{ request()->routeIs('grooming') ? 'nav-active' : 'text-gray-700 hover:text-gray-900' }}">Grooming</span>
                     </a>
 
                     <a href="{{ route('petlandingpage') }}" class="group flex items-center py-2 px-4 rounded-md transition-colors duration-200 hover:bg-gray-200">
@@ -197,7 +197,7 @@
                                 @csrf
                                 <button type="submit" class="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                     <svg class="mr-3 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
                                     </svg>
                                     Logout
                                 </button>
@@ -221,4 +221,4 @@
             @endauth
         </div>
     </div>
-</header> 
+</header>
