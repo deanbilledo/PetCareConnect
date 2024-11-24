@@ -181,3 +181,16 @@ Route::middleware(['auth', \App\Http\Middleware\HasShop::class])->group(function
 
 // Add this with your existing routes
 Route::get('/grooming-shops', [ShopController::class, 'groomingShops'])->name('groomingShops');
+
+// Add these routes with your other public routes
+Route::get('/faqs', function () {
+    return view('pages.faqs');
+})->name('faqs');
+
+Route::get('/privacy', function () {
+    return view('pages.privacy');
+})->name('privacy');
+
+Route::get('/terms', function () {
+    return view('pages.terms');
+})->name('terms');

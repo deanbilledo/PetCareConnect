@@ -140,12 +140,12 @@ class BookingController extends Controller
             return [
                 'full_grooming' => [
                     'name' => 'Full Grooming Service',
-                    'price' => 1499,
+                    'price' => 799,
                     'description' => 'Bath, Haircut, Nail Trimming, Ear Cleaning'
                 ],
                 'basic_bath' => [
                     'name' => 'Basic Bath Package',
-                    'price' => 749,
+                    'price' => 349,
                     'description' => 'Bath and Blow Dry'
                 ],
                 // Add more grooming services
@@ -154,12 +154,12 @@ class BookingController extends Controller
             return [
                 'checkup' => [
                     'name' => 'General Check-up',
-                    'price' => 800,
+                    'price' => 299,
                     'description' => 'Complete Physical Examination'
                 ],
                 'vaccination' => [
                     'name' => 'Vaccination',
-                    'price' => 1500,
+                    'price' => 899,
                     'description' => 'Core Vaccines Available'
                 ],
                 // Add more veterinary services
