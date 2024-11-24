@@ -29,6 +29,19 @@
             <div class="text-center">
                 <h2 class="text-3xl font-bold mb-4">Join Our Platform as a Partner</h2>
                 <p class="text-gray-600 mb-4">Are you a veterinary clinic or grooming shop owner? Partner with us to reach more pet owners and grow your business.</p>
+                
+                <!-- Add subscription info box -->
+                <div class="mt-6 mb-8 bg-blue-50 p-4 rounded-lg">
+                    <div class="flex items-center justify-center mb-2">
+                        <svg class="w-5 h-5 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <span class="font-semibold text-blue-800">30-Day Free Trial</span>
+                    </div>
+                    <p class="text-sm text-blue-700">
+                        Start with a 30-day free trial. After trial period, continue growing your business for just ₱299/month.
+                    </p>
+                </div>
             </div>
 
             <div class="space-y-6">

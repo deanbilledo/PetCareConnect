@@ -19,7 +19,7 @@
         <!-- Sidebar -->
         <aside id="sidebar" class="bg-white text-gray-800 w-64 min-h-screen p-4 transition-all duration-300 ease-in-out transform rounded-r-3xl shadow-[0_35px_60px_-15px_rgba(0,0,0,0.3)]">
             <div class="flex items-center mb-12">
-                <img src="../images/1.png" alt="Logo" class="w-180 h-70">
+                <img src="../images/logo.png" alt="Logo" class="w-180 h-70">
             </div>
             <nav>
                 <a href="index-admin.html" class="flex items-center py-2.5 px-4 rounded-xl transition duration-200 hover:bg-gray-100 mb-1">
@@ -86,16 +86,16 @@
                                     <th class="px-4 py-2 text-left rounded-tl-xl">Shop Name</th>
                                     <th class="px-4 py-2 text-left">Owner</th>
                                     <th class="px-4 py-2 text-left">Location</th>
-                                    <th class="px-4 py-2 text-left">Services</th>
+                                    <th class="px-4 py-2 text-left">Shop Type</th>
                                     <th class="px-4 py-2 text-left rounded-tr-xl">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr class="border-b dark:border-gray-700">
-                                    <td class="px-4 py-2">Happy Paws</td>
-                                    <td class="px-4 py-2">Jane Smith</td>
-                                    <td class="px-4 py-2">Los Angeles</td>
-                                    <td class="px-4 py-2">Grooming, Boarding</td>
+                                    <td class="px-4 py-2">Paws and Claws    </td>
+                                    <td class="px-4 py-2">Michael Smith</td>
+                                    <td class="px-4 py-2">Sta. Maria, Zamboanga City</td>
+                                    <td class="px-4 py-2">Grooming Shop</td>
                                     <td class="px-4 py-2">
                                         <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded-lg mr-2" onclick="viewShopDetails('Happy Paws')">View</button>
                                         <button class="bg-green-500 hover:bg-green-700 text-white font-bold py-1 px-2 rounded-lg mr-2" onclick="approveShop('Happy Paws')">Approve</button>
@@ -127,7 +127,7 @@
                                     <th class="px-4 py-2 text-left">Owner</th>
                                     <th class="px-4 py-2 text-left">Location</th>
                                     <th class="px-4 py-2 text-left">Status</th>
-                                    <th class="px-4 py-2 text-left">Revenue</th>
+                                    <th class="px-4 py-2 text-left">Shop Type</th>
                                     <th class="px-4 py-2 text-left rounded-tr-xl">Actions</th>
                                 </tr>
                             </thead>
@@ -135,9 +135,9 @@
                                 <tr class="border-b dark:border-gray-700">
                                     <td class="px-4 py-2">Pawsome Grooming</td>
                                     <td class="px-4 py-2">John Doe</td>
-                                    <td class="px-4 py-2">New York</td>
+                                    <td class="px-4 py-2">Tetuan, Zamboanga City</td>
                                     <td class="px-4 py-2"><span class="px-2 py-1 bg-green-200 text-green-800 rounded-full text-sm">Active</span></td>
-                                    <td class="px-4 py-2">₱70,000</td>
+                                    <td class="px-4 py-2">Pet Grooming</td>
                                     <td class="px-4 py-2">
                                         <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded-lg mr-2" onclick="editShop('Pawsome Grooming')">Edit</button>
                                         <button class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-1 px-2 rounded-lg mr-2" onclick="toggleShopStatus('Pawsome Grooming', 'active')">Suspend</button>
@@ -225,6 +225,31 @@
                     <button id="closeViewModal" class="px-4 py-2 bg-gray-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-300">
                         Close
                     </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Approve Shop Modal -->
+    <div id="approveShopModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden flex items-center justify-center">
+        <div class="relative p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
+            <div class="mt-3 text-center">
+                <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white">Approve Shop Registration</h3>
+                <div class="mt-2 px-7 py-3">
+                    <p class="text-gray-700 dark:text-gray-300 mb-4">Are you sure you want to approve this shop?</p>
+                    <div id="approveShopDetails" class="text-left bg-gray-50 dark:bg-gray-700 p-4 rounded-xl mb-4">
+                        <p><strong>Shop Name:</strong> <span id="approveShopName"></span></p>
+                        <p><strong>Owner:</strong> <span id="approveShopOwner"></span></p>
+                        <p><strong>Location:</strong> <span id="approveShopLocation"></span></p>
+                    </div>
+                    <div class="flex justify-between gap-4">
+                        <button id="confirmApprove" class="flex-1 px-4 py-2 bg-green-500 text-white text-base font-medium rounded-md shadow-sm hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-300">
+                            Confirm
+                        </button>
+                        <button id="cancelApprove" class="flex-1 px-4 py-2 bg-gray-500 text-white text-base font-medium rounded-md shadow-sm hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-300">
+                            Cancel
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -404,9 +429,9 @@
             shopDetails.innerHTML = `
                 <p><strong>Shop Name:</strong> ${shopName}</p>
                 <p><strong>Owner:</strong> Jane Smith</p>
-                <p><strong>Location:</strong> Los Angeles</p>
-                <p><strong>Services:</strong> Grooming, Boarding</p>
-                <p><strong>Description:</strong> A cozy pet care center offering premium grooming and boarding services.</p>
+                <p><strong>Location:</strong> Guiwan, Zamboanga City</p>
+                <p><strong>Shop Type:</strong> Veterinary Clinic</p>
+                <p><strong>Description:</strong> A cozy pet care center offering premium veterinary services.</p>
             `;
             
             modal.classList.remove('hidden');
@@ -414,13 +439,32 @@
 
         // Function to approve shop
         function approveShop(shopName) {
-            if (confirm(`Are you sure you want to approve ${shopName}?`)) {
+            const modal = document.getElementById('approveShopModal');
+            const shopNameSpan = document.getElementById('approveShopName');
+            const shopOwnerSpan = document.getElementById('approveShopOwner');
+            const shopLocationSpan = document.getElementById('approveShopLocation');
+            
+            // Set the details in the modal (replace with actual data in production)
+            shopNameSpan.textContent = shopName;
+            shopOwnerSpan.textContent = "Michael Smith";
+            shopLocationSpan.textContent = "Sta. Maria, Zamboanga City";
+            
+            modal.classList.remove('hidden');
+            
+            // Handle confirm button click
+            document.getElementById('confirmApprove').onclick = function() {
                 // Implement approval logic here
                 console.log(`${shopName} has been approved`);
                 // You would typically send this to your backend and then update the UI
                 alert(`${shopName} has been approved successfully!`);
+                modal.classList.add('hidden');
                 // Optionally, remove the row from the table or update its status
-            }
+            };
+            
+            // Handle cancel button click
+            document.getElementById('cancelApprove').onclick = function() {
+                modal.classList.add('hidden');
+            };
         }
 
         // Function to reject shop
@@ -444,6 +488,8 @@
             const analyticsModal = document.getElementById('shopAnalyticsModal');
             const editModal = document.getElementById('editShopModal');
             const viewModal = document.getElementById('viewShopModal');
+            const approveModal = document.getElementById('approveShopModal');
+            
             if (event.target == analyticsModal) {
                 analyticsModal.classList.add('hidden');
             }
@@ -452,6 +498,9 @@
             }
             if (event.target == viewModal) {
                 viewModal.classList.add('hidden');
+            }
+            if (event.target == approveModal) {
+                approveModal.classList.add('hidden');
             }
         }
     </script>

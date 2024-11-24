@@ -49,50 +49,15 @@
             <span class="font-medium">Analytics</span>
         </a>
 
-        <!-- Settings Section -->
-        <div class="space-y-1">
-            <p class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">Settings</p>
-            
-            <!-- Shop Profile Settings -->
-            <a href="{{ route('shop.settings') }}#shop-profile" 
-               class="flex items-center px-4 py-2 text-sm transition-colors"
-               :class="{ 'bg-blue-50 text-blue-600': currentFragment === '#shop-profile' || currentFragment === '', 'text-gray-600 hover:bg-gray-50 hover:text-gray-900': currentFragment !== '#shop-profile' && currentFragment !== '' }">
-                <svg class="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                </svg>
-                <span>Shop Profile</span>
-            </a>
-
-            <!-- Business Hours -->
-            <a href="{{ route('shop.settings') }}#business-hours" 
-               class="flex items-center px-4 py-2 text-sm transition-colors"
-               :class="{ 'bg-blue-50 text-blue-600': currentFragment === '#business-hours', 'text-gray-600 hover:bg-gray-50 hover:text-gray-900': currentFragment !== '#business-hours' }">
-                <svg class="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span>Business Hours</span>
-            </a>
-
-            <!-- Notifications -->
-            <a href="{{ route('shop.settings') }}#notifications" 
-               class="flex items-center px-4 py-2 text-sm transition-colors"
-               :class="{ 'bg-blue-50 text-blue-600': currentFragment === '#notifications', 'text-gray-600 hover:bg-gray-50 hover:text-gray-900': currentFragment !== '#notifications' }">
-                <svg class="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                </svg>
-                <span>Notifications</span>
-            </a>
-
-            <!-- Security -->
-            <a href="{{ route('shop.settings') }}#security" 
-               class="flex items-center px-4 py-2 text-sm transition-colors"
-               :class="{ 'bg-blue-50 text-blue-600': currentFragment === '#security', 'text-gray-600 hover:bg-gray-50 hover:text-gray-900': currentFragment !== '#security' }">
-                <svg class="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-                <span>Security</span>
-            </a>
-        </div>
+        <!-- Settings -->
+        <a href="{{ route('shop.settings') }}" 
+           class="flex items-center px-4 py-3 rounded-lg transition-colors {{ request()->routeIs('shop.settings') ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
+            <svg class="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            <span class="font-medium">Settings</span>
+        </a>
 
         <!-- Divider -->
         <div class="border-t my-4"></div>

@@ -27,7 +27,7 @@
     <!-- Profile Header -->
     <div class="flex flex-col items-center mb-8">
         <div class="relative inline-block">
-            <img src="{{ auth()->user()->profile_photo_url }}" 
+            <img src="{{ $user->profile_photo_path ? asset('storage/' . $user->profile_photo_path) : asset('images/default-profile.png') }}" 
                  alt="Profile Photo" 
                  class="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg"
                  onerror="this.src='{{ asset('images/default-profile.png') }}'">
@@ -49,10 +49,11 @@
                        id="profile_photo" 
                        name="profile_photo" 
                        class="hidden" 
-                       accept="image/*">
+                       accept="image/*"
+                       onchange="this.form.submit()"> <!-- Add direct submit on change -->
             </form>
         </div>
-        <h1 class="text-2xl font-bold mt-4">{{ $user->first_name }} {{ $user->last_name }}</h1>
+        <h1 class="mt-4 text-2xl font-semibold text-gray-900">{{ $user->first_name }} {{ $user->last_name }}</h1>
     </div>
 
     <!-- Add this right after the profile header section -->
@@ -317,11 +318,11 @@
                         <input type="text" name="breed" required class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Weight</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Weight (kg)</label>
                         <input type="text" name="weight" required class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Height</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Height (cm)</label>
                         <input type="text" name="height" required class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
                     </div>
                     <div>

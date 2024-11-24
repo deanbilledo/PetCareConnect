@@ -48,6 +48,20 @@
             <div class="lg:w-1/2 mb-6 lg:mb-0">
                 <h2 class="text-3xl font-bold mb-4">Join Our Platform as a Partner</h2>
                 <p class="text-gray-600 mb-4">Are you a veterinary clinic or grooming shop owner? Partner with us to reach more pet owners and grow your business.</p>
+                
+                <!-- Add subscription info box -->
+                <div class="bg-white/80 rounded-lg p-4 mb-6">
+                    <div class="flex items-center mb-2">
+                        <svg class="w-5 h-5 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <span class="font-semibold text-blue-800">Start with a 30-Day Free Trial</span>
+                    </div>
+                    <p class="text-sm text-blue-700 mb-4">
+                        After trial period, continue growing your business for just ₱299/month.
+                    </p>
+                </div>
+                
                 <ul class="mb-6">
                     <li class="flex items-center mb-2">
                         <svg class="w-5 h-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -69,7 +83,7 @@
                     </li>
                 </ul>
                 <button 
-                    onclick="window.location.href='{{ route('shop.register') }}'"
+                    onclick="window.location.href='{{ route('shop.pre.register') }}'"
                     class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-full transition duration-300 ease-in-out">
                     Become a Partner
                 </button>

@@ -19,6 +19,8 @@
                     <div>
                         <h3 class="text-lg font-semibold text-gray-900">Basic Grooming</h3>
                         <p class="text-blue-600 font-medium">PHP 500.00</p>
+                        <p class="text-green-600 text-sm">-20% Discount Applied</p>
+                        <p class="text-gray-400 text-sm line-through">Original: PHP 625.00</p>
                     </div>
                     <div class="flex space-x-2">
                         <button class="text-gray-400 hover:text-gray-500">
@@ -48,6 +50,8 @@
                     <div>
                         <h3 class="text-lg font-semibold text-gray-900">Premium Grooming</h3>
                         <p class="text-blue-600 font-medium">PHP 800.00</p>
+                        <p class="text-green-600 text-sm">-20% Discount Applied</p>
+                        <p class="text-gray-400 text-sm line-through">Original: PHP 1,000.00</p>
                     </div>
                     <div class="flex space-x-2">
                         <button class="text-gray-400 hover:text-gray-500">
@@ -77,6 +81,8 @@
                     <div>
                         <h3 class="text-lg font-semibold text-gray-900">Deluxe Package</h3>
                         <p class="text-blue-600 font-medium">PHP 1,200.00</p>
+                        <p class="text-green-600 text-sm">-20% Discount Applied</p>
+                        <p class="text-gray-400 text-sm line-through">Original: PHP 1,500.00</p>
                     </div>
                     <div class="flex space-x-2">
                         <button class="text-gray-400 hover:text-gray-500">
@@ -118,6 +124,10 @@
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700 mb-2">Duration (hours)</label>
                     <input type="number" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Discount (%)</label>
+                    <input type="number" min="0" max="100" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
                 </div>
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700 mb-2">Description</label>

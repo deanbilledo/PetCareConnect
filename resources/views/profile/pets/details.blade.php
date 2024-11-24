@@ -44,7 +44,11 @@
                 </svg>
             </button>
         </div>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div>
+                <p class="text-sm text-gray-600">Date of Birth</p>
+                <p class="font-medium">March 15, 2023</p>
+            </div>
             <div>
                 <p class="text-sm text-gray-600">Age</p>
                 <p class="font-medium">1 year</p>

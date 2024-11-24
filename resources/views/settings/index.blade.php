@@ -54,7 +54,7 @@
                             </div>
                         </div>
                     </div>
-
+    
                     <!-- Password Settings -->
                     <div class="pt-6 border-t border-gray-200">
                         <h3 class="text-lg font-medium text-gray-900">Password Settings</h3>

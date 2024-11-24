@@ -119,7 +119,90 @@
         </div>
     </div>
 
-    <!-- Security Section -->
+
+    <!-- Subscription Payment Section -->
+    <div id="subscription-payment" class="bg-white rounded-lg shadow-md p-6 mb-6">
+        <h2 class="text-lg font-semibold mb-4">Subscription Payment</h2>
+
+        <!-- Trial Status -->
+        <div class="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div class="flex items-center">
+                <svg class="w-5 h-5 text-yellow-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div>
+                    <p class="font-medium text-yellow-800">Trial Period Ending Soon</p>
+                    <p class="text-sm text-yellow-600">Your 30-day free trial ends in 5 days</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- GCash Payment Section -->
+        <div class="border rounded-lg p-6">
+            <div class="mb-6">
+                <h3 class="text-lg font-medium mb-2">Partner Plan</h3>
+                <p class="text-2xl font-bold">₱299<span class="text-sm font-normal text-gray-600">/month</span></p>
+            </div>
+
+            <!-- GCash Payment Details -->
+            <div class="bg-blue-50 p-4 rounded-lg mb-6">
+                <div class="flex items-center justify-center mb-4">
+                    <img src="{{ asset('images/gcash-logo.png') }}" alt="GCash Logo" class="h-8">
+                </div>
+                <div class="space-y-2">
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Account Name:</span>
+                        <span class="font-medium">Dean R****</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">GCash Number:</span>
+                        <span class="font-medium">0917 123 4567</span>
+                    </div>
+                    <div class="flex justify-between font-medium">
+                        <span>Total Amount:</span>
+                        <span>₱299.00</span>
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="showGcashModal()" class="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                Pay with GCash
+            </button>
+
+            <p class="text-sm text-gray-500 text-center mt-4">
+                By subscribing, you agree to our Terms of Service and Privacy Policy
+            </p>
+        </div>
+
+        <!-- Cancel Subscription Warning -->
+        <div class="mt-6 border-t pt-6">
+            <div class="flex items-center justify-between">
+                <h3 class="text-lg font-medium text-red-600">Cancel Subscription</h3>
+            </div>
+            <p class="mt-2 text-sm text-gray-600">
+                Warning: Canceling your subscription will immediately restrict access to shop mode features. You will no longer be able to:
+            </p>
+            <ul class="mt-2 text-sm text-gray-600 list-disc list-inside space-y-1">
+                <li>Manage appointments</li>
+                <li>Accept bookings</li>
+                <li>Access shop analytics</li>
+                <li>Use premium features</li>
+            </ul>
+            <button class="mt-4 px-4 py-2 border border-red-600 text-red-600 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
+                Cancel Subscription
+            </button>
+        </div>
+
+        <!-- Secure Payment Notice -->
+        <div class="mt-6 flex items-center justify-center text-sm text-gray-500">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+            Secured payment with SSL encryption
+        </div>
+    </div>
+
+        <!-- Security Section -->
     <div id="security" class="bg-white rounded-lg shadow-md p-6">
         <h2 class="text-lg font-semibold mb-4">Security Settings</h2>
         <div class="space-y-6">
@@ -149,5 +232,71 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Remove all scroll-related JavaScript since we no longer need it
 });
+</script>
+
+<!-- GCash Payment Modal -->
+<div id="gcashModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-semibold text-gray-900">GCash Payment Details</h3>
+            <button onclick="hideGcashModal()" class="text-gray-500 hover:text-gray-700">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+
+        <div class="space-y-4">
+            <!-- GCash QR Code -->
+            <div class="flex justify-center">
+                <img src="{{ asset('images/QRcode.jpg') }}" alt="GCash QR Code" class="w-48 h-48">
+            </div> 
+
+            <!-- Payment Details -->
+            <div class="bg-blue-50 p-4 rounded-lg space-y-2">
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Account Name:</span>
+                    <span class="font-medium">Dean R****</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">GCash Number:</span>
+                    <span class="font-medium">0917 123 4567</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Amount:</span>
+                    <span class="font-medium">₱299.00</span>
+                </div>
+            </div>
+
+            <!-- Instructions -->
+            <div class="text-sm text-gray-600">
+                <p class="font-medium mb-2">How to pay:</p>
+                <ol class="list-decimal list-inside space-y-1">
+                    <li>Open your GCash app</li>
+                    <li>Scan the QR code or send to the number above</li>
+                    <li>Enter the exact amount</li>
+                    <li>Complete the payment</li>
+                    <li>Take a screenshot of your receipt</li>
+                </ol>
+            </div>
+
+            <button onclick="hideGcashModal()" class="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                Close
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Add this script section -->
+<script>
+    function showGcashModal() {
+        document.getElementById('gcashModal').classList.remove('hidden');
+        document.getElementById('gcashModal').classList.add('flex');
+    }
+
+    function hideGcashModal() {
+        document.getElementById('gcashModal').classList.add('hidden');
+        document.getElementById('gcashModal').classList.remove('flex');
+    }
 </script>
 @endsection 

@@ -154,14 +154,16 @@ Route::get('/privacy', function () {
 
 // Shop Registration Routes
 Route::prefix('shop')->name('shop.')->group(function () {
-    // Pre-registration routes
-    Route::get('/pre-register', [ShopRegistrationController::class, 'showPreRegistration'])->name('pre.register');
-    Route::post('/pre-register', [ShopRegistrationController::class, 'handlePreRegistration'])->name('pre.register.submit');
+    // Pre-registration route - accessible to everyone
+    Route::get('/pre-register', [ShopRegistrationController::class, 'showPreRegistration'])
+        ->name('pre.register');
     
-    // Main registration routes - ensure these are protected by auth middleware
+    // Registration routes - protected by auth middleware
     Route::middleware(['auth'])->group(function () {
-        Route::get('/register', [ShopRegistrationController::class, 'showRegistrationForm'])->name('register.form');
-        Route::post('/register', [ShopRegistrationController::class, 'register'])->name('register');
+        Route::get('/register', [ShopRegistrationController::class, 'showRegistrationForm'])
+            ->name('register.form');
+        Route::post('/register', [ShopRegistrationController::class, 'register'])
+            ->name('register');
     });
 });
 

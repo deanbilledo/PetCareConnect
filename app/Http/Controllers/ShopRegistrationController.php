@@ -13,17 +13,8 @@ class ShopRegistrationController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('auth')->except(['showPreRegistration']);
-    }
-
-    public function showRegistrationForm()
-    {
-        if (auth()->user()->shop) {
-            return redirect()->route('home')
-                           ->with('error', 'You already have a registered shop.');
-        }
-
-        return view('shopRegistration.register');
+        // Remove the constructor middleware completely
+        // We'll handle middleware in the routes file instead
     }
 
     public function showPreRegistration()
@@ -34,6 +25,21 @@ class ShopRegistrationController extends Controller
         }
 
         return view('shopRegistration.pre-register');
+    }
+
+    public function showRegistrationForm()
+    {
+        if (!auth()->check()) {
+            return redirect()->route('shop.pre.register')
+                           ->with('message', 'Please login or create an account first.');
+        }
+
+        if (auth()->user()->shop) {
+            return redirect()->route('home')
+                           ->with('error', 'You already have a registered shop.');
+        }
+
+        return view('shopRegistration.register');
     }
 
     public function handlePreRegistration(Request $request)
