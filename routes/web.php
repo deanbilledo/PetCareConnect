@@ -11,6 +11,7 @@ use App\Http\Controllers\ShopDashboardController;
 use App\Http\Controllers\ShopController;
 use App\Http\Controllers\ShopProfileController;
 use App\Http\Controllers\ShopAppointmentController;
+use App\Http\Controllers\FavoriteController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
@@ -142,6 +143,10 @@ Route::middleware(['auth'])->group(function () {
         ->name('profile.pets.store-parasite-control');
     Route::post('/pets/{pet}/store-health-issue', [ProfileController::class, 'storeHealthIssue'])
         ->name('profile.pets.store-health-issue');
+
+    // Add these inside your auth middleware group
+    Route::get('/favorites', [FavoriteController::class, 'index'])->name('favorites.index');
+    Route::post('/favorites/{shop}', [FavoriteController::class, 'toggle'])->name('favorites.toggle');
 });
 
 Route::get('/terms', function () {

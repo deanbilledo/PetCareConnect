@@ -110,11 +110,96 @@
         <div class="flex items-center space-x-2">
             @auth
                 <!-- Notification Button -->
-                <button class="mr-4">
-                    <svg class="h-6 w-6 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                    </svg>
-                </button>
+                <div class="relative" x-data="{ showNotifications: false }" @click.away="showNotifications = false">
+                    <button @click="showNotifications = !showNotifications" 
+                            class="mr-4 relative p-1 rounded-full hover:bg-gray-100 focus:outline-none">
+                        <svg class="h-6 w-6 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                        </svg>
+                        <!-- Notification Badge -->
+                        <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
+                            3
+                        </span>
+                    </button>
+
+                    <!-- Notification Dropdown -->
+                    <div x-show="showNotifications"
+                         x-cloak
+                         class="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg py-2 z-50"
+                         x-transition:enter="transition ease-out duration-200"
+                         x-transition:enter-start="opacity-0 transform scale-95"
+                         x-transition:enter-end="opacity-100 transform scale-100"
+                         x-transition:leave="transition ease-in duration-100"
+                         x-transition:leave-start="opacity-100 transform scale-100"
+                         x-transition:leave-end="opacity-0 transform scale-95">
+                        
+                        <!-- Notification Header -->
+                        <div class="px-4 py-2 border-b border-gray-200">
+                            <div class="flex justify-between items-center">
+                                <h3 class="text-sm font-semibold text-gray-900">Notifications</h3>
+                                <button class="text-xs text-blue-500 hover:text-blue-600">Mark all as read</button>
+                            </div>
+                        </div>
+
+                        <!-- Notification Items -->
+                        <div class="max-h-64 overflow-y-auto">
+                            <!-- Unread Notification -->
+                            <div class="px-4 py-3 hover:bg-gray-50 border-l-4 border-blue-500">
+                                <div class="flex items-start">
+                                    <div class="flex-shrink-0">
+                                        <svg class="h-8 w-8 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                                        </svg>
+                                    </div>
+                                    <div class="ml-3 w-0 flex-1">
+                                        <p class="text-sm font-medium text-gray-900">New Appointment Request</p>
+                                        <p class="mt-1 text-sm text-gray-500">You have a new appointment request from John Doe</p>
+                                        <p class="mt-1 text-xs text-gray-400">2 minutes ago</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Read Notification -->
+                            <div class="px-4 py-3 hover:bg-gray-50">
+                                <div class="flex items-start">
+                                    <div class="flex-shrink-0">
+                                        <svg class="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                    </div>
+                                    <div class="ml-3 w-0 flex-1">
+                                        <p class="text-sm font-medium text-gray-900">Appointment Confirmed</p>
+                                        <p class="mt-1 text-sm text-gray-500">Your appointment with Pet Grooming has been confirmed</p>
+                                        <p class="mt-1 text-xs text-gray-400">1 hour ago</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Another Notification -->
+                            <div class="px-4 py-3 hover:bg-gray-50 border-l-4 border-blue-500">
+                                <div class="flex items-start">
+                                    <div class="flex-shrink-0">
+                                        <svg class="h-8 w-8 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                    </div>
+                                    <div class="ml-3 w-0 flex-1">
+                                        <p class="text-sm font-medium text-gray-900">Appointment Reminder</p>
+                                        <p class="mt-1 text-sm text-gray-500">Your appointment is scheduled in 1 hour</p>
+                                        <p class="mt-1 text-xs text-gray-400">30 minutes ago</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Notification Footer -->
+                        <div class="px-4 py-2 border-t border-gray-200">
+                            <a href="#" class="text-sm text-blue-500 hover:text-blue-600 block text-center">
+                                View all notifications
+                            </a>
+                        </div>
+                    </div>
+                </div>
 
                 <!-- User Profile Dropdown -->
                 <div class="relative" x-data="{ open: false }">
@@ -187,8 +272,12 @@
                                 </svg>
                                 Settings
                             </a>
-                            
-                            </form>
+                            <a href="{{ route('favorites.index') }}" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                <svg class="mr-3 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                                </svg>
+                                My Favorites
+                            </a>
                         </div>
 
                         <!-- Logout Section -->
