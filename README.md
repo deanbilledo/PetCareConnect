@@ -33,7 +33,7 @@ Pet Care Connect is a comprehensive web-based platform developed as part of the 
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-username/pet-care-connect.git
+   git clone https://github.com/deanbilledo/PetCareConnect.git
    ```
 
 2. Install PHP dependencies:
