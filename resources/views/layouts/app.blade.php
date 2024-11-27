@@ -50,6 +50,11 @@
             <!-- Main Content with margin for sidebar -->
             <div class="ml-56 ">
                 <main class="p-6 ">
+                    @if(session('error'))
+                        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+                            <span class="block sm:inline">{{ session('error') }}</span>
+                        </div>
+                    @endif
                     @yield('content')
                 </main>
             </div>
@@ -57,6 +62,11 @@
             <!-- Main Content without sidebar -->
             <div>
                 <main class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    @if(session('error'))
+                        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+                            <span class="block sm:inline">{{ session('error') }}</span>
+                        </div>
+                    @endif
                     @yield('content')
                 </main>
             </div>

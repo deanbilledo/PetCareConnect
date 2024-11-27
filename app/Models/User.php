@@ -24,6 +24,7 @@ class User extends Authenticatable
         'phone',
         'address',
         'profile_photo_path',
+        'role',
     ];
 
     /**
@@ -85,5 +86,10 @@ class User extends Authenticatable
     public function favoriteShops()
     {
         return $this->belongsToMany(Shop::class, 'favorites');
+    }
+
+    public function isAdmin()
+    {
+        return $this->role === 'admin';
     }
 }

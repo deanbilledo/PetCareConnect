@@ -12,6 +12,7 @@ use App\Http\Controllers\ShopController;
 use App\Http\Controllers\ShopProfileController;
 use App\Http\Controllers\ShopAppointmentController;
 use App\Http\Controllers\FavoriteController;
+use App\Http\Controllers\AdminController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
@@ -194,3 +195,16 @@ Route::get('/privacy', function () {
 Route::get('/terms', function () {
     return view('pages.terms');
 })->name('terms');
+
+// Admin Routes
+Route::middleware(['auth', \App\Http\Middleware\IsAdmin::class])->group(function () {
+    Route::get('admin/dashboard', [AdminController::class, 'index'])->name('admin.dashboard');
+});
+
+Route::get('/debug', function() {
+    dd([
+        'logged_in' => auth()->check(),
+        'user' => auth()->user(),
+        'role' => auth()->user()->role ?? 'no role',
+    ]);
+});
