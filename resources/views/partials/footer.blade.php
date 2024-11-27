@@ -23,7 +23,7 @@
                     </ul>
                 </div>
                 <div>
-                    <h3 class="text-lg font-semibold mb-2">Follow Us</h3>
+                    <h3 class="text-lg font-semibold mb-2">Follow Us</h3> 
                     <div class="flex space-x-4">
                         <a href="https://www.facebook.com/profile.php?id=61568046598637" class="text-gray-300 hover:text-white transition-colors duration-200">
                             <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
