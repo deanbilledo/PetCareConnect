@@ -199,6 +199,20 @@ Route::get('/terms', function () {
 // Admin Routes
 Route::middleware(['auth', \App\Http\Middleware\IsAdmin::class])->group(function () {
     Route::get('admin/dashboard', [AdminController::class, 'index'])->name('admin.dashboard');
+    Route::get('admin/shops', [AdminController::class, 'shops'])->name('admin.shops');
+    Route::post('admin/shops/{shop}/approve', [AdminController::class, 'approveShop'])->name('admin.shops.approve');
+    Route::post('admin/shops/{shop}/reject', [AdminController::class, 'rejectShop'])->name('admin.shops.reject');
+    Route::post('admin/shops/{shop}/toggle-status', [AdminController::class, 'toggleShopStatus'])->name('admin.shops.toggle-status');
+    Route::get('admin/shops/{shop}/analytics', [AdminController::class, 'getShopAnalytics'])->name('admin.shops.analytics');
+    
+    // New admin routes
+    Route::get('admin/users', [AdminController::class, 'users'])->name('admin.users');
+    Route::get('admin/services', [AdminController::class, 'services'])->name('admin.services');
+    Route::get('admin/payments', [AdminController::class, 'payments'])->name('admin.payments');
+    Route::get('admin/reports', [AdminController::class, 'reports'])->name('admin.reports');
+    Route::get('admin/profile', [AdminController::class, 'profile'])->name('admin.profile');
+    Route::get('admin/support', [AdminController::class, 'support'])->name('admin.support');
+    Route::get('admin/settings', [AdminController::class, 'settings'])->name('admin.settings');
 });
 
 Route::get('/debug', function() {

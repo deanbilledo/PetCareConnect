@@ -25,7 +25,8 @@ class Shop extends Model
         'vat_status',
         'bir_certificate',
         'rating',
-        'terms_accepted'
+        'terms_accepted',
+        'status'
     ];
 
     protected $casts = [
