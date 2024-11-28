@@ -88,21 +88,22 @@
                 <h3 class="font-medium mb-4">Services for {{ $pet->name }}</h3>
                 
                 <div class="space-y-3">
-                    @foreach($services as $key => $service)
+                    @foreach($services as $service)
                     <div class="flex items-center">
                         <input type="radio" 
-                               id="service_{{ $index }}_{{ $key }}" 
+                               id="service_{{ $index }}_{{ $service['id'] }}" 
                                name="services[{{ $index }}]" 
-                               value="{{ $key }}"
+                               value="{{ $service['id'] }}"
                                class="mr-3"
                                required>
-                        <label for="service_{{ $index }}_{{ $key }}" class="flex-grow">
+                        <label for="service_{{ $index }}_{{ $service['id'] }}" class="flex-grow">
                             <div class="flex justify-between">
                                 <div>
                                     <span class="font-medium">{{ $service['name'] }}</span>
                                     <p class="text-sm text-gray-600">{{ $service['description'] }}</p>
+                                    <p class="text-sm text-gray-500">Duration: {{ $service['duration'] }} minutes</p>
                                 </div>
-                                <span class="font-medium">PHP {{ number_format($service['price'], 2) }}</span>
+                                <span class="font-medium">₱{{ number_format($service['price'], 2) }}</span>
                             </div>
                         </label>
                     </div>

@@ -1,144 +1,210 @@
-@extends('layouts.shop')
+@extends('layouts.app')
 
 @section('content')
-<div class="container mx-auto px-4 py-6">
-    <div class="flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-bold">Services</h1>
-        <button type="button"
-                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors">
-            Add New Service
-        </button>
-    </div>
+<div class="py-12">
+    <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+        <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+            <div class="p-6 bg-white border-b border-gray-200">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800">Manage Services</h2>
+                    <button onclick="openAddModal()" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        Add New Service
+                    </button>
+                </div>
 
-    <!-- Services Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <!-- Service Card -->
-        <div class="bg-white rounded-lg shadow-md overflow-hidden">
-            <div class="p-6">
-                <div class="flex justify-between items-start mb-4">
-                    <div>
-                        <h3 class="text-lg font-semibold text-gray-900">Basic Grooming</h3>
-                        <p class="text-blue-600 font-medium">PHP 500.00</p>
-                        <p class="text-green-600 text-sm">-20% Discount Applied</p>
-                        <p class="text-gray-400 text-sm line-through">Original: PHP 625.00</p>
-                    </div>
-                    <div class="flex space-x-2">
-                        <button class="text-gray-400 hover:text-gray-500">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                            </svg>
-                        </button>
-                        <button class="text-red-400 hover:text-red-500">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-                <p class="text-gray-600 text-sm mb-4">Basic grooming service includes bath, blow dry, nail trimming, and ear cleaning.</p>
-                <div class="flex justify-between items-center text-sm text-gray-500">
-                    <span>Duration: 1 hour</span>
-                    <span class="px-2 py-1 bg-green-100 text-green-800 rounded-full">Active</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Premium Grooming -->
-        <div class="bg-white rounded-lg shadow-md overflow-hidden">
-            <div class="p-6">
-                <div class="flex justify-between items-start mb-4">
-                    <div>
-                        <h3 class="text-lg font-semibold text-gray-900">Premium Grooming</h3>
-                        <p class="text-blue-600 font-medium">PHP 800.00</p>
-                        <p class="text-green-600 text-sm">-20% Discount Applied</p>
-                        <p class="text-gray-400 text-sm line-through">Original: PHP 1,000.00</p>
-                    </div>
-                    <div class="flex space-x-2">
-                        <button class="text-gray-400 hover:text-gray-500">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                            </svg>
-                        </button>
-                        <button class="text-red-400 hover:text-red-500">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-                <p class="text-gray-600 text-sm mb-4">Premium service includes everything in basic plus styling, special shampoo, and paw treatment.</p>
-                <div class="flex justify-between items-center text-sm text-gray-500">
-                    <span>Duration: 2 hours</span>
-                    <span class="px-2 py-1 bg-green-100 text-green-800 rounded-full">Active</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Deluxe Package -->
-        <div class="bg-white rounded-lg shadow-md overflow-hidden">
-            <div class="p-6">
-                <div class="flex justify-between items-start mb-4">
-                    <div>
-                        <h3 class="text-lg font-semibold text-gray-900">Deluxe Package</h3>
-                        <p class="text-blue-600 font-medium">PHP 1,200.00</p>
-                        <p class="text-green-600 text-sm">-20% Discount Applied</p>
-                        <p class="text-gray-400 text-sm line-through">Original: PHP 1,500.00</p>
-                    </div>
-                    <div class="flex space-x-2">
-                        <button class="text-gray-400 hover:text-gray-500">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                            </svg>
-                        </button>
-                        <button class="text-red-400 hover:text-red-500">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-                <p class="text-gray-600 text-sm mb-4">Full service includes premium grooming plus massage, spa treatment, and premium accessories.</p>
-                <div class="flex justify-between items-center text-sm text-gray-500">
-                    <span>Duration: 3 hours</span>
-                    <span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full">Limited Availability</span>
+                <!-- Services List -->
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duration</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            @foreach($services as $service)
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap">{{ $service->name }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap">₱{{ number_format($service->price, 2) }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap">{{ $service->duration }} mins</td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $service->status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
+                                        {{ ucfirst($service->status) }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                    <button onclick="openEditModal({{ $service->id }})" class="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
+                                    <button onclick="toggleStatus({{ $service->id }})" class="text-yellow-600 hover:text-yellow-900 mr-3">
+                                        {{ $service->status === 'active' ? 'Deactivate' : 'Activate' }}
+                                    </button>
+                                    <button onclick="deleteService({{ $service->id }})" class="text-red-600 hover:text-red-900">Delete</button>
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Add Service Modal (Hidden by default) -->
-<div class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full" id="addServiceModal">
-    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-        <div class="mt-3">
-            <h3 class="text-lg font-medium leading-6 text-gray-900 mb-4">Add New Service</h3>
-            <form>
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Service Name</label>
-                    <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                </div>
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Price (PHP)</label>
-                    <input type="number" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                </div>
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Duration (hours)</label>
-                    <input type="number" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                </div>
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Discount (%)</label>
-                    <input type="number" min="0" max="100" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                </div>
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Description</label>
-                    <textarea class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500" rows="3"></textarea>
-                </div>
-                <div class="flex justify-end space-x-3">
-                    <button type="button" class="px-4 py-2 text-gray-500 hover:text-gray-700">Cancel</button>
-                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Add Service</button>
-                </div>
-            </form>
+<!-- Add/Edit Service Modal -->
+<div id="serviceModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+    <!-- Backdrop -->
+    <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity"></div>
+    
+    <!-- Modal -->
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-auto">
+            <div class="px-6 py-4">
+                <h3 class="text-lg font-medium text-gray-900" id="modalTitle">Add New Service</h3>
+                <form id="serviceForm" class="mt-4">
+                    @csrf
+                    <input type="hidden" id="serviceId">
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="name">Service Name</label>
+                        <input type="text" id="name" name="name" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="price">Price</label>
+                        <input type="number" step="0.01" id="price" name="price" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="duration">Duration (minutes)</label>
+                        <input type="number" id="duration" name="duration" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="description">Description</label>
+                        <textarea id="description" name="description" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"></textarea>
+                    </div>
+                    <div class="flex justify-end space-x-2">
+                        <button type="button" onclick="closeModal()" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500">Cancel</button>
+                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">Save</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 </div>
-@endsection 
+
+@endsection
+
+@push('scripts')
+<script>
+let currentServiceId = null;
+
+function openAddModal() {
+    currentServiceId = null;
+    document.getElementById('modalTitle').textContent = 'Add New Service';
+    document.getElementById('serviceForm').reset();
+    document.getElementById('serviceModal').classList.remove('hidden');
+    // Prevent body scrolling when modal is open
+    document.body.style.overflow = 'hidden';
+}
+
+function openEditModal(serviceId) {
+    currentServiceId = serviceId;
+    document.getElementById('modalTitle').textContent = 'Edit Service';
+    
+    // Fetch service details and populate form
+    fetch(`/shop/services/${serviceId}`)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('name').value = data.name;
+            document.getElementById('price').value = data.price;
+            document.getElementById('duration').value = data.duration;
+            document.getElementById('description').value = data.description || '';
+            document.getElementById('serviceModal').classList.remove('hidden');
+            // Prevent body scrolling when modal is open
+            document.body.style.overflow = 'hidden';
+        });
+}
+
+function closeModal() {
+    document.getElementById('serviceModal').classList.add('hidden');
+    document.getElementById('serviceForm').reset();
+    // Restore body scrolling
+    document.body.style.overflow = 'auto';
+}
+
+// Close modal when clicking outside
+document.getElementById('serviceModal').addEventListener('click', function(e) {
+    // Check if the click was on the backdrop (modal background)
+    if (e.target === this || e.target.classList.contains('fixed')) {
+        closeModal();
+    }
+});
+
+document.getElementById('serviceForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const url = currentServiceId 
+        ? `/shop/services/${currentServiceId}`
+        : '/shop/services';
+    const method = currentServiceId ? 'PUT' : 'POST';
+
+    fetch(url, {
+        method: method,
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(Object.fromEntries(formData))
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            closeModal();
+            window.location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    });
+});
+
+function toggleStatus(serviceId) {
+    if (!confirm('Are you sure you want to change this service\'s status?')) return;
+
+    fetch(`/shop/services/${serviceId}/status`, {
+        method: 'PUT',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            window.location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    });
+}
+
+function deleteService(serviceId) {
+    if (!confirm('Are you sure you want to delete this service?')) return;
+
+    fetch(`/shop/services/${serviceId}`, {
+        method: 'DELETE',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            window.location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    });
+}
+</script>
+@endpush 

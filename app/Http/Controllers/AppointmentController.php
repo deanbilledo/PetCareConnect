@@ -111,7 +111,17 @@ class AppointmentController extends Controller
                 ->with('error', 'Only pending appointments can be rescheduled');
         }
 
-        return view('appointments.reschedule', compact('appointment'));
+        // Load shop with operating hours and services
+        $shop = $appointment->shop->load(['operatingHours', 'services']);
+        
+        // Get available time slots based on operating hours
+        $timeSlots = [];
+        $operatingHours = $shop->operatingHours->keyBy('day');
+        
+        // Get services for the shop
+        $services = $shop->services->where('status', 'active');
+
+        return view('appointments.reschedule', compact('appointment', 'operatingHours', 'services'));
     }
 
     public function updateSchedule(Request $request, Appointment $appointment)
@@ -127,15 +137,26 @@ class AppointmentController extends Controller
 
         $request->validate([
             'new_date' => 'required|date|after:today',
-            'new_time' => 'required|date_format:H:i',
+            'new_time' => 'required',
+            'service_type' => 'required|string',
             'reschedule_reason' => 'required|string|max:500'
         ]);
 
         try {
-            $newDateTime = Carbon::parse($request->new_date . ' ' . $request->new_time);
+            // Convert 12-hour format to 24-hour format
+            $time = date('H:i', strtotime($request->new_time));
+            $newDateTime = Carbon::parse($request->new_date . ' ' . $time);
+            
+            // Get the service details
+            $service = $appointment->shop->services()
+                ->where('name', $request->service_type)
+                ->where('status', 'active')
+                ->firstOrFail();
             
             $appointment->update([
                 'appointment_date' => $newDateTime,
+                'service_type' => $service->name,
+                'service_price' => $service->price,
                 'reschedule_reason' => $request->reschedule_reason,
                 'last_reschedule_at' => now()
             ]);
