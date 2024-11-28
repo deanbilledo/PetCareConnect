@@ -198,7 +198,12 @@
                  class="bg-white rounded-lg shadow-md overflow-hidden">
                 <!-- Date Header -->
                 <div class="bg-gray-50 px-6 py-4 border-b">
-                    <h2 class="font-semibold">{{ \Carbon\Carbon::parse($date)->format('l, F j, Y') }}</h2>
+                    <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                        <svg class="w-5 h-5 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        {{ \Carbon\Carbon::parse($date)->format('l, F j, Y') }}
+                    </h2>
                 </div>
 
                 <!-- Table -->
@@ -218,68 +223,100 @@
                         <tbody class="bg-white divide-y divide-gray-200">
                             @foreach($dayAppointments as $appointment)
                                 <tr x-show="isAppointmentVisible('{{ $appointment->status }}', '{{ $date }}')"
-                                    class="hover:bg-gray-50 cursor-pointer">
+                                    @click="viewAppointmentDetails({{ $appointment->id }}, $event)"
+                                    class="hover:bg-gray-50 cursor-pointer transition-colors">
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <div class="flex items-center">
-                                            <div class="flex-shrink-0 h-10 w-10">
-                                                <img class="h-10 w-10 rounded-full object-cover"
+                                            <div class="flex-shrink-0 h-12 w-12">
+                                                <img class="h-12 w-12 rounded-lg object-cover shadow-sm"
                                                      src="{{ $appointment->shop->image ? asset('storage/' . $appointment->shop->image) : asset('images/default-shop.png') }}"
                                                      alt="{{ $appointment->shop->name }}">
                                             </div>
                                             <div class="ml-4">
-                                                <div class="text-sm font-medium text-gray-900">
+                                                <div class="text-sm font-semibold text-gray-900">
                                                     {{ $appointment->shop->name }}
+                                                </div>
+                                                <div class="text-xs text-gray-500">
+                                                    {{ Str::limit($appointment->shop->address, 30) }}
                                                 </div>
                                             </div>
                                         </div>
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {{ $appointment->appointment_date->format('g:i A') }}
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {{ $appointment->pet->name }}
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {{ $appointment->service_type }}
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        PHP {{ number_format($appointment->service_price, 2) }}
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm text-gray-900 font-medium">
+                                            {{ $appointment->appointment_date->format('g:i A') }}
+                                        </div>
+                                        <div class="text-xs text-gray-500">
+                                            {{ $appointment->appointment_date->format('l') }}
+                                        </div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+                                        <div class="text-sm text-gray-900">{{ $appointment->pet->name }}</div>
+                                        <div class="text-xs text-gray-500">{{ $appointment->pet->breed }}</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm text-gray-900">{{ $appointment->service_type }}</div>
+                                        <div class="text-xs text-gray-500">Duration: 1 hour</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm font-medium text-gray-900">
+                                            PHP {{ number_format($appointment->service_price, 2) }}
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-3 py-1 inline-flex items-center rounded-full text-xs font-medium
                                             @if($appointment->status === 'completed') bg-green-100 text-green-800
                                             @elseif($appointment->status === 'cancelled') bg-red-100 text-red-800
                                             @else bg-blue-100 text-blue-800
                                             @endif">
+                                            <span class="w-2 h-2 mr-1.5 rounded-full
+                                                @if($appointment->status === 'completed') bg-green-400
+                                                @elseif($appointment->status === 'cancelled') bg-red-400
+                                                @else bg-blue-400
+                                                @endif">
+                                            </span>
                                             {{ ucfirst($appointment->status) }}
                                         </span>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        <div class="flex space-x-2">
+                                        <div class="flex items-center space-x-3">
                                             <button type="button"
                                                     onclick="event.stopPropagation(); window.location.href='/appointments/{{ $appointment->id }}'"
-                                                    class="text-gray-600 hover:text-gray-800">
-                                                View
+                                                    class="text-gray-600 hover:text-gray-800 transition-colors">
+                                                <span class="sr-only">View details</span>
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                </svg>
                                             </button>
                                             
                                             @if($appointment->status === 'pending')
                                                 <button type="button"
                                                         onclick="event.stopPropagation();"
                                                         @click="showCancelModal = true; appointmentToCancel = {{ $appointment->id }}"
-                                                        class="text-red-600 hover:text-red-800">
-                                                    Cancel
+                                                        class="text-red-600 hover:text-red-800 transition-colors">
+                                                    <span class="sr-only">Cancel appointment</span>
+                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                                    </svg>
                                                 </button>
                                                 <button type="button"
                                                         onclick="event.stopPropagation(); window.location.href='{{ route('appointments.reschedule', $appointment) }}'"
-                                                        class="text-blue-600 hover:text-blue-800">
-                                                    Reschedule
+                                                        class="text-blue-600 hover:text-blue-800 transition-colors">
+                                                    <span class="sr-only">Reschedule appointment</span>
+                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                    </svg>
                                                 </button>
                                             @endif
                                             @if($appointment->status === 'completed')
                                                 <button type="button"
                                                         onclick="event.stopPropagation(); window.location.href='/book/{{ $appointment->shop_id }}#reviews'"
-                                                        class="text-blue-600 hover:text-blue-800">
-                                                    Review
+                                                        class="text-yellow-600 hover:text-yellow-800 transition-colors">
+                                                    <span class="sr-only">Leave review</span>
+                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                                                    </svg>
                                                 </button>
                                             @endif
                                         </div>
@@ -291,9 +328,20 @@
                 </div>
             </div>
         @empty
-            <div class="bg-white rounded-lg shadow-md p-6 text-center">
-                <p class="text-gray-600">No appointments found</p>
-                <a href="{{ route('home') }}" class="text-blue-500 hover:underline mt-2 inline-block">Book an appointment</a>
+            <div class="bg-white rounded-lg shadow-md p-8 text-center">
+                <div class="flex flex-col items-center">
+                    <svg class="w-16 h-16 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <p class="text-gray-600 mb-4">No appointments found</p>
+                    <a href="{{ route('home') }}" 
+                       class="inline-flex items-center px-4 py-2 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        Book an appointment
+                    </a>
+                </div>
             </div>
         @endforelse
 

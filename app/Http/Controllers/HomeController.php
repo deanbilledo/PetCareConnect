@@ -27,6 +27,7 @@ class HomeController extends Controller
         
         // Get popular shops for both guests and authenticated users
         $popularShops = Shop::withAvg('ratings', 'rating')
+            ->where('status', 'active')
             ->orderBy('ratings_avg_rating', 'desc')
             ->take(6)
             ->get();
@@ -55,6 +56,7 @@ class HomeController extends Controller
     public function dashboard()
     {
         $popularShops = Shop::withAvg('ratings', 'rating')
+            ->where('status', 'active')
             ->orderBy('ratings_avg_rating', 'desc')
             ->take(6)
             ->get();

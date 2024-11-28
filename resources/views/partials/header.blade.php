@@ -221,7 +221,7 @@
                          class="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 divide-y divide-gray-100">
                         
                         <!-- Mode Switch Section -->
-                        @if(auth()->user()->shop)
+                        @if(auth()->user()->shop && auth()->user()->shop->status === 'active')
                         <div class="px-4 py-2">
                             <p class="text-xs text-gray-500 mb-2">Current Mode</p>
                             <div class="space-y-2">
@@ -254,6 +254,14 @@
                                     @endif
                                 </a>
                             </div>
+                        </div>
+                        @elseif(auth()->user()->shop && auth()->user()->shop->status === 'pending')
+                        <div class="px-4 py-2">
+                            <p class="text-xs text-yellow-600">Shop registration pending approval</p>
+                        </div>
+                        @elseif(auth()->user()->shop && auth()->user()->shop->status === 'suspended')
+                        <div class="px-4 py-2">
+                            <p class="text-xs text-red-600">Shop access suspended</p>
                         </div>
                         @endif
 

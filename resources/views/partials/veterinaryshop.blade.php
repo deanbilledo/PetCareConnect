@@ -2,7 +2,7 @@
     <h2 class="text-2xl font-semibold mb-4">Veterinary Shops</h2>
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
         @foreach($popularShops as $shop)
-        @if($shop->type === 'veterinary')
+        @if($shop->type === 'veterinary' && $shop->status === 'active')
         <a href="{{ route('booking.show', $shop->id) }}" class="block transition duration-300 ease-in-out transform hover:-translate-y-1">
             <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl">
                 <div class="relative">
