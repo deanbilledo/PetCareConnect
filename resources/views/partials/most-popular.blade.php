@@ -1,5 +1,6 @@
 @php
     $popularShops = \App\Models\Shop::withAvg('ratings', 'rating')
+        ->where('status', 'active')
         ->orderBy('ratings_avg_rating', 'desc')
         ->take(6)
         ->get();

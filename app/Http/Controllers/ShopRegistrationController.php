@@ -13,17 +13,25 @@ class ShopRegistrationController extends Controller
 {
     public function __construct()
     {
-        // Remove the constructor middleware completely
+        // Remove any middleware from constructor
         // We'll handle middleware in the routes file instead
     }
 
     public function showPreRegistration()
     {
+        \Log::info('Accessing pre-registration page', [
+            'is_authenticated' => auth()->check(),
+            'user' => auth()->user(),
+            'has_shop' => auth()->check() ? auth()->user()->shop : null
+        ]);
+
         if (auth()->check() && auth()->user()->shop) {
+            \Log::info('User already has a shop, redirecting to home');
             return redirect()->route('home')
                            ->with('error', 'You already have a registered shop.');
         }
 
+        \Log::info('Showing pre-registration page');
         return view('shopRegistration.pre-register');
     }
 
@@ -100,7 +108,7 @@ class ShopRegistrationController extends Controller
                 'certificate' => $birCertificatePath
             ]);
 
-            // Create the shop with correct field mapping
+            // Create the shop with status set to 'pending'
             $shop = Shop::create([
                 'user_id' => auth()->id(),
                 'name' => $request->shop_name,
@@ -115,15 +123,16 @@ class ShopRegistrationController extends Controller
                 'vat_status' => $request->vat_status,
                 'bir_certificate' => $birCertificatePath,
                 'rating' => 0.0,
-                'terms_accepted' => true
+                'terms_accepted' => true,
+                'status' => 'pending' // Set initial status to pending
             ]);
 
             \Log::info('Shop created successfully', $shop->toArray());
 
             DB::commit();
 
-            return redirect()->route('home')
-                           ->with('success', 'Shop registered successfully! Welcome to Pet Care Connect.');
+            // Redirect to a new pending approval page
+            return redirect()->route('shop.registration.pending');
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -145,5 +154,14 @@ class ShopRegistrationController extends Controller
             return back()->withInput()
                         ->withErrors(['error' => 'An error occurred during registration. Please try again. ' . $e->getMessage()]);
         }
+    }
+
+    public function showPendingApproval()
+    {
+        if (!auth()->user()->shop) {
+            return redirect()->route('home');
+        }
+
+        return view('shopRegistration.pending-approval');
     }
 } 

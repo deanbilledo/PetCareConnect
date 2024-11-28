@@ -160,7 +160,7 @@ Route::get('/privacy', function () {
 
 // Shop Registration Routes
 Route::prefix('shop')->name('shop.')->group(function () {
-    // Pre-registration route - accessible to everyone
+    // Pre-registration route - should be accessible to everyone
     Route::get('/pre-register', [ShopRegistrationController::class, 'showPreRegistration'])
         ->name('pre.register');
     
@@ -171,6 +171,9 @@ Route::prefix('shop')->name('shop.')->group(function () {
         Route::post('/register', [ShopRegistrationController::class, 'register'])
             ->name('register');
     });
+    
+    Route::get('/registration-pending', [ShopRegistrationController::class, 'showPendingApproval'])
+        ->name('registration.pending');
 });
 
 Route::middleware(['auth', \App\Http\Middleware\HasShop::class])->group(function () {
