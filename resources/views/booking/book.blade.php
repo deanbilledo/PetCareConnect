@@ -1,3 +1,7 @@
+@php
+    use Illuminate\Support\Facades\Storage;
+@endphp
+
 @extends('layouts.app')
 
 @section('content')
@@ -15,7 +19,7 @@
     <!-- Shop Header -->
     <div class="bg-white rounded-lg shadow-md overflow-hidden mb-6">
         <div class="relative h-64">
-            <img src="{{ $shop->image ? asset('storage/' . $shop->image) : asset('images/default-shop.png') }}" 
+            <img src="{{ $shop->image_url }}" 
                  alt="{{ $shop->name }}" 
                  class="w-full h-full object-cover">
             <div class="absolute top-4 left-4">
@@ -238,16 +242,9 @@
                 @forelse($shop->ratings as $rating)
                     <div class="border-b pb-6 last:border-b-0">
                         <div class="flex items-center mb-2">
-                            @php
-                                $profileUrl = $rating->user->profile_photo_path 
-                                    ? asset('storage/' . $rating->user->profile_photo_path)
-                                    : asset('images/default-profile.png');
-                            @endphp
-                            <img src="{{ $profileUrl }}" 
+                            <img src="{{ $rating->user->profile_photo_url }}" 
                                  alt="{{ $rating->user->name }}" 
-                                 class="w-10 h-10 rounded-full mr-3 object-cover bg-gray-100"
-                                 onerror="this.src='{{ asset('images/default-profile.png') }}'"
-                            >
+                                 class="w-10 h-10 rounded-full mr-3 object-cover bg-gray-100">
                             <div>
                                 <h4 class="font-medium">{{ $rating->user->first_name }} {{ $rating->user->last_name }}</h4>
                                 <div class="flex items-center text-yellow-400">
@@ -293,16 +290,9 @@
                 @forelse($shop->ratings as $rating)
                 <div class="border-t pt-4">
                     <div class="flex items-center mb-2">
-                        @php
-                            $profileUrl = $rating->user->profile_photo_path 
-                                ? asset('storage/' . $rating->user->profile_photo_path)
-                                : asset('images/default-profile.png');
-                        @endphp
-                        <img src="{{ $profileUrl }}" 
+                        <img src="{{ $rating->user->profile_photo_url }}" 
                              alt="{{ $rating->user->name }}" 
-                             class="w-10 h-10 rounded-full mr-3 object-cover"
-                             onerror="this.src='{{ asset('images/default-profile.png') }}'"
-                        >
+                             class="w-10 h-10 rounded-full mr-3 object-cover">
                         <div>
                             <h3 class="font-medium">{{ $rating->user->first_name }} {{ $rating->user->last_name }}</h3>
                             <p class="text-sm text-gray-500">{{ $rating->created_at->format('D, M d, Y \a\t h:i A') }}</p>

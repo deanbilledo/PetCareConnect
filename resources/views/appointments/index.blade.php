@@ -281,7 +281,7 @@
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         <div class="flex items-center space-x-3">
                                             <button type="button"
-                                                    onclick="event.stopPropagation(); window.location.href='/appointments/{{ $appointment->id }}'"
+                                                    onclick="event.stopPropagation(); window.location.href='{{ route('appointments.show', $appointment->id) }}'"
                                                     class="text-gray-600 hover:text-gray-800 transition-colors">
                                                 <span class="sr-only">View details</span>
                                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

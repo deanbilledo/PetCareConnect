@@ -18,9 +18,17 @@ class Rating extends Model
 
     protected $with = ['user'];
 
+    protected $casts = [
+        'rating' => 'integer'
+    ];
+
     public function user()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class)->withDefault([
+            'first_name' => 'Deleted',
+            'last_name' => 'User',
+            'profile_photo_path' => null
+        ]);
     }
 
     public function shop()

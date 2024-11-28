@@ -90,6 +90,7 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/pets/{pet}', [ProfileController::class, 'deletePet'])->name('pets.delete');
         Route::get('/pets/{pet}/details', [ProfileController::class, 'showPetDetails'])->name('pets.details');
         Route::post('/pets/{pet}/update-photo', [ProfileController::class, 'updatePetPhoto'])->name('pets.update-photo');
+        Route::get('/pets/{pet}/health-record', [ProfileController::class, 'showHealthRecord'])->name('pets.health-record');
         Route::get('/pets/{pet}/add-health-record', [ProfileController::class, 'showAddHealthRecord'])->name('pets.add-health-record');
         Route::post('/pets/{pet}/store-vaccination', [ProfileController::class, 'storeVaccination'])->name('pets.store-vaccination');
         Route::post('/pets/{pet}/store-health-record', [ProfileController::class, 'storeHealthRecord'])->name('pets.store-health-record');
@@ -114,6 +115,7 @@ Route::middleware(['auth'])->group(function () {
 
     // Appointment routes
     Route::prefix('appointments')->name('appointments.')->group(function () {
+        Route::get('/{appointment}', [AppointmentController::class, 'show'])->name('show');
         Route::post('/{appointment}/cancel', [AppointmentController::class, 'cancel'])->name('cancel');
         Route::get('/{appointment}/reschedule', [AppointmentController::class, 'reschedule'])->name('reschedule');
         Route::put('/{appointment}/reschedule', [AppointmentController::class, 'updateSchedule'])->name('update-schedule');

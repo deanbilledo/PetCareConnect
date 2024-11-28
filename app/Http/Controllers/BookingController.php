@@ -19,22 +19,29 @@ class BookingController extends Controller
 
     public function show(Shop $shop)
     {
-        $shop->load(['ratings.user' => function($query) {
-            $query->select('id', 'first_name', 'last_name', 'profile_photo_path');
-        }]);
+        try {
+            // Load the shop with its relationships
+            $shop->load(['ratings' => function($query) {
+                $query->with(['user' => function($query) {
+                    $query->select('id', 'first_name', 'last_name', 'profile_photo_path');
+                }]);
+            }]);
 
-        // Add detailed debugging
-        foreach($shop->ratings as $rating) {
-            \Log::info('Rating ID: ' . $rating->id);
-            \Log::info('User ID: ' . $rating->user->id);
-            \Log::info('User Name: ' . $rating->user->name);
-            \Log::info('Profile Photo Path: ' . $rating->user->profile_photo_path);
-            \Log::info('Profile Photo URL: ' . $rating->user->profile_photo_url);
-            \Log::info('Storage Path: ' . storage_path('app/public/' . $rating->user->profile_photo_path));
-            \Log::info('File Exists: ' . (Storage::disk('public')->exists($rating->user->profile_photo_path) ? 'Yes' : 'No'));
+            // Add debug logging
+            \Log::info('Loading shop data:', [
+                'shop_id' => $shop->id,
+                'shop_name' => $shop->name,
+                'ratings_count' => $shop->ratings->count()
+            ]);
+
+            return view('booking.book', compact('shop'));
+        } catch (\Exception $e) {
+            \Log::error('Error in show method: ' . $e->getMessage(), [
+                'shop_id' => $shop->id ?? null,
+                'trace' => $e->getTraceAsString()
+            ]);
+            return back()->with('error', 'Unable to load shop details. Please try again.');
         }
-
-        return view('booking.book', compact('shop'));
     }
 
     public function process(Shop $shop)

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
 
 class Shop extends Model
 {
@@ -36,7 +37,7 @@ class Shop extends Model
         'terms_accepted' => 'boolean'
     ];
 
-    protected $appends = ['ratings_avg_rating', 'ratings_count'];
+    protected $appends = ['ratings_avg_rating', 'ratings_count', 'image_url'];
 
     public function scopeActive($query)
     {
@@ -81,5 +82,26 @@ class Shop extends Model
     public function appointments()
     {
         return $this->hasMany(Appointment::class);
+    }
+
+    public function getImageUrlAttribute()
+    {
+        try {
+            if (empty($this->image)) {
+                return asset('images/default-shop.png');
+            }
+
+            if (Storage::disk('public')->exists($this->image)) {
+                return Storage::disk('public')->url($this->image);
+            }
+
+            return asset('images/default-shop.png');
+        } catch (\Exception $e) {
+            \Log::error('Error in getImageUrlAttribute: ' . $e->getMessage(), [
+                'shop_id' => $this->id,
+                'image_path' => $this->image
+            ]);
+            return asset('images/default-shop.png');
+        }
     }
 } 

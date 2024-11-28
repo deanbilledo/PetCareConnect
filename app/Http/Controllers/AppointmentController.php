@@ -35,26 +35,13 @@ class AppointmentController extends Controller
 
     public function show(Appointment $appointment)
     {
-        try {
-            \Log::info('Attempting to show appointment:', [
-                'appointment_id' => $appointment->id,
-                'user_id' => auth()->id(),
-                'appointment_user_id' => $appointment->user_id
-            ]);
-            
-            if ($appointment->user_id !== auth()->id()) {
-                \Log::warning('Unauthorized appointment access attempt');
-                abort(403);
-            }
-
-            $appointment->load(['shop', 'pet']);
-            \Log::info('Appointment loaded successfully with relations');
-
-            return view('appointments.show', compact('appointment'));
-        } catch (\Exception $e) {
-            \Log::error('Error showing appointment: ' . $e->getMessage());
-            abort(500);
+        // Check if the user owns this appointment
+        if ($appointment->user_id !== auth()->id()) {
+            return redirect()->route('appointments.index')
+                ->with('error', 'You are not authorized to view this appointment.');
         }
+
+        return view('appointments.show', compact('appointment'));
     }
 
     public function cancel(Appointment $appointment, Request $request)
