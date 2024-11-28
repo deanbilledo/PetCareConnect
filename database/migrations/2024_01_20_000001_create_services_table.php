@@ -10,10 +10,12 @@ return new class extends Migration
     {
         Schema::create('services', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('shop_id')->constrained()->onDelete('cascade');
             $table->string('name');
-            $table->text('description');
-            $table->string('image');
-            $table->string('type');
+            $table->text('description')->nullable();
+            $table->decimal('price', 10, 2);
+            $table->integer('duration'); // in minutes
+            $table->string('status')->default('active');
             $table->timestamps();
         });
     }

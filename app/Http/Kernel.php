@@ -3,6 +3,7 @@
 namespace App\Http;
 
 use Illuminate\Foundation\Http\Kernel as HttpKernel;
+use App\Http\Middleware\HasShop;
 
 class Kernel extends HttpKernel
 {
@@ -62,5 +63,6 @@ class Kernel extends HttpKernel
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
         'has.shop' => \App\Http\Middleware\HasShop::class,
         'admin' => \App\Http\Middleware\IsAdmin::class,
+        'shop.setup' => \App\Http\Middleware\CheckShopSetup::class,
     ];
 } 

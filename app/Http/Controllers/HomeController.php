@@ -26,13 +26,12 @@ class HomeController extends Controller
         }
         
         // Get popular shops for both guests and authenticated users
-        $popularShops = Shop::withAvg('ratings', 'rating')
-            ->where('status', 'active')
-            ->orderBy('ratings_avg_rating', 'desc')
+        $popularShops = Shop::select('shops.*')
+            ->selectRaw('(SELECT AVG(rating) FROM ratings WHERE shops.id = ratings.shop_id) as ratings_avg_rating')
+            ->where('status', '=', 'active')
+            ->orderByDesc('ratings_avg_rating')
             ->take(6)
             ->get();
-
-        \Log::info('Popular shops:', $popularShops->toArray());
 
         $services = [
             (object)[
@@ -49,15 +48,15 @@ class HomeController extends Controller
             ]
         ];
 
-        // Use the same home view for both guests and authenticated users
         return view('home', compact('popularShops', 'services'));
     }
 
     public function dashboard()
     {
-        $popularShops = Shop::withAvg('ratings', 'rating')
-            ->where('status', 'active')
-            ->orderBy('ratings_avg_rating', 'desc')
+        $popularShops = Shop::select('shops.*')
+            ->selectRaw('(SELECT AVG(rating) FROM ratings WHERE shops.id = ratings.shop_id) as ratings_avg_rating')
+            ->where('status', '=', 'active')
+            ->orderByDesc('ratings_avg_rating')
             ->take(6)
             ->get();
             

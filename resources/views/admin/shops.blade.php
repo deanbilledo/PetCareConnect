@@ -137,7 +137,7 @@
                                                 {{ $shop->status === 'active' ? 'Suspend' : 'Activate' }}
                                             </button>
                                         </form>
-                                        <button class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-1 px-2 rounded-lg" onclick="showShopAnalytics('{{ $shop->id }}')">Analytics</button>
+                                        <a href="{{ route('admin.shops.analytics', $shop) }}" class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-1 px-2 rounded-lg">Analytics</a>
                                     </td>
                                 </tr>
                                 @empty
