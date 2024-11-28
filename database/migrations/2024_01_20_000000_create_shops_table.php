@@ -16,14 +16,15 @@ return new class extends Migration
             $table->string('phone');
             $table->text('description')->nullable();
             $table->string('address');
-            $table->decimal('latitude', 10, 8);
-            $table->decimal('longitude', 11, 8);
-            $table->string('image');
-            $table->string('tin');
-            $table->enum('vat_status', ['registered', 'non_registered']);
-            $table->string('bir_certificate');
-            $table->decimal('rating', 2, 1)->default(0.0);
+            $table->decimal('latitude', 10, 8)->nullable();
+            $table->decimal('longitude', 11, 8)->nullable();
+            $table->string('image')->nullable();
+            $table->string('tin')->nullable();
+            $table->string('vat_status')->nullable();
+            $table->string('bir_certificate')->nullable();
+            $table->decimal('rating', 3, 2)->default(0.00);
             $table->boolean('terms_accepted')->default(false);
+            $table->string('status')->default('pending');
             $table->timestamps();
         });
     }

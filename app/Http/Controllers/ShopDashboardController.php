@@ -4,17 +4,25 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use App\Http\Middleware\HasShop;
 
 class ShopDashboardController extends Controller
 {
     public function __construct()
     {
-        $this->middleware(['auth', \App\Http\Middleware\HasShop::class]);
+        $this->middleware(['auth', HasShop::class]);
     }
 
     public function index(Request $request)
     {
-        $shop = auth()->user()->shop;
+        $user = auth()->user();
+        $shop = $user->shop;
+        
+        // Check if setup is completed
+        if (!$user->setup_completed) {
+            return redirect()->route('shop.setup.welcome')
+                ->with('info', 'Please complete your shop setup first.');
+        }
         
         // Set shop mode in session
         session(['shop_mode' => true]);

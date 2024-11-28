@@ -64,7 +64,7 @@
 
         <!-- Switch to Customer Mode -->
         <div class="absolute bottom-0 left-0 right-0 p-4 border-t bg-white">
-            <a href="{{ route('switch.to.customer') }}" 
+            <a href="{{ route('shop.mode.customer') }}" 
                class="flex items-center px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors">
                 <svg class="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />

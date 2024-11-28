@@ -38,8 +38,8 @@ class CheckShopMode
             }
         }
 
-        // Only allow shop mode in shop dashboard for approved shops
-        if ($request->routeIs('shop.dashboard')) {
+        // Check if setup is completed before allowing shop mode
+        if ($request->routeIs('shop.dashboard') && !$request->routeIs('shop.setup.*')) {
             if (!$hasApprovedShop) {
                 if (auth()->user()->shop) {
                     $message = auth()->user()->shop->status === 'pending' 
@@ -49,6 +49,11 @@ class CheckShopMode
                     return redirect()->route('home')->with('error', $message);
                 }
                 return redirect()->route('home');
+            }
+
+            // Check if setup is completed
+            if (!auth()->user()->setup_completed) {
+                return redirect()->route('shop.setup.welcome');
             }
             
             session(['shop_mode' => true]);

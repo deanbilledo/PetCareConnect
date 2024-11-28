@@ -38,9 +38,24 @@ class Shop extends Model
 
     protected $appends = ['ratings_avg_rating', 'ratings_count'];
 
+    public function scopeActive($query)
+    {
+        return $query->where('status', 'active');
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function services()
+    {
+        return $this->hasMany(Service::class);
+    }
+
+    public function operatingHours()
+    {
+        return $this->hasMany(OperatingHour::class);
     }
 
     public function ratings()

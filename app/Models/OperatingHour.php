@@ -2,25 +2,25 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
-class Service extends Model
+class OperatingHour extends Model
 {
     use HasFactory;
 
     protected $fillable = [
         'shop_id',
-        'name',
-        'description',
-        'price',
-        'duration',
-        'status'
+        'day',
+        'is_open',
+        'open_time',
+        'close_time'
     ];
 
     protected $casts = [
-        'price' => 'decimal:2',
-        'duration' => 'integer'
+        'is_open' => 'boolean',
+        'open_time' => 'datetime:H:i',
+        'close_time' => 'datetime:H:i'
     ];
 
     public function shop()
