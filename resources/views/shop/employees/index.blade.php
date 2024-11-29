@@ -1,13 +1,51 @@
 @extends('layouts.shop')
 
 @section('content')
-<div class="container mx-auto px-4 py-6">
+<div x-data="{ showModal: false }" class="container mx-auto px-4 py-6">
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-2xl font-bold">Employees</h1>
-        <button type="button"
+        <button @click="showModal = true" type="button"
                 class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors">
             Add New Employee
         </button>
+    </div>
+
+    <!-- Add Employee Modal -->
+    <div x-show="showModal" class="fixed inset-0 flex items-center justify-center z-50">
+        <div class="fixed inset-0 bg-black opacity-50"></div>
+        <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-lg z-10">
+            <h2 class="text-xl font-bold mb-4">Add New Employee</h2>
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="name">
+                    Name
+                </label>
+                <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="name" type="text" placeholder="John Doe">
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="email">
+                    Email
+                </label>
+                <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="email" type="email" placeholder="john.doe@example.com">
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="phone">
+                    Phone
+                </label>
+                <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="phone" type="text" placeholder="+63 912 345 6789">
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="position">
+                    Position
+                </label>
+                <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="position" type="text" placeholder="Senior Groomer">
+            </div>
+            <div class="flex items-center justify-between">
+                <button @click="showModal = false" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline" type="button">
+                    Add Employee
+                </button>
+                <button @click="showModal = false" class="text-gray-600 hover:text-gray-800">Cancel</button>
+            </div>
+        </div>
     </div>
 
     <!-- Employees Grid -->
@@ -46,7 +84,7 @@
                 </div>
                 <div class="space-y-2 text-sm text-gray-600">
                     <p>📧 jane.smith@example.com</p>
-                    <p>📱 +63 923 456 7890</p>
+                    <p>📱 +63 912 345 6789</p>
                     <p>🕒 Part Time</p>
                 </div>
                 <div class="mt-4 flex justify-end space-x-2">
@@ -57,42 +95,4 @@
         </div>
     </div>
 </div>
-
-<!-- Add Employee Modal (Hidden by default) -->
-<div class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full" id="addEmployeeModal">
-    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-        <div class="mt-3">
-            <h3 class="text-lg font-medium leading-6 text-gray-900 mb-4">Add New Employee</h3>
-            <form>
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
-                    <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                </div>
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Position</label>
-                    <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                </div>
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                    <input type="email" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                </div>
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Phone</label>
-                    <input type="tel" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                </div>
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Employment Type</label>
-                    <select class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                        <option value="full_time">Full Time</option>
-                        <option value="part_time">Part Time</option>
-                    </select>
-                </div>
-                <div class="flex justify-end space-x-3">
-                    <button type="button" class="px-4 py-2 text-gray-500 hover:text-gray-700">Cancel</button>
-                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Add Employee</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-@endsection 
+@endsection

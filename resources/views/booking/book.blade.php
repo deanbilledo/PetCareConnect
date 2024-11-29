@@ -7,7 +7,7 @@
 @section('content')
 <div class="container mx-auto px-4 py-6">
     <!-- Back Button -->
-    <div class="mb-4">
+    <div class="mb-4 mt-10">
         <a href="{{ url()->previous() }}" class="text-gray-600 hover:text-gray-800 flex items-center">
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
@@ -19,7 +19,8 @@
     <!-- Shop Header -->
     <div class="bg-white rounded-lg shadow-md overflow-hidden mb-6">
         <div class="relative h-64">
-            <img src="{{ $shop->image_url }}" 
+            <img src="{{ $shop->image ? asset('storage/' . $shop->image) : asset('images/default-shop.png') }}"
+            
                  alt="{{ $shop->name }}" 
                  class="w-full h-full object-cover">
             <div class="absolute top-4 left-4">
@@ -201,11 +202,11 @@
             <!-- Add Review Form for Authenticated Users -->
             @auth
                 <div class="mb-8 border-b pb-8">
-                    <h3 class="text-lg font-semibold mb-4">Write a Review</h3>
+                    {{-- <h3 class="text-lg font-semibold mb-4">Write a Review</h3> --}}
                     <form action="{{ route('shop.review', $shop) }}" method="POST" class="space-y-4">
                         @csrf
                         <!-- Star Rating -->
-                        <div class="flex items-center space-x-1" x-data="{ rating: 0 }">
+                        {{-- <div class="flex items-center space-x-1" x-data="{ rating: 0 }">
                             @for($i = 1; $i <= 5; $i++)
                                 <button type="button" 
                                         @click="rating = {{ $i }}" 
@@ -215,26 +216,26 @@
                                 </button>
                             @endfor
                             <input type="hidden" name="rating" x-model="rating">
-                        </div>
+                        </div> --}}
 
                         <!-- Review Comment -->
-                        <div>
+                        {{-- <div>
                             <textarea name="comment" 
                                       rows="4" 
                                       class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
                                       placeholder="Share your experience..."></textarea>
-                        </div>
+                        </div> --}}
 
-                        <button type="submit" 
+                        {{-- <button type="submit" 
                                 class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors">
                             Submit Review
-                        </button>
+                        </button> --}}
                     </form>
                 </div>
             @else
-                <div class="bg-gray-50 rounded-lg p-4 mb-8 text-center">
+                {{-- <div class="bg-gray-50 rounded-lg p-4 mb-8 text-center">
                     <p class="text-gray-600">Please <a href="{{ route('login') }}" class="text-blue-500 hover:underline">login</a> to write a review.</p>
-                </div>
+                </div> --}}
             @endauth
 
             <!-- Reviews List -->
