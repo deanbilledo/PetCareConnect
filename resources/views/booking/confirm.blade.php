@@ -84,16 +84,37 @@
             @csrf
             
             <!-- Hidden fields -->
-            @foreach(request('pet_ids') as $petId)
+            <input type="hidden" name="appointment_date" value="{{ session('booking.appointment_date') }}">
+            <input type="hidden" name="appointment_time" value="{{ session('booking.appointment_time') }}">
+            
+            @foreach(session('booking.pet_ids', []) as $petId)
                 <input type="hidden" name="pet_ids[]" value="{{ $petId }}">
             @endforeach
             
-            @foreach(request('services') as $service)
-                <input type="hidden" name="services[]" value="{{ $service }}">
+            @foreach(session('booking.services', []) as $serviceId)
+                <input type="hidden" name="services[]" value="{{ $serviceId }}">
             @endforeach
-            
-            <input type="hidden" name="appointment_date" value="{{ request('appointment_date') }}">
-            <input type="hidden" name="appointment_time" value="{{ request('appointment_time') }}">
+
+            <!-- Services Summary -->
+            <div class="mb-6 pb-6 border-b border-gray-200">
+                <h3 class="font-medium mb-4">Services</h3>
+                @php $total = 0; @endphp
+                @foreach($pets as $pet)
+                    @foreach($services as $serviceId => $service)
+                        @if(in_array($serviceId, session('booking.services', [])))
+                            <div class="flex justify-between items-start mb-3">
+                                <div>
+                                    <p class="font-medium">{{ $pet->name }}</p>
+                                    <p class="text-sm text-gray-600">{{ $service['name'] }}</p>
+                                    <p class="text-xs text-gray-500">{{ $service['description'] }}</p>
+                                </div>
+                                <p class="font-medium">PHP {{ number_format($service['price'], 2) }}</p>
+                            </div>
+                            @php $total += $service['price']; @endphp
+                        @endif
+                    @endforeach
+                @endforeach
+            </div>
 
             <!-- Date and Time -->
             <div class="mb-6 pb-6 border-b border-gray-200">
@@ -106,27 +127,6 @@
                         </p>
                     </div>
                 </div>
-            </div>
-
-            <!-- Services Summary -->
-            <div class="mb-6 pb-6 border-b border-gray-200">
-                <h3 class="font-medium mb-4">Services</h3>
-                @php $total = 0; @endphp
-                @foreach($pets as $index => $pet)
-                    @php
-                        $serviceKey = request('services')[$index];
-                        $service = $services[$serviceKey];
-                        $total += $service['price'];
-                    @endphp
-                    <div class="flex justify-between items-start mb-3">
-                        <div>
-                            <p class="font-medium">{{ $pet->name }}</p>
-                            <p class="text-sm text-gray-600">{{ $service['name'] }}</p>
-                            <p class="text-xs text-gray-500">{{ $service['description'] }}</p>
-                        </div>
-                        <p class="font-medium">PHP {{ number_format($service['price'], 2) }}</p>
-                    </div>
-                @endforeach
             </div>
 
             <!-- Total -->

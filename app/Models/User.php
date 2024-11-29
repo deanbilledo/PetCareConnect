@@ -61,11 +61,23 @@ class User extends Authenticatable
      */
     public function getProfilePhotoUrlAttribute()
     {
-        if ($this->profile_photo_path) {
-            return Storage::disk('public')->url($this->profile_photo_path);
-        }
+        try {
+            if (empty($this->profile_photo_path)) {
+                return asset('images/default-profile.png');
+            }
 
-        return asset('images/default-profile.png');
+            if (Storage::disk('public')->exists($this->profile_photo_path)) {
+                return Storage::disk('public')->url($this->profile_photo_path);
+            }
+
+            return asset('images/default-profile.png');
+        } catch (\Exception $e) {
+            \Log::error('Error in getProfilePhotoUrlAttribute: ' . $e->getMessage(), [
+                'user_id' => $this->id,
+                'photo_path' => $this->profile_photo_path
+            ]);
+            return asset('images/default-profile.png');
+        }
     }
 
     public function shop()

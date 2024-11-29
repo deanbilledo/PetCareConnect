@@ -34,58 +34,107 @@
         </div>
     </div>
 
-    <!-- Progress Steps -->
-    <div class="mb-6">
-        <h2 class="text-xl font-semibold mb-4">Appointment Process</h2>
-        <div class="flex justify-between items-center relative">
-            <!-- Progress Line -->
-            <div class="absolute left-0 right-0 top-1/2 h-0.5 bg-gray-200 -z-10">
-                <div class="w-2/3 h-full bg-blue-500"></div>
+    <!-- Operating Hours -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+        <h2 class="text-lg font-semibold mb-4">Operating Hours</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="flex justify-between items-center py-2 {{ now()->dayOfWeek == 0 ? 'bg-blue-50 px-2 rounded' : '' }}">
+                <span class="font-medium">Sunday</span>
+                <span class="text-gray-600">
+                    @if($operatingHours->where('day', 0)->first() && $operatingHours->where('day', 0)->first()->is_open)
+                        {{ \Carbon\Carbon::parse($operatingHours->where('day', 0)->first()->open_time)->format('g:i A') }} - 
+                        {{ \Carbon\Carbon::parse($operatingHours->where('day', 0)->first()->close_time)->format('g:i A') }}
+                    @else
+                        Closed
+                    @endif
+                </span>
             </div>
-            
-            <!-- Steps -->
-            <div class="flex flex-col items-center">
-                <div class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white mb-2">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                    </svg>
-                </div>
-                <span class="text-sm text-blue-500 font-medium">Select Service</span>
+            <div class="flex justify-between items-center py-2 {{ now()->dayOfWeek == 1 ? 'bg-blue-50 px-2 rounded' : '' }}">
+                <span class="font-medium">Monday</span>
+                <span class="text-gray-600">
+                    @if($operatingHours->where('day', 1)->first() && $operatingHours->where('day', 1)->first()->is_open)
+                        {{ \Carbon\Carbon::parse($operatingHours->where('day', 1)->first()->open_time)->format('g:i A') }} - 
+                        {{ \Carbon\Carbon::parse($operatingHours->where('day', 1)->first()->close_time)->format('g:i A') }}
+                    @else
+                        Closed
+                    @endif
+                </span>
             </div>
-
-            <div class="flex flex-col items-center">
-                <div class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white mb-2">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                    </svg>
-                </div>
-                <span class="text-sm text-blue-500 font-medium">Choose Date</span>
+            <div class="flex justify-between items-center py-2 {{ now()->dayOfWeek == 2 ? 'bg-blue-50 px-2 rounded' : '' }}">
+                <span class="font-medium">Tuesday</span>
+                <span class="text-gray-600">
+                    @if($operatingHours->where('day', 2)->first() && $operatingHours->where('day', 2)->first()->is_open)
+                        {{ \Carbon\Carbon::parse($operatingHours->where('day', 2)->first()->open_time)->format('g:i A') }} - 
+                        {{ \Carbon\Carbon::parse($operatingHours->where('day', 2)->first()->close_time)->format('g:i A') }}
+                    @else
+                        Closed
+                    @endif
+                </span>
             </div>
-
-            <div class="flex flex-col items-center">
-                <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 mb-2">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                    </svg>
-                </div>
-                <span class="text-sm text-gray-500">Confirm</span>
+            <div class="flex justify-between items-center py-2 {{ now()->dayOfWeek == 3 ? 'bg-blue-50 px-2 rounded' : '' }}">
+                <span class="font-medium">Wednesday</span>
+                <span class="text-gray-600">
+                    @if($operatingHours->where('day', 3)->first() && $operatingHours->where('day', 3)->first()->is_open)
+                        {{ \Carbon\Carbon::parse($operatingHours->where('day', 3)->first()->open_time)->format('g:i A') }} - 
+                        {{ \Carbon\Carbon::parse($operatingHours->where('day', 3)->first()->close_time)->format('g:i A') }}
+                    @else
+                        Closed
+                    @endif
+                </span>
+            </div>
+            <div class="flex justify-between items-center py-2 {{ now()->dayOfWeek == 4 ? 'bg-blue-50 px-2 rounded' : '' }}">
+                <span class="font-medium">Thursday</span>
+                <span class="text-gray-600">
+                    @if($operatingHours->where('day', 4)->first() && $operatingHours->where('day', 4)->first()->is_open)
+                        {{ \Carbon\Carbon::parse($operatingHours->where('day', 4)->first()->open_time)->format('g:i A') }} - 
+                        {{ \Carbon\Carbon::parse($operatingHours->where('day', 4)->first()->close_time)->format('g:i A') }}
+                    @else
+                        Closed
+                    @endif
+                </span>
+            </div>
+            <div class="flex justify-between items-center py-2 {{ now()->dayOfWeek == 5 ? 'bg-blue-50 px-2 rounded' : '' }}">
+                <span class="font-medium">Friday</span>
+                <span class="text-gray-600">
+                    @if($operatingHours->where('day', 5)->first() && $operatingHours->where('day', 5)->first()->is_open)
+                        {{ \Carbon\Carbon::parse($operatingHours->where('day', 5)->first()->open_time)->format('g:i A') }} - 
+                        {{ \Carbon\Carbon::parse($operatingHours->where('day', 5)->first()->close_time)->format('g:i A') }}
+                    @else
+                        Closed
+                    @endif
+                </span>
+            </div>
+            <div class="flex justify-between items-center py-2 {{ now()->dayOfWeek == 6 ? 'bg-blue-50 px-2 rounded' : '' }}">
+                <span class="font-medium">Saturday</span>
+                <span class="text-gray-600">
+                    @if($operatingHours->where('day', 6)->first() && $operatingHours->where('day', 6)->first()->is_open)
+                        {{ \Carbon\Carbon::parse($operatingHours->where('day', 6)->first()->open_time)->format('g:i A') }} - 
+                        {{ \Carbon\Carbon::parse($operatingHours->where('day', 6)->first()->close_time)->format('g:i A') }}
+                    @else
+                        Closed
+                    @endif
+                </span>
             </div>
         </div>
     </div>
 
     <!-- Date and Time Selection -->
-    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6" 
+         x-data="timeSlotPicker()">
         <h2 class="text-lg font-semibold mb-4">Select Date and Time</h2>
+        <p class="text-sm text-gray-600 mb-4">Total duration of selected services: {{ $totalDuration }} minutes</p>
 
-        <form action="{{ route('booking.confirm', $shop) }}" method="POST">
+        <form action="{{ route('booking.confirm', $shop) }}" 
+              method="POST"
+              id="bookingForm">
             @csrf
             
             <!-- Hidden fields for pet_ids and services -->
-            @foreach(request('pet_ids') as $petId)
+            @foreach(session('booking.pet_ids', []) as $petId)
                 <input type="hidden" name="pet_ids[]" value="{{ $petId }}">
             @endforeach
             
-            @foreach(request('services') as $service)
+            @foreach(session('booking.services', []) as $service)
                 <input type="hidden" name="services[]" value="{{ $service }}">
             @endforeach
 
@@ -94,8 +143,10 @@
                 <label class="block text-sm font-medium text-gray-700 mb-2">Select Date</label>
                 <input type="date" 
                        name="appointment_date" 
-                       min="{{ date('Y-m-d') }}"
-                       max="{{ date('Y-m-d', strtotime('+2 months')) }}"
+                       x-model="selectedDate"
+                       @change="getTimeSlots"
+                       min="{{ now()->addDay()->format('Y-m-d') }}"
+                       max="{{ now()->addMonths(2)->format('Y-m-d') }}"
                        class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
                        required>
                 <p class="mt-1 text-sm text-gray-500">Available dates for the next 2 months</p>
@@ -104,43 +155,47 @@
             <!-- Time Selection -->
             <div class="mb-6">
                 <label class="block text-sm font-medium text-gray-700 mb-2">Select Time</label>
+                
+                <!-- Loading State -->
+                <div x-show="loading" class="text-gray-500 text-sm mb-2">
+                    <svg class="animate-spin h-5 w-5 mr-2 inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Loading available time slots...
+                </div>
+                
+                <!-- Error Message -->
+                <div x-show="errorMessage" 
+                     x-text="errorMessage"
+                     class="text-red-500 text-sm mb-2">
+                </div>
+                
+                <!-- Time Slots Dropdown -->
                 <select name="appointment_time" 
+                        x-model="selectedTime"
                         class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                        x-show="!loading && timeSlots.length > 0"
                         required>
-                    <option value="">Choose a time slot</option>
-                    <optgroup label="Morning">
-                        @foreach($availableSlots as $slot)
-                            @if(strtotime($slot) < strtotime('12:00'))
-                                <option value="{{ $slot }}">{{ date('g:i A', strtotime($slot)) }}</option>
-                            @endif
-                        @endforeach
-                    </optgroup>
-                    <optgroup label="Afternoon">
-                        @foreach($availableSlots as $slot)
-                            @if(strtotime($slot) >= strtotime('12:00'))
-                                <option value="{{ $slot }}">{{ date('g:i A', strtotime($slot)) }}</option>
-                            @endif
-                        @endforeach
-                    </optgroup>
+                    <option value="">Select a time</option>
+                    <template x-for="slot in timeSlots" :key="slot">
+                        <option x-text="slot" :value="slot"></option>
+                    </template>
                 </select>
-                <p class="mt-1 text-sm text-gray-500">Business hours: 8:30 AM to 5:00 PM</p>
+                
+                <!-- No Slots Available Message -->
+                <p x-show="!loading && !errorMessage && selectedDate && timeSlots.length === 0" 
+                   class="text-yellow-600 text-sm mt-1">
+                    No available time slots for the selected date. Please choose another date.
+                </p>
             </div>
 
-            <!-- Error Messages -->
-            @if ($errors->any())
-            <div class="mt-4 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded">
-                <ul class="list-disc list-inside">
-                    @foreach ($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
-            </div>
-            @endif
-
-            <!-- Next Button -->
+            <!-- Submit Button -->
             <div class="mt-6">
-                <button type="submit" 
-                        class="w-full bg-blue-500 text-white py-3 rounded-lg font-medium hover:bg-blue-600 transition-colors">
+                <button type="button" 
+                        @click="submitForm"
+                        class="w-full bg-blue-500 text-white py-3 rounded-lg font-medium hover:bg-blue-600 transition-colors"
+                        :disabled="!selectedTime || loading">
                     Next
                 </button>
             </div>
@@ -150,23 +205,75 @@
 
 @push('scripts')
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Get today's date in YYYY-MM-DD format
-    const today = new Date().toISOString().split('T')[0];
-    
-    // Set min date to today and max date to 2 months from now
-    const dateInput = document.querySelector('input[name="appointment_date"]');
-    dateInput.min = today;
-    
-    // Disable Sundays in the date picker
-    dateInput.addEventListener('input', function(e) {
-        const selected = new Date(this.value);
-        if (selected.getDay() === 0) { // 0 is Sunday
-            alert('Sorry, we are closed on Sundays. Please select another day.');
-            this.value = '';
+function timeSlotPicker() {
+    return {
+        selectedDate: '',
+        timeSlots: [],
+        selectedTime: '',
+        loading: false,
+        errorMessage: '',
+        
+        async getTimeSlots() {
+            if (!this.selectedDate) return;
+            
+            this.loading = true;
+            this.timeSlots = [];
+            this.selectedTime = '';
+            this.errorMessage = '';
+            
+            try {
+                const response = await fetch(`/time-slots/shop/{{ $shop->id }}?date=${this.selectedDate}&duration={{ $totalDuration }}`, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    },
+                    credentials: 'same-origin'
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error || `Server error: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                this.timeSlots = data.slots || [];
+                
+                if (data.message && this.timeSlots.length === 0) {
+                    this.errorMessage = data.message;
+                }
+            } catch (error) {
+                console.error('Error fetching time slots:', error);
+                this.errorMessage = error.message || 'Failed to load time slots. Please try again.';
+            } finally {
+                this.loading = false;
+            }
+        },
+        
+        submitForm() {
+            if (!this.selectedTime) {
+                this.errorMessage = 'Please select a time slot';
+                return;
+            }
+            if (!this.selectedDate) {
+                this.errorMessage = 'Please select a date';
+                return;
+            }
+            
+            // Clear any previous error messages
+            this.errorMessage = '';
+            
+            // Submit the form
+            document.getElementById('bookingForm').submit();
         }
-    });
-});
+    }
+}
 </script>
 @endpush
 

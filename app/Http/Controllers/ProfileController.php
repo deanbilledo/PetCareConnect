@@ -224,4 +224,14 @@ class ProfileController extends Controller
 
         return view('profile.pets.add-health-record', compact('pet'));
     }
+
+    public function showHealthRecord(Pet $pet)
+    {
+        // Check if the user is authorized to view this pet's records
+        if ($pet->user_id !== auth()->id() && !auth()->user()->hasRole('shop_owner')) {
+            abort(403);
+        }
+
+        return view('pets.health-record', compact('pet'));
+    }
 }

@@ -11,6 +11,7 @@ use App\Http\Controllers\ShopDashboardController;
 use App\Http\Controllers\ShopController;
 use App\Http\Controllers\ShopProfileController;
 use App\Http\Controllers\ShopAppointmentController;
+use App\Http\Controllers\ShopServicesController;
 use App\Http\Controllers\FavoriteController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\ShopSetupController;
@@ -61,8 +62,15 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/appointments', [ShopAppointmentController::class, 'index'])->name('appointments');
             Route::post('/mode/customer', [ShopDashboardController::class, 'switchToCustomerMode'])->name('mode.customer');
             
+            // Services management routes
+            Route::get('/services', [ShopServicesController::class, 'index'])->name('services');
+            Route::get('/services/{service}', [ShopServicesController::class, 'show'])->name('services.show');
+            Route::post('/services', [ShopServicesController::class, 'store'])->name('services.store');
+            Route::put('/services/{service}', [ShopServicesController::class, 'update'])->name('services.update');
+            Route::delete('/services/{service}', [ShopServicesController::class, 'destroy'])->name('services.destroy');
+            Route::put('/services/{service}/status', [ShopServicesController::class, 'updateStatus'])->name('services.update-status');
+            
             // Static routes
-            Route::view('/services', 'shop.services.index')->name('services');
             Route::view('/employees', 'shop.employees.index')->name('employees');
             Route::view('/analytics', 'shop.analytics.index')->name('analytics');
             Route::view('/settings', 'shop.settings.index')->name('settings');
@@ -82,6 +90,8 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/pets/{pet}', [ProfileController::class, 'deletePet'])->name('pets.delete');
         Route::get('/pets/{pet}/details', [ProfileController::class, 'showPetDetails'])->name('pets.details');
         Route::post('/pets/{pet}/update-photo', [ProfileController::class, 'updatePetPhoto'])->name('pets.update-photo');
+        Route::get('/pets/{pet}/health-record', [ProfileController::class, 'showHealthRecord'])->name('pets.health-record');
+        Route::get('/pets/{pet}/add-health-record', [ProfileController::class, 'showAddHealthRecord'])->name('pets.add-health-record');
         Route::post('/pets/{pet}/store-vaccination', [ProfileController::class, 'storeVaccination'])->name('pets.store-vaccination');
         Route::post('/pets/{pet}/store-health-record', [ProfileController::class, 'storeHealthRecord'])->name('pets.store-health-record');
         Route::post('/pets/{pet}/store-parasite-control', [ProfileController::class, 'storeParasiteControl'])->name('pets.store-parasite-control');
@@ -89,16 +99,23 @@ Route::middleware(['auth'])->group(function () {
     });
 
     // Booking routes
-    Route::prefix('book/{shop}')->name('booking.')->group(function () {
-        Route::get('/process', [BookingController::class, 'process'])->name('process');
-        Route::post('/select-service', [BookingController::class, 'selectService'])->name('select-service');
-        Route::post('/select-datetime', [BookingController::class, 'selectDateTime'])->name('select-datetime');
-        Route::post('/confirm', [BookingController::class, 'confirm'])->name('confirm');
-        Route::post('/store', [BookingController::class, 'store'])->name('store');
+    Route::middleware(['auth', 'web'])->group(function () {
+        // Time slots route
+        Route::get('/time-slots/shop/{shop}', [BookingController::class, 'getTimeSlots'])
+            ->name('time-slots.get');
+
+        Route::prefix('book/{shop}')->name('booking.')->group(function () {
+            Route::get('/process', [BookingController::class, 'process'])->name('process');
+            Route::post('/select-service', [BookingController::class, 'selectService'])->name('select-service');
+            Route::post('/select-datetime', [BookingController::class, 'selectDateTime'])->name('select-datetime');
+            Route::post('/confirm', [BookingController::class, 'confirm'])->name('confirm');
+            Route::post('/store', [BookingController::class, 'store'])->name('store');
+        });
     });
 
     // Appointment routes
     Route::prefix('appointments')->name('appointments.')->group(function () {
+        Route::get('/{appointment}', [AppointmentController::class, 'show'])->name('show');
         Route::post('/{appointment}/cancel', [AppointmentController::class, 'cancel'])->name('cancel');
         Route::get('/{appointment}/reschedule', [AppointmentController::class, 'reschedule'])->name('reschedule');
         Route::put('/{appointment}/reschedule', [AppointmentController::class, 'updateSchedule'])->name('update-schedule');
