@@ -15,13 +15,13 @@
                   action="{{ route('shop.setup.hours.store') }}"
                   x-data="{ 
                       days: [
-                          { name: 'Sunday', is_open: false, open_time: '09:00', close_time: '17:00' },
-                          { name: 'Monday', is_open: true, open_time: '09:00', close_time: '17:00' },
-                          { name: 'Tuesday', is_open: true, open_time: '09:00', close_time: '17:00' },
-                          { name: 'Wednesday', is_open: true, open_time: '09:00', close_time: '17:00' },
-                          { name: 'Thursday', is_open: true, open_time: '09:00', close_time: '17:00' },
-                          { name: 'Friday', is_open: true, open_time: '09:00', close_time: '17:00' },
-                          { name: 'Saturday', is_open: true, open_time: '09:00', close_time: '17:00' }
+                          { name: 'Sunday', day: 0, is_open: false, open_time: '09:00', close_time: '17:00' },
+                          { name: 'Monday', day: 1, is_open: true, open_time: '09:00', close_time: '17:00' },
+                          { name: 'Tuesday', day: 2, is_open: true, open_time: '09:00', close_time: '17:00' },
+                          { name: 'Wednesday', day: 3, is_open: true, open_time: '09:00', close_time: '17:00' },
+                          { name: 'Thursday', day: 4, is_open: true, open_time: '09:00', close_time: '17:00' },
+                          { name: 'Friday', day: 5, is_open: true, open_time: '09:00', close_time: '17:00' },
+                          { name: 'Saturday', day: 6, is_open: true, open_time: '09:00', close_time: '17:00' }
                       ]
                   }">
                 @csrf
@@ -29,7 +29,7 @@
                 <div class="px-8 py-6 space-y-6">
                     <template x-for="(day, index) in days" :key="index">
                         <div class="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
-                            <input type="hidden" :name="'hours[' + index + '][day]'" :value="index">
+                            <input type="hidden" :name="'hours[' + index + '][day]'" :value="day.day">
                             
                             <div class="w-1/4">
                                 <span class="font-medium" x-text="day.name"></span>
