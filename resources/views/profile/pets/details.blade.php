@@ -1,3 +1,7 @@
+@php
+use Illuminate\Support\Str;
+@endphp
+
 @extends('layouts.app')
 
 @section('content')
@@ -114,13 +118,16 @@
     <div class="bg-white rounded-lg shadow-md p-6 mb-8">
         <div class="flex items-center justify-between mb-6">
             <h2 class="text-xl font-semibold">Health Records</h2>
-            <a href="{{ route('profile.pets.add-health-record', $pet) }}" 
-               class="bg-teal-500 text-white px-4 py-2 rounded-md hover:bg-teal-600 flex items-center">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                </svg>
-                Add Record
-            </a>
+            <div class="flex gap-4">
+                <a href="{{ route('profile.pets.health-record', $pet) }}" 
+                   class="text-blue-600 hover:text-blue-800">
+                    View Health Record
+                </a>
+                <a href="{{ route('profile.pets.add-health-record', $pet) }}" 
+                   class="text-blue-600 hover:text-blue-800">
+                    Add Health Record
+                </a>
+            </div>
         </div>
 
         <!-- Vaccination History -->

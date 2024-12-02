@@ -39,4 +39,23 @@ class Service extends Model
     {
         return $this->belongsTo(Shop::class);
     }
+
+    public function appointments()
+    {
+        return $this->hasMany(Appointment::class);
+    }
+
+    public function getPriceForSize($size)
+    {
+        if (empty($this->variable_pricing)) {
+            return $this->base_price;
+        }
+
+        $size = strtolower($size);
+        $pricing = collect($this->variable_pricing)->first(function($price) use ($size) {
+            return strtolower($price['size']) === $size;
+        });
+
+        return $pricing ? (float) $pricing['price'] : $this->base_price;
+    }
 } 

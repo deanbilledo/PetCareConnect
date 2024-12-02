@@ -15,9 +15,14 @@ use App\Http\Controllers\ShopServicesController;
 use App\Http\Controllers\FavoriteController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\ShopSetupController;
+use App\Http\Controllers\ReceiptController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use App\Http\Middleware\HasShop;
 use App\Http\Middleware\IsAdmin;
+
 
 // Public routes
 Route::get('/', [HomeController::class, 'index'])->name('home');
@@ -79,23 +84,25 @@ Route::middleware(['auth'])->group(function () {
 
     // Customer profile routes
     Route::prefix('profile')->name('profile.')->group(function () {
+        // Profile routes
         Route::get('/', [ProfileController::class, 'index'])->name('index');
         Route::post('/update-info', [ProfileController::class, 'updatePersonalInfo'])->name('update-info');
         Route::post('/update-photo', [ProfileController::class, 'updateProfilePhoto'])->name('update-photo');
         Route::post('/update-location', [ProfileController::class, 'updateLocation'])->name('update-location');
         
         // Pet routes
-        Route::post('/pets', [ProfileController::class, 'storePet'])->name('pets.store');
-        Route::put('/pets/{pet}', [ProfileController::class, 'updatePet'])->name('pets.update');
-        Route::delete('/pets/{pet}', [ProfileController::class, 'deletePet'])->name('pets.delete');
-        Route::get('/pets/{pet}/details', [ProfileController::class, 'showPetDetails'])->name('pets.details');
-        Route::post('/pets/{pet}/update-photo', [ProfileController::class, 'updatePetPhoto'])->name('pets.update-photo');
-        Route::get('/pets/{pet}/health-record', [ProfileController::class, 'showHealthRecord'])->name('profile.pets.health-record');
-        Route::get('/pets/{pet}/add-health-record', [ProfileController::class, 'showAddHealthRecord'])->name('profile.pets.add-health-record');
-        Route::post('/pets/{pet}/store-vaccination', [ProfileController::class, 'storeVaccination'])->name('pets.store-vaccination');
-        Route::post('/pets/{pet}/store-health-record', [ProfileController::class, 'storeHealthRecord'])->name('pets.store-health-record');
-        Route::post('/pets/{pet}/store-parasite-control', [ProfileController::class, 'storeParasiteControl'])->name('pets.store-parasite-control');
-        Route::post('/pets/{pet}/store-health-issue', [ProfileController::class, 'storeHealthIssue'])->name('pets.store-health-issue');
+        Route::prefix('pets')->name('pets.')->group(function () {
+            // Pet CRUD operations
+            Route::post('/', [ProfileController::class, 'storePet'])->name('store');
+            Route::put('/{pet}', [ProfileController::class, 'updatePet'])->name('update');
+            Route::delete('/{pet}', [ProfileController::class, 'deletePet'])->name('delete');
+            Route::post('/{pet}/update-photo', [ProfileController::class, 'updatePetPhoto'])->name('update-photo');
+            
+            // Pet details and health records
+            Route::get('/{pet}/details', [ProfileController::class, 'showPetDetails'])->name('details');
+            Route::get('/{pet}/health-record', [ProfileController::class, 'showHealthRecord'])->name('health-record');
+            Route::get('/{pet}/add-health-record', [ProfileController::class, 'showAddHealthRecord'])->name('add-health-record');
+        });
     });
 
     // Booking routes
@@ -108,8 +115,11 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/process', [BookingController::class, 'process'])->name('process');
             Route::post('/select-service', [BookingController::class, 'selectService'])->name('select-service');
             Route::post('/select-datetime', [BookingController::class, 'selectDateTime'])->name('select-datetime');
+            Route::get('/confirm', [BookingController::class, 'showConfirm'])->name('confirm.show');
             Route::post('/confirm', [BookingController::class, 'confirm'])->name('confirm');
             Route::post('/store', [BookingController::class, 'store'])->name('store');
+            Route::get('/thank-you', [BookingController::class, 'thankYou'])->name('thank-you');
+            Route::get('/receipt', [ReceiptController::class, 'download'])->name('receipt.download');
         });
     });
 
@@ -129,7 +139,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings');
     Route::get('/favorites', [FavoriteController::class, 'index'])->name('favorites.index');
     Route::post('/favorites/{shop}', [FavoriteController::class, 'toggle'])->name('favorites.toggle');
-    Route::post('/shop/{shop}/review', [ShopController::class, 'submitReview'])->name('shop.review');
+    Route::post('/shops/{shop}/review', [ShopController::class, 'submitReview'])->name('shops.review')->middleware('auth');
 });
 
 // Admin routes
@@ -148,4 +158,12 @@ Route::middleware(['auth', IsAdmin::class])->prefix('admin')->name('admin.')->gr
     Route::get('/profile', [AdminController::class, 'profile'])->name('profile');
     Route::get('/support', [AdminController::class, 'support'])->name('support');
     Route::get('/settings', [AdminController::class, 'settings'])->name('settings');
+});
+
+Route::middleware(['auth', 'has.shop'])->group(function () {
+    Route::post('/shop/services', [ShopServicesController::class, 'store']);
+    Route::put('/shop/services/{service}', [ShopServicesController::class, 'update']);
+    Route::get('/shop/services/{service}', [ShopServicesController::class, 'show']);
+    Route::delete('/shop/services/{service}', [ShopServicesController::class, 'destroy']);
+    Route::put('/shop/services/{service}/status', [ShopServicesController::class, 'updateStatus']);
 });

@@ -1,3 +1,6 @@
+@php
+use Illuminate\Support\Facades\Log;
+@endphp
 @extends('layouts.app')
 
 @section('content')
@@ -83,33 +86,73 @@
             <!-- Hidden appointment type -->
             <input type="hidden" name="appointment_type" value="{{ request('appointment_type') }}">
 
+            <!-- Service selection for each pet -->
             @foreach($pets as $index => $pet)
-            <div class="mb-6 pb-6 {{ !$loop->last ? 'border-b border-gray-200' : '' }}">
-                <h3 class="font-medium mb-4">Services for {{ $pet->name }}</h3>
-                
-                <div class="space-y-3">
-                    @foreach($services as $service)
-                    <div class="flex items-center">
-                        <input type="radio" 
-                               id="service_{{ $index }}_{{ $service['id'] }}" 
-                               name="services[{{ $index }}]" 
-                               value="{{ $service['id'] }}"
-                               class="mr-3"
-                               required>
-                        <label for="service_{{ $index }}_{{ $service['id'] }}" class="flex-grow">
-                            <div class="flex justify-between">
-                                <div>
-                                    <span class="font-medium">{{ $service['name'] }}</span>
-                                    <p class="text-sm text-gray-600">{{ $service['description'] }}</p>
-                                    <p class="text-sm text-gray-500">Duration: {{ $service['duration'] }} minutes</p>
+                <div class="mb-6 pb-6 {{ !$loop->last ? 'border-b border-gray-200' : '' }}">
+                    <h3 class="font-medium mb-4">Services for {{ $pet->name }} ({{ $pet->size_category }})</h3>
+                    
+                    <div class="space-y-4">
+                        @php
+                            $petServices = $bookingData['pet_services'] ?? [];
+                            $selectedServiceId = $petServices[$pet->id] ?? null;
+                        @endphp
+
+                        @foreach($services as $service)
+                            @php
+                                // Convert arrays and ensure proper format
+                                $petTypes = is_array($service->pet_types) ? $service->pet_types : json_decode($service->pet_types, true) ?? [];
+                                $sizeRanges = is_array($service->size_ranges) ? $service->size_ranges : json_decode($service->size_ranges, true) ?? [];
+                                
+                                // Convert everything to lowercase and singular form
+                                $petType = strtolower(rtrim($pet->type, 's'));
+                                $petSize = strtolower($pet->size_category);
+                                
+                                // Normalize service data
+                                $normalizedPetTypes = array_map(function($type) {
+                                    return strtolower(rtrim($type, 's'));
+                                }, $petTypes);
+                                
+                                $normalizedSizeRanges = array_map('strtolower', $sizeRanges);
+
+                                // Check if service is available for this pet
+                                $typeMatch = in_array($petType, $normalizedPetTypes);
+                                $sizeMatch = in_array($petSize, $normalizedSizeRanges);
+                            @endphp
+
+                            @if($typeMatch && $sizeMatch)
+                                <div class="bg-gray-50 p-4 rounded-lg hover:bg-gray-100 transition-colors">
+                                    <div class="flex items-start">
+                                        <input type="radio" 
+                                               id="service_{{ $pet->id }}_{{ $service->id }}" 
+                                               name="services[{{ $pet->id }}]" 
+                                               value="{{ $service->id }}"
+                                               {{ $selectedServiceId == $service->id ? 'checked' : '' }}
+                                               required
+                                               class="mt-1 mr-3">
+                                        <label for="service_{{ $pet->id }}_{{ $service->id }}" class="flex-grow">
+                                            <div class="flex justify-between">
+                                                <div>
+                                                    <div class="flex items-center gap-2">
+                                                        <span class="font-medium">{{ $service->name }}</span>
+                                                        <span class="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full">
+                                                            {{ ucfirst($service->category) }}
+                                                        </span>
+                                                    </div>
+                                                    <p class="text-sm text-gray-600 mt-1">{{ $service->description }}</p>
+                                                    <p class="text-sm text-gray-500 mt-2">Duration: {{ $service->duration }} minutes</p>
+                                                </div>
+                                                <div class="text-right">
+                                                    <span class="font-medium text-lg">₱{{ number_format($service->base_price, 2) }}</span>
+                                                    <p class="text-xs text-gray-500">Base price</p>
+                                                </div>
+                                            </div>
+                                        </label>
+                                    </div>
                                 </div>
-                                <span class="font-medium">₱{{ number_format($service['price'], 2) }}</span>
-                            </div>
-                        </label>
+                            @endif
+                        @endforeach
                     </div>
-                    @endforeach
                 </div>
-            </div>
             @endforeach
 
             <!-- Error Messages -->

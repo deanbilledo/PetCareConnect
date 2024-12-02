@@ -1,3 +1,17 @@
+@php
+try {
+    $homeRoute = route('home');
+    $loginRoute = route('login');
+    $registerRoute = route('register');
+    $passwordResetRoute = route('password.request');
+} catch (\Exception $e) {
+    $homeRoute = '/';
+    $loginRoute = '/login';
+    $registerRoute = '/register';
+    $passwordResetRoute = '/forgot-password';
+}
+@endphp
+
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
@@ -15,7 +29,7 @@
 <body class="bg-custom-bg font-[Poppins]">
     <!-- Logo in upper left -->
     <div class="absolute top-4 left-4 z-20">
-        <a href="{{ route('home') }}">
+        <a href="{{ $homeRoute }}">
             <img src="{{ asset('images/logo.png') }}" alt="Pet Care Connect Logo" class="w-32 md:w-48">
         </a>
     </div>
@@ -73,7 +87,7 @@
                 </div>
 
                 <!-- Login form -->
-                <form method="POST" action="{{ route('login') }}" class="space-y-6">
+                <form method="POST" action="{{ $loginRoute }}" class="space-y-6">
                     @csrf
                     
                     <div>
@@ -121,8 +135,8 @@
                             </label>
                         </div>
 
-                        @if (Route::has('password.request'))
-                            <a href="{{ route('password.request') }}" class="text-sm font-medium text-blue-600 hover:text-blue-500">
+                        @if ($passwordResetRoute)
+                            <a href="{{ $passwordResetRoute }}" class="text-sm font-medium text-blue-600 hover:text-blue-500">
                                 Forgot password?
                             </a>
                         @endif
@@ -135,7 +149,7 @@
 
                 <p class="text-center text-sm text-gray-600">
                     Don't have an account?
-                    <a href="{{ route('register') }}" class="font-medium text-blue-600 hover:text-blue-500">
+                    <a href="{{ $registerRoute }}" class="font-medium text-blue-600 hover:text-blue-500">
                         Sign up
                     </a>
                 </p>

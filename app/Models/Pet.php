@@ -40,4 +40,19 @@ class Pet extends Model
             ? Storage::disk('public')->url($this->profile_photo_path)
             : asset('images/default-pet.png');
     }
+
+    public function healthRecords()
+    {
+        return $this->hasMany(HealthRecord::class);
+    }
+
+    public function vaccinations()
+    {
+        return $this->hasMany(PetVaccination::class);
+    }
+
+    public function getSizeCategoryAttribute($value)
+    {
+        return strtolower($value);
+    }
 } 

@@ -241,7 +241,7 @@
                                     <template x-for="(price, priceIndex) in service.variablePricing" :key="priceIndex">
                                         <div class="grid grid-cols-2 gap-2 mt-2">
                                             <select x-model="price.size"
-                                                    :name="'services[' + index + '][variablePricing][' + priceIndex + '][size]'"
+                                                    :name="`services[${index}][variable_pricing][${priceIndex}][size]`"
                                                     class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                                                 <option value="">Select Size</option>
                                                 <option value="small">Small</option>
@@ -250,7 +250,7 @@
                                             </select>
                                             <input type="number"
                                                    x-model="price.price"
-                                                   :name="'services[' + index + '][variablePricing][' + priceIndex + '][price]'"
+                                                   :name="`services[${index}][variable_pricing][${priceIndex}][price]`"
                                                    placeholder="Price"
                                                    min="0"
                                                    step="0.01"

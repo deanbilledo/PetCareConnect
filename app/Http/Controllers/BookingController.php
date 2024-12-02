@@ -7,7 +7,9 @@ use App\Models\Pet;
 use App\Models\Appointment;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 
 class BookingController extends Controller
 {
@@ -28,7 +30,7 @@ class BookingController extends Controller
             }]);
 
             // Add debug logging
-            \Log::info('Loading shop data:', [
+            Log::info('Loading shop data:', [
                 'shop_id' => $shop->id,
                 'shop_name' => $shop->name,
                 'ratings_count' => $shop->ratings->count()
@@ -36,7 +38,7 @@ class BookingController extends Controller
 
             return view('booking.book', compact('shop'));
         } catch (\Exception $e) {
-            \Log::error('Error in show method: ' . $e->getMessage(), [
+            Log::error('Error in show method: ' . $e->getMessage(), [
                 'shop_id' => $shop->id ?? null,
                 'trace' => $e->getTraceAsString()
             ]);
@@ -52,35 +54,47 @@ class BookingController extends Controller
 
     public function selectService(Shop $shop, Request $request)
     {
-        $request->validate([
-            'appointment_type' => 'required|in:single,multiple',
-            'pet_ids' => 'required|array',
-            'pet_ids.*' => 'exists:pets,id'
-        ]);
+        try {
+            $validated = $request->validate([
+                'appointment_type' => 'required|in:single,multiple',
+                'pet_ids' => 'required|array|min:1',
+                'pet_ids.*' => 'exists:pets,id'
+            ]);
 
-        $pets = Pet::whereIn('id', $request->pet_ids)->get();
-        
-        // Load active services from the shop
-        $services = $shop->services()
-            ->where('status', 'active')
-            ->get()
-            ->map(function($service) {
-                return [
-                    'id' => $service->id,
-                    'name' => $service->name,
-                    'price' => $service->price,
-                    'description' => $service->description,
-                    'duration' => $service->duration
-                ];
-            });
+            $pets = Pet::whereIn('id', $validated['pet_ids'])
+                ->where('user_id', auth()->id())
+                ->get();
 
-        return view('booking.select-service', compact('shop', 'pets', 'services'));
+            if ($pets->isEmpty()) {
+                return back()->with('error', 'Please select valid pets.');
+            }
+
+            // Load active services
+            $services = $shop->services()
+                ->where('status', 'active')
+                ->get();
+
+            // Get any existing booking data from session
+            $bookingData = session('booking', []);
+
+            Log::info('Processing service selection:', [
+                'shop_id' => $shop->id,
+                'pet_ids' => $validated['pet_ids'],
+                'appointment_type' => $validated['appointment_type'],
+                'booking_data' => $bookingData
+            ]);
+
+            return view('booking.select-service', compact('shop', 'pets', 'services', 'bookingData'));
+        } catch (\Exception $e) {
+            Log::error('Error in selectService: ' . $e->getMessage());
+            return back()->with('error', 'There was an error processing your request. Please try again.');
+        }
     }
 
-    public function selectDateTime(Shop $shop, Request $request)
+    public function selectDateTime(Request $request, Shop $shop)
     {
         try {
-            $request->validate([
+            $validated = $request->validate([
                 'pet_ids' => 'required|array',
                 'pet_ids.*' => 'exists:pets,id',
                 'services' => 'required|array',
@@ -94,7 +108,7 @@ class BookingController extends Controller
 
             // Get selected services for duration calculation
             $selectedServices = $shop->services()
-                ->whereIn('id', $request->services)
+                ->whereIn('id', $validated['services'])
                 ->where('status', 'active')
                 ->get();
 
@@ -105,24 +119,41 @@ class BookingController extends Controller
             // Calculate total duration
             $totalDuration = $selectedServices->sum('duration');
 
-            // Store selected data in session for confirmation
-            session([
-                'booking.pet_ids' => $request->pet_ids,
-                'booking.services' => $request->services
+            // Create pet services mapping
+            $petServices = array_combine($validated['pet_ids'], $validated['services']);
+
+            // Store in session
+            $bookingData = [
+                'pet_ids' => $validated['pet_ids'],
+                'pet_services' => $petServices
+            ];
+            
+            session(['booking' => $bookingData]);
+
+            // Debug log
+            Log::info('Booking data stored in session:', [
+                'booking_data' => $bookingData,
+                'session_data' => session('booking')
             ]);
 
-            return view('booking.select-datetime', compact('shop', 'operatingHours', 'totalDuration'));
-            
+            // Pass session data directly to view
+            return view('booking.select-datetime', [
+                'shop' => $shop,
+                'operatingHours' => $operatingHours,
+                'totalDuration' => $totalDuration,
+                'bookingData' => $bookingData
+            ]);
+
         } catch (\Exception $e) {
-            \Log::error('Error in selectDateTime: ' . $e->getMessage());
+            Log::error('Error in selectDateTime: ' . $e->getMessage());
             return back()->with('error', 'There was an error loading the booking form. Please try again.');
         }
     }
 
-    public function confirm(Shop $shop, Request $request)
+    public function showConfirm(Request $request, Shop $shop)
     {
         try {
-            $request->validate([
+            $validated = $request->validate([
                 'pet_ids' => 'required|array',
                 'pet_ids.*' => 'exists:pets,id',
                 'services' => 'required|array',
@@ -132,54 +163,95 @@ class BookingController extends Controller
             ]);
 
             // Parse the appointment date and time
-            $appointmentDateTime = Carbon::parse($request->appointment_date . ' ' . $request->appointment_time);
+            $appointmentDateTime = Carbon::parse($validated['appointment_date'] . ' ' . $validated['appointment_time']);
             
-            // Get the day of week for the appointment
-            $dayOfWeek = $appointmentDateTime->dayOfWeek;
+            // Load pets with their services
+            $pets = Pet::whereIn('id', $validated['pet_ids'])
+                ->where('user_id', auth()->id())
+                ->get();
             
-            // Check if shop is open on this day
-            $operatingHours = $shop->operatingHours()
-                ->where('day', $dayOfWeek)
-                ->where('is_open', true)
-                ->first();
-                
-            if (!$operatingHours) {
-                return back()->with('error', 'The shop is not open on the selected day.');
-            }
-            
-            // Load pets
-            $pets = Pet::whereIn('id', $request->pet_ids)->get();
-            
-            // Load services with full details
+            // Load services
             $services = $shop->services()
-                ->whereIn('id', $request->services)
+                ->whereIn('id', $validated['services'])
                 ->where('status', 'active')
-                ->get()
-                ->mapWithKeys(function ($service) {
-                    return [$service->id => [
-                        'name' => $service->name,
-                        'description' => $service->description,
-                        'price' => $service->price,
-                        'duration' => $service->duration
-                    ]];
-                });
+                ->get();
 
             if ($services->isEmpty()) {
                 return back()->with('error', 'Selected services are no longer available.');
             }
 
-            // Store data in session
-            session([
-                'booking.pet_ids' => $request->pet_ids,
-                'booking.services' => $request->services,
-                'booking.appointment_date' => $request->appointment_date,
-                'booking.appointment_time' => $request->appointment_time
+            // Create pet services mapping
+            $petServices = array_combine($validated['pet_ids'], $validated['services']);
+
+            // Store booking data
+            $bookingData = [
+                'pet_ids' => $validated['pet_ids'],
+                'pet_services' => $petServices,
+                'appointment_date' => $validated['appointment_date'],
+                'appointment_time' => $validated['appointment_time']
+            ];
+            
+            session(['booking' => $bookingData]);
+
+            return view('booking.confirm', compact('shop', 'pets', 'services', 'appointmentDateTime', 'bookingData'));
+        } catch (\Exception $e) {
+            Log::error('Error in showConfirm method: ' . $e->getMessage());
+            return back()->with('error', 'There was an error processing your booking. Please try again.');
+        }
+    }
+
+    public function confirm(Request $request, Shop $shop)
+    {
+        try {
+            $validated = $request->validate([
+                'pet_ids' => 'required|array',
+                'pet_ids.*' => 'exists:pets,id',
+                'services' => 'required|array',
+                'services.*' => 'exists:services,id',
+                'appointment_date' => 'required|date|after:today',
+                'appointment_time' => 'required|string'
             ]);
 
-            return view('booking.confirm', compact('shop', 'pets', 'services', 'appointmentDateTime'));
+            // Parse the appointment date and time
+            $appointmentDateTime = Carbon::parse($validated['appointment_date'] . ' ' . $validated['appointment_time']);
             
+            // Load pets with their services
+            $pets = Pet::whereIn('id', $validated['pet_ids'])
+                ->where('user_id', auth()->id())
+                ->get();
+            
+            // Load services
+            $services = $shop->services()
+                ->whereIn('id', $validated['services'])
+                ->where('status', 'active')
+                ->get();
+
+            if ($services->isEmpty()) {
+                return back()->with('error', 'Selected services are no longer available.');
+            }
+
+            // Create pet services mapping
+            $petServices = array_combine($validated['pet_ids'], $validated['services']);
+
+            // Store booking data
+            $bookingData = [
+                'pet_ids' => $validated['pet_ids'],
+                'pet_services' => $petServices,
+                'appointment_date' => $validated['appointment_date'],
+                'appointment_time' => $validated['appointment_time']
+            ];
+            
+            session(['booking' => $bookingData]);
+
+            Log::info('Confirm booking data:', [
+                'booking_data' => $bookingData,
+                'pets' => $pets->pluck('name', 'id'),
+                'services' => $services->pluck('name', 'id')
+            ]);
+
+            return view('booking.confirm', compact('shop', 'pets', 'services', 'appointmentDateTime', 'bookingData'));
         } catch (\Exception $e) {
-            \Log::error('Error in booking confirmation: ' . $e->getMessage());
+            Log::error('Error in confirm method: ' . $e->getMessage());
             return back()->with('error', 'There was an error processing your booking. Please try again.');
         }
     }
@@ -210,7 +282,7 @@ class BookingController extends Controller
                 return back()->with('error', 'The shop is not open on the selected day.');
             }
 
-            // Get all selected services
+            // Get all selected services with their prices
             $services = $shop->services()
                 ->whereIn('id', $request->services)
                 ->where('status', 'active')
@@ -220,50 +292,79 @@ class BookingController extends Controller
                 return back()->with('error', 'Selected services are no longer available.');
             }
 
-            \DB::beginTransaction();
-            try {
-                // Create appointments for each pet
-                foreach ($request->pet_ids as $petId) {
-                    foreach ($services as $service) {
-                        $appointment = Appointment::create([
-                            'user_id' => auth()->id(),
-                            'shop_id' => $shop->id,
-                            'pet_id' => $petId,
-                            'service_type' => $service->name,
-                            'service_price' => $service->price,
-                            'appointment_date' => $appointmentDateTime,
-                            'notes' => $request->notes,
-                            'status' => 'pending'
-                        ]);
-                        
-                        \Log::info('Created appointment:', $appointment->toArray());
-                        
-                        // Add duration for next appointment if there are more services
-                        $appointmentDateTime->addMinutes($service->duration);
+            DB::beginTransaction();
+            
+            $servicesBreakdown = [];
+            $total = 0;
+
+            // Create appointments for each pet
+            foreach ($request->pet_ids as $index => $petId) {
+                $serviceId = $request->services[$index] ?? null;
+                $service = $services->firstWhere('id', $serviceId);
+                $pet = Pet::find($petId);
+                
+                if (!$service || !$pet) {
+                    throw new \Exception('Service or pet not found');
+                }
+
+                // Calculate price based on pet size
+                $price = $service->base_price;
+                if (!empty($service->variable_pricing)) {
+                    $sizePrice = collect($service->variable_pricing)
+                        ->firstWhere('size', $pet->size_category);
+                    if ($sizePrice && isset($sizePrice['price'])) {
+                        $price = $sizePrice['price'];
                     }
                 }
 
-                \DB::commit();
+                $total += $price;
 
-                // Clear booking session data
-                session()->forget([
-                    'booking.pet_ids',
-                    'booking.services',
-                    'booking.appointment_date',
-                    'booking.appointment_time'
+                $appointment = Appointment::create([
+                    'user_id' => auth()->id(),
+                    'shop_id' => $shop->id,
+                    'pet_id' => $petId,
+                    'service_type' => $service->name,
+                    'service_price' => $price,
+                    'appointment_date' => $appointmentDateTime,
+                    'notes' => $request->notes,
+                    'status' => 'pending'
                 ]);
 
-                return redirect()->route('appointments.index')
-                    ->with('success', 'Your appointment has been booked successfully!');
-
-            } catch (\Exception $e) {
-                \DB::rollBack();
-                \Log::error('Error creating appointments: ' . $e->getMessage());
-                return back()->with('error', 'Failed to create appointments. Please try again.');
+                // Add to services breakdown
+                $servicesBreakdown[] = [
+                    'pet_name' => $pet->name,
+                    'service_name' => $service->name,
+                    'size' => $pet->size_category,
+                    'price' => $price
+                ];
+                
+                $appointmentDateTime->addMinutes($service->duration);
             }
 
+            DB::commit();
+
+            // Store booking details in session for thank you page
+            session(['booking_details' => [
+                'shop_name' => $shop->name,
+                'date' => $appointmentDateTime->format('F j, Y'),
+                'time' => $appointmentDateTime->format('g:i A'),
+                'services' => $servicesBreakdown,
+                'total_amount' => $total
+            ]]);
+
+            // Clear booking session data
+            session()->forget([
+                'booking.pet_ids',
+                'booking.services',
+                'booking.appointment_date',
+                'booking.appointment_time'
+            ]);
+
+            return redirect()->route('booking.thank-you', $shop)
+                ->with('success', 'Your appointment has been booked successfully!');
+
         } catch (\Exception $e) {
-            \Log::error('Error in store method: ' . $e->getMessage());
+            Log::error('Error in store method: ' . $e->getMessage());
             return back()->with('error', 'There was an error processing your booking. Please try again.');
         }
     }
@@ -289,7 +390,7 @@ class BookingController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            \Log::error('Error getting time slots: ' . $e->getMessage());
+            Log::error('Error getting time slots: ' . $e->getMessage());
             return response()->json([
                 'error' => 'Failed to get time slots: ' . $e->getMessage()
             ], 500);
@@ -335,5 +436,18 @@ class BookingController extends Controller
         }
 
         return $slots;
+    }
+
+    public function thankYou(Shop $shop)
+    {
+        // Check if we have booking details in session
+        if (!session()->has('booking_details')) {
+            return redirect()->route('home');
+        }
+
+        return view('booking.thank-you', [
+            'shop' => $shop,
+            'booking_details' => session('booking_details')
+        ]);
     }
 } 

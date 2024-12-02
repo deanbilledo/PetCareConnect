@@ -1,5 +1,6 @@
 @php
     use Illuminate\Support\Facades\Storage;
+    use Illuminate\Support\Facades\Log;
 @endphp
 
 @extends('layouts.app')
@@ -206,69 +207,91 @@
              x-transition:enter-start="opacity-0"
              x-transition:enter-end="opacity-100"
              class="p-6">
-            <!-- Keep existing reviews section but with enhanced styling -->
-            @auth
-                <div class="mb-8 border-b pb-8">
-                    <h3 class="text-xl font-semibold mb-6">Write a Review</h3>
-                    <form action="{{ route('shop.review', $shop) }}" method="POST" class="space-y-4">
-                        @csrf
-                        <div class="flex items-center space-x-1" x-data="{ rating: 0 }">
-                            @for($i = 1; $i <= 5; $i++)
-                                <button type="button" 
-                                        @click="rating = {{ $i }}" 
-                                        class="text-3xl focus:outline-none transition-colors"
-                                        :class="rating >= {{ $i }} ? 'text-yellow-400' : 'text-gray-300'">
-                                    ★
-                                </button>
-                            @endfor
-                            <input type="hidden" name="rating" x-model="rating">
-                        </div> 
+            <!-- Reviews Section -->
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <h2 class="text-xl font-semibold mb-4">Reviews</h2>
+                
+                @auth
+                    @php
+                        $hasCompletedAppointment = auth()->user()->appointments()
+                            ->where('shop_id', $shop->id)
+                            ->where('status', 'completed')
+                            ->exists();
+                    @endphp
 
-                        <textarea name="comment" 
-                                  rows="4" 
-                                  class="w-full rounded-xl border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-                                  placeholder="Share your experience..."></textarea>
-
-                        <button type="submit" 
-                                class="w-full sm:w-auto px-8 py-3 bg-blue-500 text-white rounded-xl font-medium hover:bg-blue-600 transition-colors">
-                            Submit Review
-                        </button> 
-                    </form>
-                </div>
-            @else
-                <div class="bg-blue-50 rounded-xl p-6 mb-8 text-center">
-                    <p class="text-blue-800">Please <a href="{{ route('login') }}" class="font-medium underline">login</a> to write a review.</p>
-                </div>
-            @endauth
-
-            <!-- Reviews List -->
-            <div class="space-y-6">
-                @forelse($shop->ratings as $rating)
-                    <div class="p-6 bg-gray-50 rounded-xl">
-                        <div class="flex items-center mb-4">
-                            <img src="{{ $rating->user->profile_photo_url }}" 
-                                 alt="{{ $rating->user->name }}" 
-                                 class="w-12 h-12 rounded-full mr-4">
-                            <div>
-                                <h4 class="font-medium text-lg">{{ $rating->user->first_name }} {{ $rating->user->last_name }}</h4>
-                                <div class="flex items-center">
-                                    <div class="flex text-yellow-400 mr-2">
-                                        @for($i = 1; $i <= 5; $i++)
-                                            <span>{{ $i <= $rating->rating ? '★' : '☆' }}</span>
-                                        @endfor
-                                    </div>
-                                    <span class="text-gray-500 text-sm">{{ $rating->created_at->diffForHumans() }}</span>
+                    @if($hasCompletedAppointment)
+                        <!-- Review Form -->
+                        <form action="{{ route('shops.review', $shop) }}" method="POST" class="mb-6">
+                            @csrf
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Rating</label>
+                                <div class="flex space-x-2">
+                                    @for($i = 1; $i <= 5; $i++)
+                                        <input type="radio" id="rating{{ $i }}" name="rating" value="{{ $i }}" class="hidden peer" required>
+                                        <label for="rating{{ $i }}" 
+                                               class="cursor-pointer text-2xl text-gray-300 peer-checked:text-yellow-400 hover:text-yellow-400">
+                                            ★
+                                        </label>
+                                    @endfor
                                 </div>
                             </div>
+                            <div class="mb-4">
+                                <label for="comment" class="block text-sm font-medium text-gray-700 mb-2">Your Review</label>
+                                <textarea id="comment" 
+                                          name="comment" 
+                                          rows="4" 
+                                          required
+                                          class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"></textarea>
+                            </div>
+                            <button type="submit" 
+                                    class="w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600 transition-colors">
+                                Submit Review
+                            </button>
+                        </form>
+                    @else
+                        <div class="bg-gray-50 rounded-lg p-4 mb-6 text-center">
+                            <p class="text-gray-600">You can only leave a review after completing an appointment with this shop.</p>
                         </div>
-                        <p class="text-gray-700">{{ $rating->comment }}</p>
+                    @endif
+                @else
+                    <div class="bg-gray-50 rounded-lg p-4 mb-6 text-center">
+                        <p class="text-gray-600">Please <a href="{{ route('login') }}" class="text-blue-500 hover:underline">login</a> to leave a review.</p>
                     </div>
-                @empty
-                    <div class="text-center text-gray-500 py-8">
-                        <p class="text-lg">No reviews yet</p>
-                        <p class="text-sm">Be the first to review this shop!</p>
-                    </div>
-                @endforelse
+                @endauth
+
+                <!-- Existing Reviews -->
+                <div class="space-y-4">
+                    @forelse($shop->ratings()->with('user')->latest()->get() as $rating)
+                        <div class="border-b pb-4">
+                            <div class="flex items-start justify-between mb-2">
+                                <div class="flex items-center">
+                                    <img src="{{ $rating->user->profile_photo_path ? asset('storage/' . $rating->user->profile_photo_path) : asset('images/default-profile.png') }}" 
+                                         alt="Profile" 
+                                         class="w-10 h-10 rounded-full object-cover mr-3">
+                                    <div>
+                                        <div class="font-medium">{{ $rating->user->first_name }} {{ $rating->user->last_name }}</div>
+                                        <div class="flex items-center">
+                                            <div class="text-yellow-400">
+                                                @for($i = 1; $i <= 5; $i++)
+                                                    <span>{{ $i <= $rating->rating ? '★' : '☆' }}</span>
+                                                @endfor
+                                            </div>
+                                            <span class="text-gray-500 text-sm ml-2">{{ $rating->created_at->diffForHumans() }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <p class="text-gray-700">{{ $rating->comment }}</p>
+                        </div>
+                    @empty
+                        <div class="text-center text-gray-500 py-8">
+                            <p class="text-lg">No reviews yet</p>
+                            @if($hasCompletedAppointment ?? false)
+                                <p class="text-sm">Be the first to review this shop!</p>
+                            @endif
+                        </div>
+                    @endforelse
+                </div>
             </div>
         </div>
     </div>

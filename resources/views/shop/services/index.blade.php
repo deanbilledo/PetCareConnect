@@ -188,186 +188,244 @@
 
 @push('scripts')
 <script>
-let currentServiceId = null;
+document.addEventListener('DOMContentLoaded', function() {
+    let currentServiceId = null;
 
-function addVariablePricing() {
-    const container = document.getElementById('variablePricingContainer');
-    const index = container.children.length;
-    const html = `
-        <div class="grid grid-cols-2 gap-2 mb-2">
-            <select name="variable_pricing[${index}][size]" class="shadow border rounded py-2 px-3 text-gray-700">
-                <option value="">Select Size</option>
-                <option value="small">Small</option>
-                <option value="medium">Medium</option>
-                <option value="large">Large</option>
-            </select>
-            <input type="number" step="0.01" name="variable_pricing[${index}][price]" placeholder="Price" 
-                   class="shadow appearance-none border rounded py-2 px-3 text-gray-700">
-        </div>
-    `;
-    container.insertAdjacentHTML('beforeend', html);
-}
+    // Form submission
+    const serviceForm = document.getElementById('serviceForm');
+    if (serviceForm) {
+        serviceForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = {
+                name: document.getElementById('name').value,
+                category: document.getElementById('category').value,
+                description: document.getElementById('description').value,
+                pet_types: Array.from(document.querySelectorAll('input[name="pet_types[]"]:checked')).map(cb => cb.value),
+                size_ranges: Array.from(document.querySelectorAll('input[name="size_ranges[]"]:checked')).map(cb => cb.value),
+                breed_specific: document.querySelector('input[name="breed_specific"]').checked,
+                special_requirements: document.getElementById('special_requirements').value,
+                base_price: parseFloat(document.getElementById('base_price').value),
+                duration: parseInt(document.getElementById('duration').value)
+            };
 
-function addAddOn() {
-    const container = document.getElementById('addOnsContainer');
-    const index = container.children.length;
-    const html = `
-        <div class="grid grid-cols-2 gap-2 mb-2">
-            <input type="text" name="add_ons[${index}][name]" placeholder="Add-on Name" 
-                   class="shadow appearance-none border rounded py-2 px-3 text-gray-700">
-            <input type="number" step="0.01" name="add_ons[${index}][price]" placeholder="Price" 
-                   class="shadow appearance-none border rounded py-2 px-3 text-gray-700">
-        </div>
-    `;
-    container.insertAdjacentHTML('beforeend', html);
-}
+            const url = currentServiceId ? `/shop/services/${currentServiceId}` : '/shop/services';
+            const method = currentServiceId ? 'PUT' : 'POST';
 
-function openAddModal() {
-    currentServiceId = null;
-    document.getElementById('modalTitle').textContent = 'Add New Service';
-    document.getElementById('serviceForm').reset();
-    document.getElementById('variablePricingContainer').innerHTML = '';
-    document.getElementById('addOnsContainer').innerHTML = '';
-    document.getElementById('serviceModal').classList.remove('hidden');
-    document.body.style.overflow = 'hidden';
-}
+            fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.reload();
+                } else {
+                    throw new Error(data.message || 'Failed to save service');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to save service. Please try again.');
+            });
+        });
+    }
 
-function openEditModal(serviceId) {
-    currentServiceId = serviceId;
-    document.getElementById('modalTitle').textContent = 'Edit Service';
-    
-    fetch(`/shop/services/${serviceId}`)
+    // Helper functions
+    window.getVariablePricing = function() {
+        const container = document.getElementById('variablePricingContainer');
+        return Array.from(container.children).map(row => ({
+            size: row.querySelector('select').value,
+            price: parseFloat(row.querySelector('input[type="number"]').value)
+        })).filter(item => item.size && !isNaN(item.price));
+    }
+
+    window.getAddOns = function() {
+        const container = document.getElementById('addOnsContainer');
+        return Array.from(container.children).map(row => ({
+            name: row.querySelector('input[type="text"]').value,
+            price: parseFloat(row.querySelector('input[type="number"]').value)
+        })).filter(item => item.name && !isNaN(item.price));
+    }
+
+    window.addVariablePricing = function() {
+        const container = document.getElementById('variablePricingContainer');
+        const index = container.children.length;
+        const html = `
+            <div class="variable-pricing-row grid grid-cols-2 gap-2 mb-2">
+                <select name="variable_pricing[${index}][size]" class="shadow border rounded py-2 px-3 text-gray-700">
+                    <option value="">Select Size</option>
+                    <option value="small">Small</option>
+                    <option value="medium">Medium</option>
+                    <option value="large">Large</option>
+                </select>
+                <input type="number" step="0.01" name="variable_pricing[${index}][price]" placeholder="Price" 
+                       class="shadow appearance-none border rounded py-2 px-3 text-gray-700">
+            </div>
+        `;
+        container.insertAdjacentHTML('beforeend', html);
+    }
+
+    window.addAddOn = function() {
+        const container = document.getElementById('addOnsContainer');
+        const index = container.children.length;
+        const html = `
+            <div class="add-on-row grid grid-cols-2 gap-2 mb-2">
+                <input type="text" name="add_ons[${index}][name]" placeholder="Add-on Name" 
+                       class="shadow appearance-none border rounded py-2 px-3 text-gray-700">
+                <input type="number" step="0.01" name="add_ons[${index}][price]" placeholder="Price" 
+                       class="shadow appearance-none border rounded py-2 px-3 text-gray-700">
+            </div>
+        `;
+        container.insertAdjacentHTML('beforeend', html);
+    }
+
+    // Make functions available globally
+    window.openAddModal = function() {
+        currentServiceId = null;
+        document.getElementById('modalTitle').textContent = 'Add New Service';
+        document.getElementById('serviceForm').reset();
+        document.getElementById('variablePricingContainer').innerHTML = '';
+        document.getElementById('addOnsContainer').innerHTML = '';
+        document.getElementById('serviceModal').classList.remove('hidden');
+    }
+
+    window.openEditModal = function(serviceId) {
+        currentServiceId = serviceId;
+        document.getElementById('modalTitle').textContent = 'Edit Service';
+        
+        // Add loading state
+        const form = document.getElementById('serviceForm');
+        form.classList.add('opacity-50', 'pointer-events-none');
+        
+        fetch(`/shop/services/${serviceId}`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(err => {
+                    throw new Error(err.message || `HTTP error! status: ${response.status}`);
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (!data.success) {
+                throw new Error(data.message || 'Failed to load service');
+            }
+
+            const service = data.data;
+            console.log('Service data:', service); // Debug log
+
+            // Populate form fields
+            document.getElementById('name').value = service.name || '';
+            document.getElementById('category').value = service.category || '';
+            document.getElementById('description').value = service.description || '';
+            document.getElementById('base_price').value = service.base_price || '';
+            document.getElementById('duration').value = service.duration || '';
+            document.getElementById('special_requirements').value = service.special_requirements || '';
+
+            // Set pet types
+            const petTypes = Array.isArray(service.pet_types) ? service.pet_types : [];
+            document.querySelectorAll('input[name="pet_types[]"]').forEach(cb => {
+                cb.checked = petTypes.includes(cb.value);
+            });
+
+            // Set size ranges
+            const sizeRanges = Array.isArray(service.size_ranges) ? service.size_ranges : [];
+            document.querySelectorAll('input[name="size_ranges[]"]').forEach(cb => {
+                cb.checked = sizeRanges.includes(cb.value);
+            });
+
+            // Set breed specific
+            document.querySelector('input[name="breed_specific"]').checked = !!service.breed_specific;
+
+            // Show modal
+            document.getElementById('serviceModal').classList.remove('hidden');
+        })
+        .catch(error => {
+            console.error('Error fetching service:', error);
+            alert(`Failed to load service details: ${error.message}`);
+        })
+        .finally(() => {
+            // Remove loading state
+            form.classList.remove('opacity-50', 'pointer-events-none');
+        });
+    }
+
+    window.closeModal = function() {
+        document.getElementById('serviceModal').classList.add('hidden');
+        document.getElementById('serviceForm').reset();
+        document.getElementById('variablePricingContainer').innerHTML = '';
+        document.getElementById('addOnsContainer').innerHTML = '';
+    }
+
+    // Close modal when clicking outside
+    document.getElementById('serviceModal').addEventListener('click', function(e) {
+        if (e.target === this || e.target.classList.contains('fixed')) {
+            closeModal();
+        }
+    });
+
+    window.toggleStatus = function(serviceId) {
+        if (!confirm('Are you sure you want to change this service\'s status?')) return;
+
+        fetch(`/shop/services/${serviceId}/status`, {
+            method: 'PUT',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            }
+        })
         .then(response => response.json())
         .then(data => {
-            // Populate basic fields
-            document.getElementById('name').value = data.name;
-            document.getElementById('category').value = data.category;
-            document.getElementById('description').value = data.description || '';
-            document.getElementById('base_price').value = data.base_price;
-            document.getElementById('duration').value = data.duration;
-            document.getElementById('special_requirements').value = data.special_requirements || '';
-            document.querySelector('input[name="breed_specific"]').checked = data.breed_specific;
-
-            // Populate pet types
-            const petTypeInputs = document.querySelectorAll('input[name="pet_types[]"]');
-            petTypeInputs.forEach(input => {
-                input.checked = data.pet_types.includes(input.value);
-            });
-
-            // Populate size ranges
-            const sizeRangeInputs = document.querySelectorAll('input[name="size_ranges[]"]');
-            sizeRangeInputs.forEach(input => {
-                input.checked = data.size_ranges.includes(input.value);
-            });
-
-            // Populate variable pricing
-            document.getElementById('variablePricingContainer').innerHTML = '';
-            if (data.variable_pricing) {
-                data.variable_pricing.forEach(() => addVariablePricing());
-                const inputs = document.querySelectorAll('[name^="variable_pricing"]');
-                data.variable_pricing.forEach((price, index) => {
-                    inputs[index*2].value = price.size;
-                    inputs[index*2+1].value = price.price;
-                });
+            if (data.success) {
+                window.location.reload();
+            } else {
+                alert('Error: ' + data.message);
             }
-
-            // Populate add-ons
-            document.getElementById('addOnsContainer').innerHTML = '';
-            if (data.add_ons) {
-                data.add_ons.forEach(() => addAddOn());
-                const inputs = document.querySelectorAll('[name^="add_ons"]');
-                data.add_ons.forEach((addon, index) => {
-                    inputs[index*2].value = addon.name;
-                    inputs[index*2+1].value = addon.price;
-                });
-            }
-
-            document.getElementById('serviceModal').classList.remove('hidden');
-            document.body.style.overflow = 'hidden';
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to update status. Please try again.');
         });
-}
+    }
 
-function closeModal() {
-    document.getElementById('serviceModal').classList.add('hidden');
-    document.getElementById('serviceForm').reset();
-    // Restore body scrolling
-    document.body.style.overflow = 'auto';
-}
+    window.deleteService = function(serviceId) {
+        if (!confirm('Are you sure you want to delete this service?')) return;
 
-// Close modal when clicking outside
-document.getElementById('serviceModal').addEventListener('click', function(e) {
-    // Check if the click was on the backdrop (modal background)
-    if (e.target === this || e.target.classList.contains('fixed')) {
-        closeModal();
+        fetch(`/shop/services/${serviceId}`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to delete service. Please try again.');
+        });
     }
 });
-
-document.getElementById('serviceForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    const formData = new FormData(this);
-    const url = currentServiceId 
-        ? `/shop/services/${currentServiceId}`
-        : '/shop/services';
-    const method = currentServiceId ? 'PUT' : 'POST';
-
-    fetch(url, {
-        method: method,
-        headers: {
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(Object.fromEntries(formData))
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            closeModal();
-            window.location.reload();
-        } else {
-            alert('Error: ' + data.message);
-        }
-    });
-});
-
-function toggleStatus(serviceId) {
-    if (!confirm('Are you sure you want to change this service\'s status?')) return;
-
-    fetch(`/shop/services/${serviceId}/status`, {
-        method: 'PUT',
-        headers: {
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-            'Content-Type': 'application/json',
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            window.location.reload();
-        } else {
-            alert('Error: ' + data.message);
-        }
-    });
-}
-
-function deleteService(serviceId) {
-    if (!confirm('Are you sure you want to delete this service?')) return;
-
-    fetch(`/shop/services/${serviceId}`, {
-        method: 'DELETE',
-        headers: {
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-            'Content-Type': 'application/json',
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            window.location.reload();
-        } else {
-            alert('Error: ' + data.message);
-        }
-    });
-}
 </script>
 @endpush 
