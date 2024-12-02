@@ -15,7 +15,7 @@
 @section('content')
 <div class="container mx-auto px-4 py-8">
     <!-- Back Button -->
-    <div class="mb-6 mt-8   ">
+    <div class="mb-6 mt-8">
         <a href="{{ route('home') }}" class="flex items-center text-gray-600 hover:text-gray-900">
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
@@ -265,13 +265,7 @@
             showAddForm: false,
             editingPet: null,
             toggleEdit(petId) {
-                // Fixed: Changed petIds to petId in the comparison
                 this.editingPet = this.editingPet === petId ? null : petId;
-            },
-            deletePet(petId) {
-                if (confirm('Are you sure you want to delete this pet?')) {
-                    document.getElementById(`delete-pet-form-${petId}`).submit();
-                }
             }
          }">
         <div class="flex justify-between items-center mb-4">
@@ -301,11 +295,13 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Pet Name</label>
-                        <input type="text" name="name" required class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
+                        <input type="text" name="name" required 
+                               class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                        <select name="type" required class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
+                        <select name="type" required 
+                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
                             <option value="">Select Type</option>
                             <option value="Dog">Dog</option>
                             <option value="Cat">Cat</option>
@@ -315,19 +311,50 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Breed</label>
-                        <input type="text" name="breed" required class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
+                        <input type="text" name="breed" required 
+                               class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Size Category</label>
+                        <select name="size_category" required 
+                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
+                            <option value="">Select Size</option>
+                            <option value="Small">Small (0-15 kg)</option>
+                            <option value="Medium">Medium (15-30 kg)</option>
+                            <option value="Large">Large (30+ kg)</option>
+                        </select>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Weight (kg)</label>
-                        <input type="text" name="weight" required class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
+                        <input type="number" name="weight" step="0.1" required 
+                               class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Height (cm)</label>
-                        <input type="text" name="height" required class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Color/Markings</label>
+                        <input type="text" name="color_markings" required 
+                               class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500"
+                               placeholder="e.g., Brown with white chest">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Coat Type</label>
+                        <select name="coat_type" required 
+                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
+                            <option value="">Select Coat Type</option>
+                            <option value="Short">Short</option>
+                            <option value="Medium">Medium</option>
+                            <option value="Long">Long</option>
+                            <option value="Curly">Curly</option>
+                            <option value="Double">Double-coated</option>
+                            <option value="Hairless">Hairless</option>
+                        </select>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
-                        <input type="date" name="date_of_birth" required class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
+                        <input type="date" name="date_of_birth" required 
+                               class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500"
+                               max="{{ date('Y-m-d') }}"
+                               x-data
+                               x-init="$el.max = new Date().toISOString().split('T')[0]">
                     </div>
                 </div>
                 <div class="flex justify-end space-x-3">
@@ -352,115 +379,172 @@
                         <th class="pb-4 w-[15%]">Name</th>
                         <th class="pb-4 w-[10%]">Type</th>
                         <th class="pb-4 w-[15%]">Breed</th>
-                        <th class="pb-4 w-[10%]">Weight (kg)</th>
-                        <th class="pb-4 w-[10%]">Height (cm)</th>
-                        <th class="pb-4 w-[40%]"></th>
+                        <th class="pb-4 w-[10%]">Weight</th>
+                        <th class="pb-4 w-[10%]">Size</th>
+                        <th class="pb-4 w-[40%]">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach($pets as $pet)
-                    <tr class="border-t" :class="{ 'opacity-50': editingPet === {{ $pet->id }} }">
-                        <td class="py-4">{{ $pet->name }}</td>
-                        <td class="py-4">{{ $pet->type }}</td>
-                        <td class="py-4">{{ $pet->breed }}</td>
-                        <td class="py-4">{{ $pet->weight }}</td>
-                        <td class="py-4">{{ $pet->height }}</td>
-                        <td class="py-4">
-                            <div class="flex items-center gap-2">
-                                <button @click="toggleEdit({{ $pet->id }})" 
-                                        class="inline-flex items-center gap-1 px-2 py-1 bg-white border border-gray-300 rounded text-xs text-gray-700 hover:bg-gray-50">
-                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                    </svg>
-                                    Edit
-                                </button>
+                    @forelse($pets as $pet)
+                        <tr class="border-t" :class="{ 'bg-gray-50': editingPet === {{ $pet->id }} }">
+                            <td class="py-4">{{ $pet->name }}</td>
+                            <td class="py-4">{{ $pet->type }}</td>
+                            <td class="py-4">{{ $pet->breed }}</td>
+                            <td class="py-4">{{ $pet->weight }} kg</td>
+                            <td class="py-4">{{ $pet->size_category }}</td>
+                            <td class="py-4">
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <!-- Primary Actions Group -->
+                                    <div class="flex items-center gap-1">
+                                        <button @click="toggleEdit({{ $pet->id }})" 
+                                                class="inline-flex items-center gap-1 px-2 py-1 bg-white border border-gray-300 rounded text-xs text-gray-700 hover:bg-gray-50">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                            </svg>
+                                            Edit
+                                        </button>
 
-                                <button @click="deletePet({{ $pet->id }})" 
-                                        class="inline-flex items-center gap-1 px-2 py-1 bg-white border border-gray-300 rounded text-xs text-gray-700 hover:bg-gray-50">
-                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                    </svg>
-                                    Delete
-                                </button>
+                                        <form id="delete-pet-form-{{ $pet->id }}" 
+                                              action="{{ route('profile.pets.delete', $pet) }}" 
+                                              method="POST" 
+                                              class="inline">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="button"
+                                                    @click="deletePet({{ $pet->id }})"
+                                                    class="inline-flex items-center gap-1 px-2 py-1 bg-white border border-gray-300 rounded text-xs text-gray-700 hover:bg-gray-50">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                                Delete
+                                            </button>
+                                        </form>
+                                    </div>
 
-                                <a href="{{ route('profile.pets.details', ['pet' => $pet->id]) }}" 
-                                   class="inline-flex items-center gap-1 px-2 py-1 bg-white border border-gray-300 rounded text-xs text-gray-700 hover:bg-gray-50">
-                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                    </svg>
-                                    View Details
-                                </a>
+                                    <!-- Divider -->
+                                    <div class="h-4 w-px bg-gray-300"></div>
 
-                                <a href="{{ route('profile.pets.add-health-record', ['pet' => $pet->id]) }}" 
-                                   class="inline-flex items-center gap-1 px-2 py-1 bg-white border border-gray-300 rounded text-xs text-gray-700 hover:bg-gray-50">
-                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                    </svg>
-                                    Add Health Record
-                                </a>
-                            </div>
-                        </td>
-                    </tr>
-                    <!-- Edit Pet Form Row -->
-                    <tr x-show="editingPet === {{ $pet->id }}"
-                        x-transition:enter="transition ease-out duration-300"
-                        x-transition:enter-start="opacity-0 transform scale-y-0"
-                        x-transition:enter-end="opacity-100 transform scale-y-100"
-                        x-transition:leave="transition ease-in duration-300"
-                        x-transition:leave-start="opacity-100 transform scale-y-100"
-                        x-transition:leave-end="opacity-0 transform scale-y-0"
-                        class="border-t bg-gray-50">
-                        <td colspan="6" class="py-4">
-                            <form action="{{ route('profile.pets.update', $pet) }}" method="POST" class="p-4">
-                                @csrf
-                                @method('PUT')
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Pet Name</label>
-                                        <input type="text" name="name" value="{{ $pet->name }}" required class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                                        <select name="type" required class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
-                                            <option value="Dog" {{ $pet->type == 'Dog' ? 'selected' : '' }}>Dog</option>
-                                            <option value="Cat" {{ $pet->type == 'Cat' ? 'selected' : '' }}>Cat</option>
-                                            <option value="Bird" {{ $pet->type == 'Bird' ? 'selected' : '' }}>Bird</option>
-                                            <option value="Other" {{ $pet->type == 'Other' ? 'selected' : '' }}>Other</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Breed</label>
-                                        <input type="text" name="breed" value="{{ $pet->breed }}" required class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Weight</label>
-                                        <input type="text" name="weight" value="{{ $pet->weight }}" required class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Height</label>
-                                        <input type="text" name="height" value="{{ $pet->height }}" required class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
-                                        <input type="date" name="date_of_birth" value="{{ $pet->date_of_birth ?? '' }}" required class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
+                                    <!-- Secondary Actions Group -->
+                                    <div class="flex items-center gap-1">
+                                        <a href="{{ route('profile.pets.details', ['pet' => $pet->id]) }}" 
+                                           class="inline-flex items-center gap-1 px-2 py-1 bg-white border border-gray-300 rounded text-xs text-gray-700 hover:bg-gray-50">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                            </svg>
+                                            Details
+                                        </a>
+
+                                        <a href="{{ route('profile.pets.health-record', ['pet' => $pet->id]) }}" 
+                                           class="inline-flex items-center gap-1 px-2 py-1 bg-white border border-gray-300 rounded text-xs text-gray-700 hover:bg-gray-50">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                            </svg>
+                                            Health
+                                        </a>
+
+                                        <a href="{{ route('profile.pets.add-health-record', ['pet' => $pet->id]) }}" 
+                                           class="inline-flex items-center gap-1 px-2 py-1 bg-white border border-gray-300 rounded text-xs text-gray-700 hover:bg-gray-50">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                            Add Record
+                                        </a>
                                     </div>
                                 </div>
-                                <div class="flex justify-end space-x-3">
-                                    <button type="button" 
-                                            @click="editingPet = null" 
-                                            class="text-teal-500 hover:text-teal-600">
-                                        Cancel
-                                    </button>
-                                    <button type="submit" 
-                                            class="px-4 py-2 bg-teal-500 text-white rounded-md hover:bg-teal-600">
-                                        Save Changes
-                                    </button>
-                                </div>
-                            </form>
-                        </td>
-                    </tr>
-                    @endforeach
+                            </td>
+                        </tr>
+
+                        <!-- Edit Form Row -->
+                        <tr x-show="editingPet === {{ $pet->id }}"
+                            x-cloak
+                            class="border-t">
+                            <td colspan="6" class="py-4">
+                                <form action="{{ route('profile.pets.update', $pet) }}" method="POST" class="p-4 bg-gray-50 rounded-lg">
+                                    @csrf
+                                    @method('PUT')
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Pet Name</label>
+                                            <input type="text" name="name" value="{{ $pet->name }}" required 
+                                                   class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                                            <select name="type" required 
+                                                    class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
+                                                <option value="Dog" {{ $pet->type == 'Dog' ? 'selected' : '' }}>Dog</option>
+                                                <option value="Cat" {{ $pet->type == 'Cat' ? 'selected' : '' }}>Cat</option>
+                                                <option value="Bird" {{ $pet->type == 'Bird' ? 'selected' : '' }}>Bird</option>
+                                                <option value="Other" {{ $pet->type == 'Other' ? 'selected' : '' }}>Other</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Breed</label>
+                                            <input type="text" name="breed" value="{{ $pet->breed }}" required 
+                                                   class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Size Category</label>
+                                            <select name="size_category" required 
+                                                    class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
+                                                <option value="Small" {{ $pet->size_category == 'Small' ? 'selected' : '' }}>Small (0-15 kg)</option>
+                                                <option value="Medium" {{ $pet->size_category == 'Medium' ? 'selected' : '' }}>Medium (15-30 kg)</option>
+                                                <option value="Large" {{ $pet->size_category == 'Large' ? 'selected' : '' }}>Large (30+ kg)</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Weight (kg)</label>
+                                            <input type="number" name="weight" value="{{ $pet->weight }}" step="0.1" required 
+                                                   class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Color/Markings</label>
+                                            <input type="text" name="color_markings" value="{{ $pet->color_markings }}" required 
+                                                   class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Coat Type</label>
+                                            <select name="coat_type" required 
+                                                    class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
+                                                <option value="Short" {{ $pet->coat_type == 'Short' ? 'selected' : '' }}>Short</option>
+                                                <option value="Medium" {{ $pet->coat_type == 'Medium' ? 'selected' : '' }}>Medium</option>
+                                                <option value="Long" {{ $pet->coat_type == 'Long' ? 'selected' : '' }}>Long</option>
+                                                <option value="Curly" {{ $pet->coat_type == 'Curly' ? 'selected' : '' }}>Curly</option>
+                                                <option value="Double" {{ $pet->coat_type == 'Double' ? 'selected' : '' }}>Double-coated</option>
+                                                <option value="Hairless" {{ $pet->coat_type == 'Hairless' ? 'selected' : '' }}>Hairless</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
+                                            <input type="date" name="date_of_birth" value="{{ $pet->date_of_birth?->format('Y-m-d') }}" required 
+                                                   class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500"
+                                                   max="{{ date('Y-m-d') }}"
+                                                   x-data
+                                                   x-init="$el.max = new Date().toISOString().split('T')[0]">
+                                        </div>
+                                    </div>
+                                    <div class="flex justify-end space-x-3">
+                                        <button type="button" 
+                                                @click="editingPet = null" 
+                                                class="text-gray-600 hover:text-gray-800">
+                                            Cancel
+                                        </button>
+                                        <button type="submit" 
+                                                class="px-4 py-2 bg-teal-500 text-white rounded-md hover:bg-teal-600">
+                                            Save Changes
+                                        </button>
+                                    </div>
+                                </form>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="6" class="py-4 text-center text-gray-500">
+                                No pets registered yet
+                            </td>
+                        </tr>
+                    @endforelse
                 </tbody>
             </table>
         </div>
@@ -473,12 +557,22 @@
             <input type="text" placeholder="Filter" class="border rounded-md px-3 py-1">
         </div>
         <div class="space-y-4">
-            @foreach($recentTransactions as $transaction)
-            <div class="flex justify-between items-center">
-                <span>{{ $transaction['service'] }}</span>
-                <span class="text-gray-500">{{ $transaction['date'] }}</span>
-            </div>
-            @endforeach
+            @forelse($recentTransactions as $transaction)
+                <div class="flex justify-between items-center p-3 hover:bg-gray-50 rounded-lg transition-colors">
+                    <div class="flex flex-col">
+                        <span class="font-medium">{{ $transaction['service'] }}</span>
+                        <span class="text-sm text-gray-500">{{ $transaction['shop_name'] }}</span>
+                    </div>
+                    <div class="flex flex-col items-end">
+                        <span class="font-medium text-green-600">₱{{ number_format($transaction['amount'], 2) }}</span>
+                        <span class="text-sm text-gray-500">{{ $transaction['date'] }}</span>
+                    </div>
+                </div>
+            @empty
+                <div class="text-center text-gray-500 py-4">
+                    No transactions yet
+                </div>
+            @endforelse
         </div>
     </div>
 
@@ -489,19 +583,34 @@
             <input type="text" placeholder="Filter" class="border rounded-md px-3 py-1">
         </div>
         <div class="space-y-4">
-            @foreach($recentVisits as $visit)
-            <div class="flex items-center space-x-4">
-                <img src="{{ asset($visit['image']) }}" alt="{{ $visit['name'] }}" class="w-16 h-16 object-cover rounded-lg">
-                <div>
-                    <h3 class="font-semibold">{{ $visit['name'] }}</h3>
-                    <div class="flex items-center text-yellow-400">
-                        <span>★★★★★</span>
-                        <span class="ml-1 text-gray-600">{{ $visit['rating'] }}</span>
+            @forelse($recentVisits as $visit)
+                <div class="flex items-center space-x-4 p-3 hover:bg-gray-50 rounded-lg transition-colors">
+                    <img src="{{ $visit['image'] }}" 
+                         alt="{{ $visit['name'] }}" 
+                         class="w-16 h-16 object-cover rounded-lg">
+                    <div class="flex-1">
+                        <h3 class="font-semibold">{{ $visit['name'] }}</h3>
+                        <div class="flex items-center text-yellow-400">
+                            <span class="flex">
+                                @for($i = 1; $i <= 5; $i++)
+                                    @if($i <= floor($visit['rating']))
+                                        <span>★</span>
+                                    @else
+                                        <span class="text-gray-300">★</span>
+                                    @endif
+                                @endfor
+                            </span>
+                            <span class="ml-1 text-gray-600">{{ $visit['rating'] }}</span>
+                        </div>
+                        <p class="text-gray-600 text-sm">{{ $visit['address'] }}</p>
+                        <p class="text-gray-500 text-xs mt-1">Last visit: {{ $visit['last_visit'] }}</p>
                     </div>
-                    <p class="text-gray-600 text-sm">{{ $visit['address'] }}</p>
                 </div>
-            </div>
-            @endforeach
+            @empty
+                <div class="text-center text-gray-500 py-4">
+                    No visits yet
+                </div>
+            @endforelse
         </div>
     </div>
 

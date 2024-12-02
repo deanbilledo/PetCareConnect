@@ -14,8 +14,12 @@ return new class extends Migration
             $table->string('name');
             $table->string('type');
             $table->string('breed');
-            $table->string('weight');
-            $table->string('height');
+            $table->string('size_category');
+            $table->decimal('weight', 5, 2);
+            $table->string('color_markings');
+            $table->string('coat_type');
+            $table->date('date_of_birth');
+            $table->string('profile_photo_path')->nullable();
             $table->timestamps();
         });
     }

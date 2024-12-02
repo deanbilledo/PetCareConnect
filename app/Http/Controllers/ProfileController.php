@@ -17,31 +17,49 @@ class ProfileController extends Controller
     public function index()
     {
         $user = auth()->user();
-        
-        // Add this debug code temporarily
-        \Log::info('Profile photo path: ' . $user->profile_photo_path);
-        \Log::info('Full URL: ' . asset('storage/' . $user->profile_photo_path));
-        
         $pets = $user->pets;
-        $recentTransactions = [
-            [
-                'service' => 'DELUXE FUR CARE',
-                'date' => '10/5/24'
-            ],
-            [
-                'service' => 'DELUXE FUR CARE',
-                'date' => '10/5/24'
-            ]
-        ];
-        
-        $recentVisits = [
-            [
-                'name' => 'Paws and Claws',
-                'rating' => 5.0,
-                'address' => 'Don Alfaro St, Zamboanga, 7000 Zamboanga del Sur',
-                'image' => 'images/shops/shop1.png'
-            ]
-        ];
+
+        // Get completed appointments for Recent Transactions
+        $recentTransactions = $user->appointments()
+            ->where('status', 'completed')
+            ->with('shop') // Eager load the shop relationship
+            ->orderBy('appointment_date', 'desc')
+            ->take(5)
+            ->get()
+            ->map(function ($appointment) {
+                return [
+                    'service' => $appointment->service_type,
+                    'shop_name' => $appointment->shop ? $appointment->shop->name : 'Unknown Shop',
+                    'amount' => $appointment->service_price,
+                    'date' => $appointment->appointment_date->format('m/d/y')
+                ];
+            });
+
+        // Get all visited shops for Recent Visits
+        $recentVisits = $user->appointments()
+            ->where('status', 'completed')
+            ->with(['shop' => function($query) {
+                $query->withAvg('ratings', 'rating');
+            }])
+            ->orderBy('appointment_date', 'desc')
+            ->get()
+            ->map(function ($appointment) {
+                if (!$appointment->shop) {
+                    return null;
+                }
+                return [
+                    'name' => $appointment->shop->name,
+                    'rating' => number_format($appointment->shop->ratings_avg_rating ?? 0, 1),
+                    'address' => $appointment->shop->address,
+                    'image' => $appointment->shop->image ? asset('storage/' . $appointment->shop->image) : asset('images/default-shop.png'),
+                    'last_visit' => $appointment->appointment_date->format('M d, Y'),
+                    'shop_id' => $appointment->shop->id
+                ];
+            })
+            ->filter() // Remove null values
+            ->unique('shop_id')
+            ->take(5)
+            ->values();
 
         return view('profile.index', compact('user', 'pets', 'recentTransactions', 'recentVisits'));
     }
@@ -114,17 +132,35 @@ class ProfileController extends Controller
 
     public function storePet(Request $request)
     {
+        \Log::info('Pet creation attempt with data:', $request->all());
         $request->validate([
             'name' => 'required|string|max:255',
             'type' => 'required|string|max:255',
             'breed' => 'required|string|max:255',
-            'weight' => 'required|string|max:255',
-            'height' => 'required|string|max:255',
+            'size_category' => 'required|string|max:255',
+            'weight' => 'required|numeric',
+            'color_markings' => 'required|string|max:255',
+            'coat_type' => 'required|string|max:255',
+            'date_of_birth' => 'required|date|before_or_equal:today',
         ]);
 
-        auth()->user()->pets()->create($request->all());
+        try {
+            $pet = auth()->user()->pets()->create([
+                'name' => $request->name,
+                'type' => $request->type,
+                'breed' => $request->breed,
+                'size_category' => $request->size_category,
+                'weight' => $request->weight,
+                'color_markings' => $request->color_markings,
+                'coat_type' => $request->coat_type,
+                'date_of_birth' => $request->date_of_birth,
+            ]);
 
-        return back()->with('success', 'Pet added successfully');
+            return back()->with('success', 'Pet added successfully');
+        } catch (\Exception $e) {
+            \Log::error('Error creating pet: ' . $e->getMessage());
+            return back()->with('error', 'Failed to add pet. Please try again.');
+        }
     }
 
     public function updatePet(Request $request, Pet $pet)
@@ -133,13 +169,30 @@ class ProfileController extends Controller
             'name' => 'required|string|max:255',
             'type' => 'required|string|max:255',
             'breed' => 'required|string|max:255',
-            'weight' => 'required|string|max:255',
-            'height' => 'required|string|max:255',
+            'size_category' => 'required|string|max:255',
+            'weight' => 'required|numeric',
+            'color_markings' => 'required|string|max:255',
+            'coat_type' => 'required|string|max:255',
+            'date_of_birth' => 'required|date|before_or_equal:today',
         ]);
 
-        $pet->update($request->all());
+        try {
+            $pet->update([
+                'name' => $request->name,
+                'type' => $request->type,
+                'breed' => $request->breed,
+                'size_category' => $request->size_category,
+                'weight' => $request->weight,
+                'color_markings' => $request->color_markings,
+                'coat_type' => $request->coat_type,
+                'date_of_birth' => $request->date_of_birth,
+            ]);
 
-        return back()->with('success', 'Pet updated successfully');
+            return back()->with('success', 'Pet updated successfully');
+        } catch (\Exception $e) {
+            \Log::error('Error updating pet: ' . $e->getMessage());
+            return back()->with('error', 'Failed to update pet. Please try again.');
+        }
     }
 
     public function deletePet(Pet $pet)

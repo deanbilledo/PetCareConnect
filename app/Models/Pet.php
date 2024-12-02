@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class Pet extends Model
 {
@@ -14,10 +15,18 @@ class Pet extends Model
         'name',
         'type',
         'breed',
+        'size_category',
         'weight',
-        'height',
+        'color_markings',
+        'coat_type',
+        'date_of_birth',
         'profile_photo_path',
         'user_id'
+    ];
+
+    protected $casts = [
+        'date_of_birth' => 'date',
+        'weight' => 'decimal:2',
     ];
 
     public function user()

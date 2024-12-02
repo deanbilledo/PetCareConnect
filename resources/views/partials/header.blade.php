@@ -205,7 +205,7 @@
                 <div class="relative" x-data="{ open: false }">
                     <button @click="open = !open" class="flex items-center space-x-2 focus:outline-none">
                         <!-- Profile Image -->
-                        <img src="{{ auth()->user()->profile_photo_url }}" 
+                        <img src="{{ auth()->user()->profile_photo_path ? asset('storage/' . auth()->user()->profile_photo_path) : asset('images/default-profile.png') }}" 
                              alt="{{ auth()->user()->name }}" 
                              class="h-8 w-8 rounded-full object-cover"
                              onerror="this.src='{{ asset('images/default-profile.png') }}'">

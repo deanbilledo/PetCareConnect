@@ -44,22 +44,66 @@
                 </svg>
             </button>
         </div>
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
                 <p class="text-sm text-gray-600">Date of Birth</p>
-                <p class="font-medium">March 15, 2023</p>
+                <p class="font-medium">
+                    {{ $pet->date_of_birth ? $pet->date_of_birth->format('M d, Y') : 'Not set' }}
+                </p>
             </div>
             <div>
                 <p class="text-sm text-gray-600">Age</p>
-                <p class="font-medium">1 year</p>
+                <p class="font-medium">
+                    @php
+                        $birthDate = $pet->date_of_birth;
+                        if ($birthDate) {
+                            $now = now();
+                            $years = $birthDate->diffInYears($now);
+                            $months = $birthDate->diffInMonths($now) % 12;
+                            $days = (int)$birthDate->copy()->addMonths($birthDate->diffInMonths($now))->diffInDays($now);
+                            
+                            if ($years >= 1) {
+                                echo $years . ' ' . Str::plural('year', $years);
+                                if ($months > 0) {
+                                    echo ' and ' . $months . ' ' . Str::plural('month', $months);
+                                }
+                                echo ' old';
+                            } else {
+                                if ($months > 0) {
+                                    echo $months . ' ' . Str::plural('month', $months);
+                                    if ($days > 0) {
+                                        echo ' and ' . $days . ' ' . Str::plural('day', $days);
+                                    }
+                                    echo ' old';
+                                } else {
+                                    echo $days . ' ' . Str::plural('day', $days) . ' old';
+                                }
+                            }
+                        } else {
+                            echo 'Not set';
+                        }
+                    @endphp
+                </p>
             </div>
             <div>
                 <p class="text-sm text-gray-600">Weight</p>
-                <p class="font-medium">{{ $pet->weight }} kg</p>
+                <p class="font-medium">{{ $pet->weight ?? 'Not set' }} {{ $pet->weight ? 'kg' : '' }}</p>
+            </div>
+        </div>
+
+        <!-- Additional Pet Details -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+            <div>
+                <p class="text-sm text-gray-600">Size Category</p>
+                <p class="font-medium">{{ $pet->size_category ?? 'Not set' }}</p>
             </div>
             <div>
-                <p class="text-sm text-gray-600">Height</p>
-                <p class="font-medium">{{ $pet->height }} inches</p>
+                <p class="text-sm text-gray-600">Color/Markings</p>
+                <p class="font-medium">{{ $pet->color_markings ?? 'Not set' }}</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-600">Coat Type</p>
+                <p class="font-medium">{{ $pet->coat_type ?? 'Not set' }}</p>
             </div>
         </div>
     </div>

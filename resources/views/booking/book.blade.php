@@ -7,8 +7,9 @@
 @section('content')
 <div class="container mx-auto px-4 py-6">
     <!-- Back Button -->
-    <div class="mb-4 mt-10">
-        <a href="{{ url()->previous() }}" class="text-gray-600 hover:text-gray-800 flex items-center">
+    <div class="mb-6 mt-8">
+        <a href="{{ url()->previous() }}" 
+           class="inline-flex items-center px-4 py-2 text-gray-700 bg-white rounded-lg shadow-sm hover:bg-gray-50 transition-all">
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
             </svg>
@@ -17,31 +18,29 @@
     </div>
 
     <!-- Shop Header -->
-    <div class="bg-white rounded-lg shadow-md overflow-hidden mb-6">
-        <div class="relative h-64">
-            <img src="{{ $shop->image ? asset('storage/' . $shop->image) : asset('images/default-shop.png') }}"
-            
+    <div class="bg-white rounded-2xl shadow-lg overflow-hidden mb-8">
+        <div class="relative h-96">
+            <img src="{{ $shop->image ? asset('storage/' . $shop->image) : asset('images/default-shop.png') }}" 
                  alt="{{ $shop->name }}" 
                  class="w-full h-full object-cover">
-            <div class="absolute top-4 left-4">
-                <span class="bg-white text-green-500 px-3 py-1 rounded-full text-sm shadow-sm">
-                    {{ $shop->is_open ? 'Open' : 'Closed' }}
+            <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/30 to-transparent"></div>
+            
+            <!-- Status Badges -->
+            <div class="absolute top-6 left-6 flex flex-wrap gap-3">
+                <span class="px-4 py-2 rounded-full text-sm font-medium {{ $shop->is_open ? 'bg-green-500 text-white' : 'bg-red-500 text-white' }} shadow-lg backdrop-blur-sm">
+                    {{ $shop->is_open ? 'Open Now' : 'Closed' }}
                 </span>
-            </div>
-            <!-- Shop type badge -->
-            <div class="absolute top-4 right-4">
-                <span class="bg-white text-gray-700 px-3 py-1 rounded-full text-sm shadow-sm">
+                <span class="px-4 py-2 rounded-full bg-white/90 text-gray-800 text-sm font-medium shadow-lg backdrop-blur-sm">
                     {{ ucfirst($shop->type) }}
                 </span>
             </div>
-        </div>
-        
-        <div class="p-6">
-            <div class="flex justify-between items-start">
-                <div>
-                    <h1 class="text-2xl font-bold mb-2">{{ $shop->name }}</h1>
-                    <div class="flex items-center mb-2">
-                        <div class="flex text-yellow-400">
+
+            <!-- Shop Info Overlay -->
+            <div class="absolute bottom-0 left-0 right-0 p-8 text-white">
+                <h1 class="text-4xl font-bold mb-3">{{ $shop->name }}</h1>
+                <div class="flex items-center gap-6 mb-4">
+                    <div class="flex items-center">
+                        <div class="flex text-yellow-400 text-xl mr-2">
                             @for($i = 0; $i < 5; $i++)
                                 @if($i < floor($shop->ratings_avg_rating ?? 0))
                                     ★
@@ -50,167 +49,174 @@
                                 @endif
                             @endfor
                         </div>
-                        <span class="ml-2 text-gray-600">({{ $shop->ratings_count ?? 0 }} reviews)</span>
+                        <span class="text-white/90">({{ $shop->ratings_count ?? 0 }} reviews)</span>
                     </div>
-                    <p class="text-gray-600">
-                        <span class="font-medium">Hours:</span> MON-SAT 8:30 AM - 5:00 PM<br>
-                        <span class="font-medium">Address:</span> {{ $shop->address }}
-                    </p>
                 </div>
-                <div class="flex space-x-4">
-                    <button class="text-gray-600 hover:text-gray-800">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
+                
+                <div class="flex flex-col sm:flex-row gap-4 text-white/90">
+                    <div class="flex items-center">
+                        <svg class="w-5 h-5 mr-2 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                         </svg>
-                    </button>
-                    <button class="text-gray-600 hover:text-gray-800">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                        MON-SAT 8:30 AM - 5:00 PM
+                    </div>
+                    <div class="flex items-center">
+                        <svg class="w-5 h-5 mr-2 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
                         </svg>
-                    </button>
+                        {{ $shop->address }}
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Services and Reviews Tabs -->
-    <div class="bg-white rounded-lg shadow-md overflow-hidden mb-6">
-        <div class="border-b">
-            <div class="flex" x-data="{ activeTab: 'services' }">
-                <button @click="activeTab = 'services'" 
-                        :class="{'border-b-2 border-blue-500 text-blue-500': activeTab === 'services'}"
-                        class="px-6 py-3 font-medium">Services</button>
-                <button @click="activeTab = 'reviews'" 
-                        :class="{'border-b-2 border-blue-500 text-blue-500': activeTab === 'reviews'}"
-                        class="px-6 py-3 font-medium">Reviews</button>
-            </div>
-        </div>
-
-        <!-- Services Section -->
-        <div x-show="activeTab === 'services'" class="p-6">
-            @if($shop->type === 'grooming')
-                <!-- Service Type Toggle for Grooming -->
-                <div class="flex space-x-4 mb-6">
-                    <button class="px-4 py-2 rounded-full bg-gray-100 text-gray-800 hover:bg-gray-200">Dog</button>
-                    <button class="px-4 py-2 rounded-full bg-blue-500 text-white">Cat</button>
+    <!-- Booking Section -->
+    <div class="bg-white rounded-2xl shadow-lg overflow-hidden mb-8">
+        <div class="p-6">
+            <!-- Shop Status and Actions -->
+            <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+                <div class="flex items-center gap-6">
+                    @if($shop->is_open)
+                        <span class="text-green-500 font-medium flex items-center">
+                            <span class="flex h-3 w-3 relative mr-2">
+                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                <span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                            </span>
+                            Currently Open
+                        </span>
+                    @else
+                        <span class="text-red-500 font-medium flex items-center">
+                            <span class="w-3 h-3 bg-red-500 rounded-full mr-2"></span>
+                            Currently Closed
+                        </span>
+                    @endif
+                    
+                    <button class="text-gray-600 hover:text-red-500 flex items-center" 
+                            onclick="reportShop()">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                        </svg>
+                        Report Shop
+                    </button>
                 </div>
 
-                <!-- Grooming Services List -->
+                <!-- Quick Info -->
+                <div class="flex items-center gap-4 text-sm text-gray-600">
+                    <span class="flex items-center">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        MON-SAT 8:30 AM - 5:00 PM
+                    </span>
+                </div>
+            </div>
+
+            <!-- Booking Button -->
+            @auth
+                <button onclick="window.location.href='{{ route('booking.process', $shop) }}'" 
+                        class="w-full bg-blue-500 text-white py-4 rounded-xl text-lg font-medium hover:bg-blue-600 transition-all transform hover:scale-[1.02] active:scale-[0.98] shadow-lg">
+                    Book Now
+                </button>
+            @else
                 <div class="space-y-4">
-                    <div class="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
-                        <div>
-                            <h3 class="font-medium">Full Grooming Service</h3>
-                            <p class="text-sm text-gray-500">Bath, Haircut, Nail Trimming, Ear Cleaning</p>
-                        </div>
-                        <div class="text-right">
-                            <p class="font-medium">PHP 1,499</p>
-                        </div>
-                    </div>
+                    <button onclick="window.location.href='{{ route('login') }}'" 
+                            class="w-full bg-blue-500 text-white py-4 rounded-xl text-lg font-medium hover:bg-blue-600 transition-all transform hover:scale-[1.02] active:scale-[0.98] shadow-lg">
+                        Login to Book
+                    </button>
+                    <p class="text-center text-gray-600">
+                        Don't have an account? 
+                        <a href="{{ route('register') }}" class="text-blue-500 hover:text-blue-600 font-medium">Register here</a>
+                    </p>
+                </div>
+            @endauth
+        </div>
+    </div>
 
-                    <div class="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
-                        <div>
-                            <h3 class="font-medium">Basic Bath Package</h3>
-                            <p class="text-sm text-gray-500">Bath and Blow Dry</p>
-                        </div>
-                        <div class="text-right">
-                            <p class="font-medium">PHP 749</p>
-                        </div>
-                    </div>
+    <!-- Services and Reviews Tabs -->
+    <div class="bg-white rounded-2xl shadow-lg overflow-hidden" x-data="{ activeTab: 'services' }">
+        <!-- Tab Navigation -->
+        <div class="flex border-b">
+            <button @click="activeTab = 'services'" 
+                    :class="{'border-b-2 border-blue-500 text-blue-600 bg-blue-50/50': activeTab === 'services'}"
+                    class="flex-1 py-4 px-6 text-lg font-medium transition duration-200">
+                Services
+            </button>
+            <button @click="activeTab = 'reviews'" 
+                    :class="{'border-b-2 border-blue-500 text-blue-600 bg-blue-50/50': activeTab === 'reviews'}"
+                    class="flex-1 py-4 px-6 text-lg font-medium transition duration-200">
+                Reviews
+            </button>
+        </div>
 
-                    <div class="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
-                        <div>
-                            <h3 class="font-medium">Nail Trimming</h3>
-                            <p class="text-sm text-gray-500">Service</p>
-                        </div>
-                        <div class="text-right">
-                            <p class="font-medium">PHP 199</p>
-                        </div>
-                    </div>
+        <!-- Services Tab -->
+        <div x-show="activeTab === 'services'" 
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             class="p-6">
+            @if($shop->type === 'grooming')
+                <!-- Pet Type Toggle -->
+                <div class="flex gap-4 mb-8">
+                    <button class="flex-1 py-3 px-6 rounded-xl bg-white border-2 border-blue-500 text-blue-500 font-medium hover:bg-blue-50 transition-colors">
+                        Dog Services
+                    </button>
+                    <button class="flex-1 py-3 px-6 rounded-xl bg-blue-500 text-white font-medium hover:bg-blue-600 transition-colors">
+                        Cat Services
+                    </button>
+                </div>
 
-                    <div class="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
-                        <div>
-                            <h3 class="font-medium">Ear Cleaning</h3>
-                            <p class="text-sm text-gray-500">Service</p>
+                <!-- Services Grid -->
+                <div class="grid gap-4 sm:grid-cols-2">
+                    @foreach(['Full Grooming Service' => 1499, 'Basic Bath Package' => 749, 'Nail Trimming' => 199, 'Ear Cleaning' => 499] as $service => $price)
+                    <div class="p-6 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors group cursor-pointer">
+                        <div class="flex justify-between items-start mb-3">
+                            <h3 class="font-semibold text-lg group-hover:text-blue-600 transition-colors">{{ $service }}</h3>
+                            <span class="text-lg font-bold text-blue-600">₱{{ number_format($price) }}</span>
                         </div>
-                        <div class="text-right">
-                            <p class="font-medium">PHP 499</p>
-                        </div>
+                        <p class="text-gray-600">Professional pet care service</p>
                     </div>
+                    @endforeach
                 </div>
             @else
-                <!-- Veterinary Services List -->
-                <div class="space-y-4">
-                    <div class="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
-                        <div>
-                            <h3 class="font-medium">General Check-up</h3>
-                            <p class="text-sm text-gray-500">Complete Physical Examination</p>
+                <!-- Veterinary Services Grid -->
+                <div class="grid gap-4 sm:grid-cols-2">
+                    @foreach([
+                        'General Check-up' => ['price' => 800, 'desc' => 'Complete Physical Examination'],
+                        'Vaccination' => ['price' => 1500, 'desc' => 'Core Vaccines Available'],
+                        'Deworming' => ['price' => 500, 'desc' => 'Internal Parasite Treatment'],
+                        'Laboratory Tests' => ['price' => 2000, 'desc' => 'Blood Work, Urinalysis, etc.']
+                    ] as $service => $details)
+                    <div class="p-6 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors group cursor-pointer">
+                        <div class="flex justify-between items-start mb-3">
+                            <h3 class="font-semibold text-lg group-hover:text-blue-600 transition-colors">{{ $service }}</h3>
+                            <span class="text-lg font-bold text-blue-600">₱{{ number_format($details['price']) }}</span>
                         </div>
-                        <div class="text-right">
-                            <p class="font-medium">PHP 800</p>
-                        </div>
+                        <p class="text-gray-600">{{ $details['desc'] }}</p>
                     </div>
-
-                    <div class="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
-                        <div>
-                            <h3 class="font-medium">Vaccination</h3>
-                            <p class="text-sm text-gray-500">Core Vaccines Available</p>
-                        </div>
-                        <div class="text-right">
-                            <p class="font-medium">PHP 1,500</p>
-                        </div>
-                    </div>
-
-                    <div class="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
-                        <div>
-                            <h3 class="font-medium">Deworming</h3>
-                            <p class="text-sm text-gray-500">Internal Parasite Treatment</p>
-                        </div>
-                        <div class="text-right">
-                            <p class="font-medium">PHP 500</p>
-                        </div>
-                    </div>
-
-                    <div class="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
-                        <div>
-                            <h3 class="font-medium">Laboratory Tests</h3>
-                            <p class="text-sm text-gray-500">Blood Work, Urinalysis, etc.</p>
-                        </div>
-                        <div class="text-right">
-                            <p class="font-medium">PHP 2,000</p>
-                        </div>
-                    </div>
+                    @endforeach
                 </div>
             @endif
         </div>
 
-        <!-- Reviews Section -->
-        <div x-show="activeTab === 'reviews'" class="p-6">
-            @php
-                \Log::info('Shop ratings count: ' . $shop->ratings->count());
-                \Log::info('Shop average rating: ' . $shop->ratings_avg_rating);
-            @endphp
-            @if(session('success'))
-                <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4">
-                    {{ session('success') }}
-                </div>
-            @endif
-            @if(session('error'))
-                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4">
-                    {{ session('error') }}
-                </div>
-            @endif
-            <!-- Add Review Form for Authenticated Users -->
+        <!-- Reviews Tab -->
+        <div x-show="activeTab === 'reviews'"
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             class="p-6">
+            <!-- Keep existing reviews section but with enhanced styling -->
             @auth
                 <div class="mb-8 border-b pb-8">
-                    {{-- <h3 class="text-lg font-semibold mb-4">Write a Review</h3> --}}
+                    <h3 class="text-xl font-semibold mb-6">Write a Review</h3>
                     <form action="{{ route('shop.review', $shop) }}" method="POST" class="space-y-4">
                         @csrf
-                        <!-- Star Rating -->
-                        {{-- <div class="flex items-center space-x-1" x-data="{ rating: 0 }">
+                        <div class="flex items-center space-x-1" x-data="{ rating: 0 }">
                             @for($i = 1; $i <= 5; $i++)
                                 <button type="button" 
                                         @click="rating = {{ $i }}" 
-                                        class="text-2xl focus:outline-none"
+                                        class="text-3xl focus:outline-none transition-colors"
                                         :class="rating >= {{ $i }} ? 'text-yellow-400' : 'text-gray-300'">
                                     ★
                                 </button>
@@ -218,135 +224,52 @@
                             <input type="hidden" name="rating" x-model="rating">
                         </div> --}}
 
-                        <!-- Review Comment -->
-                        {{-- <div>
-                            <textarea name="comment" 
-                                      rows="4" 
-                                      class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-                                      placeholder="Share your experience..."></textarea>
-                        </div> --}}
+                        <textarea name="comment" 
+                                  rows="4" 
+                                  class="w-full rounded-xl border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                                  placeholder="Share your experience..."></textarea>
 
-                        {{-- <button type="submit" 
-                                class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors">
+                        <button type="submit" 
+                                class="w-full sm:w-auto px-8 py-3 bg-blue-500 text-white rounded-xl font-medium hover:bg-blue-600 transition-colors">
                             Submit Review
                         </button> --}}
                     </form>
                 </div>
             @else
-                {{-- <div class="bg-gray-50 rounded-lg p-4 mb-8 text-center">
-                    <p class="text-gray-600">Please <a href="{{ route('login') }}" class="text-blue-500 hover:underline">login</a> to write a review.</p>
-                </div> --}}
+                <div class="bg-blue-50 rounded-xl p-6 mb-8 text-center">
+                    <p class="text-blue-800">Please <a href="{{ route('login') }}" class="font-medium underline">login</a> to write a review.</p>
+                </div>
             @endauth
 
             <!-- Reviews List -->
             <div class="space-y-6">
                 @forelse($shop->ratings as $rating)
-                    <div class="border-b pb-6 last:border-b-0">
-                        <div class="flex items-center mb-2">
+                    <div class="p-6 bg-gray-50 rounded-xl">
+                        <div class="flex items-center mb-4">
                             <img src="{{ $rating->user->profile_photo_url }}" 
                                  alt="{{ $rating->user->name }}" 
-                                 class="w-10 h-10 rounded-full mr-3 object-cover bg-gray-100">
+                                 class="w-12 h-12 rounded-full mr-4">
                             <div>
-                                <h4 class="font-medium">{{ $rating->user->first_name }} {{ $rating->user->last_name }}</h4>
-                                <div class="flex items-center text-yellow-400">
-                                    @for($i = 1; $i <= 5; $i++)
-                                        <span>{{ $i <= $rating->rating ? '★' : '☆' }}</span>
-                                    @endfor
-                                    <span class="ml-2 text-gray-500 text-sm">{{ $rating->created_at->diffForHumans() }}</span>
+                                <h4 class="font-medium text-lg">{{ $rating->user->first_name }} {{ $rating->user->last_name }}</h4>
+                                <div class="flex items-center">
+                                    <div class="flex text-yellow-400 mr-2">
+                                        @for($i = 1; $i <= 5; $i++)
+                                            <span>{{ $i <= $rating->rating ? '★' : '☆' }}</span>
+                                        @endfor
+                                    </div>
+                                    <span class="text-gray-500 text-sm">{{ $rating->created_at->diffForHumans() }}</span>
                                 </div>
                             </div>
                         </div>
-                        <p class="text-gray-700 mt-2">{{ $rating->comment }}</p>
+                        <p class="text-gray-700">{{ $rating->comment }}</p>
                     </div>
                 @empty
-                    <div class="text-center text-gray-500">
-                        <p>No reviews yet</p>
+                    <div class="text-center text-gray-500 py-8">
+                        <p class="text-lg">No reviews yet</p>
+                        <p class="text-sm">Be the first to review this shop!</p>
                     </div>
                 @endforelse
             </div>
-
-            <!-- Pagination if needed -->
-            @if($shop->ratings->count() > 10)
-                <div class="mt-6">
-                    {{ $shop->ratings->links() }}
-                </div>
-            @endif
-        </div>
-    </div>
-
-    <!-- Rating & Reviews Section -->
-    <div class="bg-white rounded-lg shadow-md overflow-hidden mb-6">
-        <div class="p-6">
-            <h2 class="text-xl font-semibold mb-4">Rating & Reviews</h2>
-            <div class="flex items-center mb-6">
-                <div class="text-4xl font-bold mr-4">{{ number_format($shop->rating, 1) }}</div>
-                <div class="flex-grow">
-                    <div class="flex items-center text-yellow-400 mb-1">★★★★★</div>
-                    <p class="text-sm text-gray-500">{{ $shop->ratings_count ?? 0 }} ratings</p>
-                </div>
-            </div>
-
-            <!-- Reviews List -->
-            <div class="space-y-6">
-                @forelse($shop->ratings as $rating)
-                <div class="border-t pt-4">
-                    <div class="flex items-center mb-2">
-                        <img src="{{ $rating->user->profile_photo_url }}" 
-                             alt="{{ $rating->user->name }}" 
-                             class="w-10 h-10 rounded-full mr-3 object-cover">
-                        <div>
-                            <h3 class="font-medium">{{ $rating->user->first_name }} {{ $rating->user->last_name }}</h3>
-                            <p class="text-sm text-gray-500">{{ $rating->created_at->format('D, M d, Y \a\t h:i A') }}</p>
-                        </div>
-                    </div>
-                    <div class="flex text-yellow-400 mb-2">
-                        @for($i = 1; $i <= 5; $i++)
-                            <span>{{ $i <= $rating->rating ? '★' : '☆' }}</span>
-                        @endfor
-                    </div>
-                    <p class="text-gray-700">{{ $rating->comment }}</p>
-                </div>
-                @empty
-                <p class="text-gray-500">No reviews yet.</p>
-                @endforelse
-            </div>
-        </div>
-    </div>
-
-    <!-- Book Now Button (Fixed at bottom) -->
-    <div class="fixed bottom-0 left-0 right-0 bg-white border-t p-4">
-        <div class="container mx-auto">
-            <div class="flex items-center justify-between mb-3">
-                <span class="text-green-500 font-medium flex items-center">
-                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                        <circle cx="10" cy="10" r="8"/>
-                    </svg>
-                    Currently Open
-                </span>
-                <button class="text-gray-600 hover:text-red-500 text-sm flex items-center" onclick="reportShop()">
-                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                    </svg>
-                    Report Shop
-                </button>
-            </div>
-            @auth
-                <button onclick="window.location.href='{{ route('booking.process', $shop) }}'" 
-                        class="w-full bg-blue-500 text-white py-3 rounded-lg font-medium hover:bg-blue-600 transition-colors">
-                    Book Now
-                </button>
-            @else
-                <div class="space-y-3">
-                    <button onclick="window.location.href='{{ route('login') }}'" 
-                            class="w-full bg-blue-500 text-white py-3 rounded-lg font-medium hover:bg-blue-600 transition-colors">
-                        Login to Book
-                    </button>
-                    <p class="text-center text-sm text-gray-600">
-                        Don't have an account? 
-                        <a href="{{ route('register') }}" class="text-blue-500 hover:underline">Register here</a>
-                    </p>
-                </div>
-            @endauth
         </div>
     </div>
 </div>

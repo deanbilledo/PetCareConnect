@@ -14,9 +14,9 @@
             <form method="POST" 
                   action="{{ route('shop.setup.services.store') }}" 
                   x-data="{ 
-                      services: [{ name: '', price: '', duration: '', description: '' }],
+                      services: [{ name: '', price: '', duration: 15, description: '' }],
                       addService() {
-                          this.services.push({ name: '', price: '', duration: '', description: '' });
+                          this.services.push({ name: '', price: '', duration: 15, description: '' });
                       },
                       removeService(index) {
                           if (this.services.length > 1) {
@@ -119,3 +119,7 @@
     </div>
 </div>
 @endsection 
+
+@push('scripts')
+    
+@endpush 

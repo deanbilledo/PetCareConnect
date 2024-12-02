@@ -10,7 +10,6 @@
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
           integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
@@ -18,12 +17,14 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
             integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
             crossorigin="anonymous"></script>
+   
     <style>
         [x-cloak] { 
             display: none !important; 
         }
     </style>
     @yield('styles')
+    @stack('scripts')
 </head>
 <body class="bg-gray-100 font-[Poppins] min-h-screen min-h-screen flex flex-col">
     @php
@@ -82,7 +83,5 @@
         }
     </script>
     @endif
-
-    @stack('scripts')
 </body>
 </html> 
