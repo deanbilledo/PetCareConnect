@@ -58,9 +58,10 @@
                         $birthDate = $pet->date_of_birth;
                         if ($birthDate) {
                             $now = now();
-                            $years = $birthDate->diffInYears($now);
-                            $months = $birthDate->diffInMonths($now) % 12;
-                            $days = (int)$birthDate->copy()->addMonths($birthDate->diffInMonths($now))->diffInDays($now);
+                            $years = (int)$birthDate->diffInYears($now);
+                            $totalMonths = (int)$birthDate->diffInMonths($now);
+                            $months = (int)($totalMonths % 12);  // Get remaining months after years
+                            $days = (int)$birthDate->copy()->addMonths($totalMonths)->diffInDays($now);
                             
                             if ($years >= 1) {
                                 echo $years . ' ' . Str::plural('year', $years);
@@ -76,6 +77,7 @@
                                     }
                                     echo ' old';
                                 } else {
+                                    $days = (int)$birthDate->diffInDays($now);
                                     echo $days . ' ' . Str::plural('day', $days) . ' old';
                                 }
                             }

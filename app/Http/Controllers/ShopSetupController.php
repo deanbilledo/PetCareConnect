@@ -57,9 +57,22 @@ class ShopSetupController extends Controller
         $validated = $request->validate([
             'services' => 'required|array',
             'services.*.name' => 'required|string',
-            'services.*.price' => 'required|numeric',
-            'services.*.duration' => 'required|integer',
-            'services.*.description' => 'nullable|string'
+            'services.*.category' => 'required|string',
+            'services.*.description' => 'nullable|string',
+            'services.*.pet_types' => 'required|array',
+            'services.*.pet_types.*' => 'string',
+            'services.*.size_ranges' => 'required|array',
+            'services.*.size_ranges.*' => 'string',
+            'services.*.breed_specific' => 'boolean',
+            'services.*.special_requirements' => 'nullable|string',
+            'services.*.base_price' => 'required|numeric|min:0',
+            'services.*.duration' => 'required|integer|min:15',
+            'services.*.variable_pricing' => 'nullable|array',
+            'services.*.variable_pricing.*.size' => 'required_with:services.*.variable_pricing|string',
+            'services.*.variable_pricing.*.price' => 'required_with:services.*.variable_pricing|numeric|min:0',
+            'services.*.add_ons' => 'nullable|array',
+            'services.*.add_ons.*.name' => 'required_with:services.*.add_ons|string',
+            'services.*.add_ons.*.price' => 'required_with:services.*.add_ons|numeric|min:0'
         ]);
 
         $shop = $user->shop;
@@ -71,14 +84,28 @@ class ShopSetupController extends Controller
 
                 // Add new services
                 foreach ($validated['services'] as $service) {
-                    $shop->services()->create($service);
+                    $shop->services()->create([
+                        'name' => $service['name'],
+                        'category' => $service['category'],
+                        'description' => $service['description'] ?? null,
+                        'pet_types' => $service['pet_types'],
+                        'size_ranges' => $service['size_ranges'],
+                        'breed_specific' => $service['breed_specific'] ?? false,
+                        'special_requirements' => $service['special_requirements'] ?? null,
+                        'base_price' => $service['base_price'],
+                        'duration' => $service['duration'],
+                        'variable_pricing' => $service['variable_pricing'] ?? null,
+                        'add_ons' => $service['add_ons'] ?? null,
+                        'status' => 'active'
+                    ]);
                 }
             });
 
             return redirect()->route('shop.setup.hours');
         } catch (\Exception $e) {
             Log::error('Error storing services: ' . $e->getMessage());
-            return back()->with('error', 'Failed to save services. Please try again.');
+            return back()->with('error', 'Failed to save services. Please try again.')
+                        ->withInput();
         }
     }
 
