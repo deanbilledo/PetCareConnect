@@ -222,7 +222,7 @@
                                 </button>
                             @endfor
                             <input type="hidden" name="rating" x-model="rating">
-                        </div> --}}
+                        </div> 
 
                         <textarea name="comment" 
                                   rows="4" 
@@ -232,7 +232,7 @@
                         <button type="submit" 
                                 class="w-full sm:w-auto px-8 py-3 bg-blue-500 text-white rounded-xl font-medium hover:bg-blue-600 transition-colors">
                             Submit Review
-                        </button> --}}
+                        </button> 
                     </form>
                 </div>
             @else
