@@ -12,6 +12,115 @@
                     </button>
                 </div>
 
+                <!-- Discount Modal -->
+                <div id="discountModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+                    <!-- Backdrop -->
+                    <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity"></div>
+                    
+                    <!-- Modal -->
+                    <div class="flex items-center justify-center min-h-screen p-4">
+                        <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-auto">
+                            <div class="px-6 py-4">
+                                <h3 class="text-lg font-medium text-gray-900">Add Discount</h3>
+                                <form id="discountForm" class="mt-4">
+                                    @csrf
+                                    <input type="hidden" id="serviceIdForDiscount">
+                                    
+                                    <!-- Discount Type -->
+                                    <div class="mb-4">
+                                        <label class="block text-gray-700 text-sm font-bold mb-2">Discount Type</label>
+                                        <select id="discountType" name="discount_type" 
+                                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                            <option value="percentage">Percentage (%)</option>
+                                            <option value="fixed">Fixed Amount (₱)</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- Discount Value -->
+                                    <div class="mb-4">
+                                        <label class="block text-gray-700 text-sm font-bold mb-2">Discount Value</label>
+                                        <input type="number" 
+                                               id="discountValue" 
+                                               name="discount_value" 
+                                               min="0" 
+                                               step="0.01" 
+                                               class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                               required>
+                                        <p class="mt-1 text-sm text-gray-500" id="discountHelp">
+                                            Enter percentage (0-100) or fixed amount
+                                        </p>
+                                    </div>
+
+                                    <!-- Add Voucher Code field here -->
+                                    <div class="mb-4">
+                                        <label class="block text-gray-700 text-sm font-bold mb-2">
+                                            Voucher Code
+                                            <span class="text-sm font-normal text-gray-500 ml-1">(Optional)</span>
+                                        </label>
+                                        <div class="flex gap-2">
+                                            <input type="text" 
+                                                   id="voucherCode" 
+                                                   name="voucher_code" 
+                                                   class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 uppercase"
+                                                   placeholder="Enter voucher code">
+                                            <button type="button" 
+                                                    onclick="generateVoucherCode()" 
+                                                    class="px-3 py-2 bg-gray-100 text-gray-600 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500">
+                                                Generate
+                                            </button>
+                                        </div>
+                                        <p class="mt-1 text-xs text-gray-500">
+                                            Leave empty to not use a voucher code
+                                        </p>
+                                    </div>
+
+                                    <!-- Valid From -->
+                                    <div class="mb-4">
+                                        <label class="block text-gray-700 text-sm font-bold mb-2">Valid From</label>
+                                        <input type="datetime-local" 
+                                               id="validFrom" 
+                                               name="valid_from" 
+                                               class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                               required>
+                                    </div>
+
+                                    <!-- Valid Until -->
+                                    <div class="mb-4">
+                                        <label class="block text-gray-700 text-sm font-bold mb-2">Valid Until</label>
+                                        <input type="datetime-local" 
+                                               id="validUntil" 
+                                               name="valid_until" 
+                                               class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                               required>
+                                    </div>
+
+                                    <!-- Description -->
+                                    <div class="mb-4">
+                                        <label class="block text-gray-700 text-sm font-bold mb-2">Description</label>
+                                        <textarea id="discountDescription" 
+                                                 name="description" 
+                                                 rows="2" 
+                                                 class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                                 placeholder="Optional description of the discount"></textarea>
+                                    </div>
+
+                                    <div class="flex justify-end space-x-2">
+                                        <button type="button" 
+                                                onclick="closeDiscountModal()" 
+                                                class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500">
+                                            Cancel
+                                        </button>
+                                        <button type="submit" 
+                                                class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                            Add Discount
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Services List -->
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-gray-200">
@@ -49,6 +158,7 @@
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                     <button onclick="openEditModal({{ $service->id }})" class="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
+                                    <button onclick="openDiscountModal({{ $service->id }})" class="text-green-600 hover:text-green-900 mr-3">Add Discount</button>
                                     <button onclick="toggleStatus({{ $service->id }})" class="text-yellow-600 hover:text-yellow-900 mr-3">
                                         {{ $service->status === 'active' ? 'Deactivate' : 'Activate' }}
                                     </button>
@@ -303,64 +413,80 @@ document.addEventListener('DOMContentLoaded', function() {
         const form = document.getElementById('serviceForm');
         form.classList.add('opacity-50', 'pointer-events-none');
         
-        fetch(`/shop/services/${serviceId}`, {
-            method: 'GET',
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-            }
-        })
-        .then(response => {
-            if (!response.ok) {
-                return response.json().then(err => {
-                    throw new Error(err.message || `HTTP error! status: ${response.status}`);
+        fetch(`/shop/services/${serviceId}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (!data.success) {
+                    throw new Error(data.message || 'Failed to load service');
+                }
+
+                const service = data.data;
+
+                // Clear existing variable pricing and add-ons
+                document.getElementById('variablePricingContainer').innerHTML = '';
+                document.getElementById('addOnsContainer').innerHTML = '';
+
+                // Populate basic fields
+                document.getElementById('name').value = service.name || '';
+                document.getElementById('category').value = service.category || '';
+                document.getElementById('description').value = service.description || '';
+                document.getElementById('base_price').value = service.base_price || '';
+                document.getElementById('duration').value = service.duration || '';
+                document.getElementById('special_requirements').value = service.special_requirements || '';
+
+                // Set pet types
+                document.querySelectorAll('input[name="pet_types[]"]').forEach(cb => {
+                    cb.checked = (service.pet_types || []).includes(cb.value);
                 });
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (!data.success) {
-                throw new Error(data.message || 'Failed to load service');
-            }
 
-            const service = data.data;
-            console.log('Service data:', service); // Debug log
+                // Set size ranges
+                document.querySelectorAll('input[name="size_ranges[]"]').forEach(cb => {
+                    cb.checked = (service.size_ranges || []).includes(cb.value);
+                });
 
-            // Populate form fields
-            document.getElementById('name').value = service.name || '';
-            document.getElementById('category').value = service.category || '';
-            document.getElementById('description').value = service.description || '';
-            document.getElementById('base_price').value = service.base_price || '';
-            document.getElementById('duration').value = service.duration || '';
-            document.getElementById('special_requirements').value = service.special_requirements || '';
+                // Set breed specific
+                document.querySelector('input[name="breed_specific"]').checked = service.breed_specific || false;
 
-            // Set pet types
-            const petTypes = Array.isArray(service.pet_types) ? service.pet_types : [];
-            document.querySelectorAll('input[name="pet_types[]"]').forEach(cb => {
-                cb.checked = petTypes.includes(cb.value);
+                // Add variable pricing rows
+                if (service.variable_pricing && Array.isArray(service.variable_pricing)) {
+                    service.variable_pricing.forEach(pricing => {
+                        addVariablePricing();
+                        const lastRow = document.querySelector('#variablePricingContainer .variable-pricing-row:last-child');
+                        if (lastRow) {
+                            lastRow.querySelector('select').value = pricing.size;
+                            lastRow.querySelector('input[type="number"]').value = pricing.price;
+                        }
+                    });
+                }
+
+                // Add add-ons rows
+                if (service.add_ons && Array.isArray(service.add_ons)) {
+                    service.add_ons.forEach(addon => {
+                        addAddOn();
+                        const lastRow = document.querySelector('#addOnsContainer .add-on-row:last-child');
+                        if (lastRow) {
+                            lastRow.querySelector('input[type="text"]').value = addon.name;
+                            lastRow.querySelector('input[type="number"]').value = addon.price;
+                        }
+                    });
+                }
+
+                // Show modal
+                document.getElementById('serviceModal').classList.remove('hidden');
+            })
+            .catch(error => {
+                console.error('Error fetching service:', error);
+                alert('Failed to load service details. Please try again.');
+            })
+            .finally(() => {
+                // Remove loading state
+                form.classList.remove('opacity-50', 'pointer-events-none');
             });
-
-            // Set size ranges
-            const sizeRanges = Array.isArray(service.size_ranges) ? service.size_ranges : [];
-            document.querySelectorAll('input[name="size_ranges[]"]').forEach(cb => {
-                cb.checked = sizeRanges.includes(cb.value);
-            });
-
-            // Set breed specific
-            document.querySelector('input[name="breed_specific"]').checked = !!service.breed_specific;
-
-            // Show modal
-            document.getElementById('serviceModal').classList.remove('hidden');
-        })
-        .catch(error => {
-            console.error('Error fetching service:', error);
-            alert(`Failed to load service details: ${error.message}`);
-        })
-        .finally(() => {
-            // Remove loading state
-            form.classList.remove('opacity-50', 'pointer-events-none');
-        });
     }
 
     window.closeModal = function() {
@@ -426,6 +552,63 @@ document.addEventListener('DOMContentLoaded', function() {
             alert('Failed to delete service. Please try again.');
         });
     }
+
+    window.openDiscountModal = function(serviceId) {
+        document.getElementById('serviceIdForDiscount').value = serviceId;
+        document.getElementById('discountModal').classList.remove('hidden');
+        
+        // Set default dates
+        const now = new Date();
+        const tomorrow = new Date(now);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        
+        document.getElementById('validFrom').value = now.toISOString().slice(0, 16);
+        document.getElementById('validUntil').value = tomorrow.toISOString().slice(0, 16);
+    }
+
+    window.closeDiscountModal = function() {
+        document.getElementById('discountModal').classList.add('hidden');
+        document.getElementById('discountForm').reset();
+    }
+
+    // Add event listener for discount type change
+    document.getElementById('discountType').addEventListener('change', function(e) {
+        const helpText = document.getElementById('discountHelp');
+        if (e.target.value === 'percentage') {
+            document.getElementById('discountValue').max = 100;
+            helpText.textContent = 'Enter percentage (0-100)';
+        } else {
+            document.getElementById('discountValue').removeAttribute('max');
+            helpText.textContent = 'Enter fixed amount';
+        }
+    });
+
+    // Add event listener for discount form submission
+    document.getElementById('discountForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const serviceId = document.getElementById('serviceIdForDiscount').value;
+        const formData = {
+            service_id: serviceId,
+            discount_type: document.getElementById('discountType').value,
+            discount_value: document.getElementById('discountValue').value,
+            valid_from: document.getElementById('validFrom').value,
+            valid_until: document.getElementById('validUntil').value,
+            description: document.getElementById('discountDescription').value
+        };
+
+        // Add your API call here to save the discount
+        console.log('Discount data:', formData);
+        alert('Discount added successfully!'); // Replace with actual API call
+        closeDiscountModal();
+    });
+
+    // Close modal when clicking outside
+    document.getElementById('discountModal').addEventListener('click', function(e) {
+        if (e.target === this || e.target.classList.contains('fixed')) {
+            closeDiscountModal();
+        }
+    });
 });
 </script>
 @endpush 

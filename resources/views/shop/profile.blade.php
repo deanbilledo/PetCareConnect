@@ -267,5 +267,181 @@
             </form>
         </div>
     </div>
+
+    <!-- Photo Gallery Section -->
+    <div class="bg-white rounded-lg shadow-md p-6 mt-8">
+        <div class="p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold">Photo Gallery</h2>
+                <!-- Add Photo Button -->
+                <button type="button"
+                        class="inline-flex items-center px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    Add Photo
+                </button>
+            </div>
+            
+            <!-- Gallery Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                <!-- Image 1 -->
+                <div class="relative group cursor-pointer" onclick="openGalleryModal(0)">
+                    <img src="{{ asset('images/gallery/grooming1.jpg') }}" 
+                         alt="Gallery Image 1" 
+                         class="w-full h-48 object-cover rounded-lg transition-transform duration-300 group-hover:scale-105">
+                    <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity duration-300 rounded-lg"></div>
+                </div>
+
+                <!-- Image 2 -->
+                <div class="relative group cursor-pointer" onclick="openGalleryModal(1)">
+                    <img src="{{ asset('images/gallery/grooming2.jpg') }}" 
+                         alt="Gallery Image 2" 
+                         class="w-full h-48 object-cover rounded-lg transition-transform duration-300 group-hover:scale-105">
+                    <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity duration-300 rounded-lg"></div>
+                </div>
+
+                <!-- Image 3 -->
+                <div class="relative group cursor-pointer" onclick="openGalleryModal(2)">
+                    <img src="{{ asset('images/gallery/grooming3.jpg') }}" 
+                         alt="Gallery Image 3" 
+                         class="w-full h-48 object-cover rounded-lg transition-transform duration-300 group-hover:scale-105">
+                    <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity duration-300 rounded-lg"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Operating Hours Section -->
+    <div class="bg-white rounded-lg shadow-md p-6 mt-8" 
+         x-data="{ 
+             isEditing: false,
+             days: [
+                 @foreach($shop->operatingHours->sortBy('day') as $hour)
+                 {
+                     name: '{{ ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][$hour->day] }}',
+                     day: {{ $hour->day }},
+                     is_open: {{ $hour->is_open ? 'true' : 'false' }},
+                     open_time: '{{ $hour->open_time }}',
+                     close_time: '{{ $hour->close_time }}'
+                 },
+                 @endforeach
+             ]
+         }">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-semibold">Operating Hours</h2>
+            <button type="button" 
+                    @click="isEditing = !isEditing"
+                    class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md"
+                    :class="isEditing ? 'text-gray-600 hover:text-gray-800' : 'text-blue-600 hover:text-blue-800'">
+                <span x-text="isEditing ? 'Cancel' : 'Edit Hours'"></span>
+            </button>
+        </div>
+
+        <!-- Display Operating Hours -->
+        <div x-show="!isEditing" class="space-y-4">
+            <template x-for="day in days" :key="day.day">
+                <div class="flex items-center justify-between py-3 border-b last:border-0">
+                    <span class="font-medium" x-text="day.name"></span>
+                    <template x-if="day.is_open">
+                        <span class="text-gray-600">
+                            <span x-text="day.open_time"></span> - <span x-text="day.close_time"></span>
+                        </span>
+                    </template>
+                    <template x-if="!day.is_open">
+                        <span class="text-gray-500">Closed</span>
+                    </template>
+                </div>
+            </template>
+        </div>
+
+        <!-- Edit Operating Hours -->
+        <div x-show="isEditing" class="space-y-6">
+            <template x-for="(day, index) in days" :key="index">
+                <div class="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
+                    <div class="w-1/4">
+                        <span class="font-medium" x-text="day.name"></span>
+                    </div>
+
+                    <div class="flex items-center">
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" 
+                                   x-model="day.is_open"
+                                   class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+                            <span class="ml-2 text-sm text-gray-600">Open</span>
+                        </label>
+                    </div>
+
+                    <div class="flex-1 grid grid-cols-2 gap-4" x-show="day.is_open">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Opening Time</label>
+                            <input type="time" 
+                                   x-model="day.open_time"
+                                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Closing Time</label>
+                            <input type="time" 
+                                   x-model="day.close_time"
+                                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        </div>
+                    </div>
+                </div>
+            </template>
+
+            <!-- Save Button -->
+            <div class="flex justify-end pt-4">
+                <button type="button"
+                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gallery Modal -->
+    <div id="galleryModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+        <!-- Backdrop -->
+        <div class="fixed inset-0 bg-black bg-opacity-75 transition-opacity"></div>
+        
+        <!-- Modal Content -->
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div class="relative max-w-4xl w-full">
+                <!-- Close Button -->
+                <button onclick="closeGalleryModal()" 
+                        class="absolute top-4 right-4 text-white hover:text-gray-300 z-10">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+
+                <!-- Image Container -->
+                <div class="relative">
+                    <!-- Previous Button -->
+                    <button onclick="changeImage(-1)" 
+                            class="absolute left-4 top-1/2 transform -translate-y-1/2 text-white hover:text-gray-300">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                        </svg>
+                    </button>
+
+                    <!-- Image -->
+                    <img id="modalImage" 
+                         src="" 
+                         alt="Gallery Image" 
+                         class="w-full h-auto max-h-[80vh] object-contain rounded-lg">
+
+                    <!-- Next Button -->
+                    <button onclick="changeImage(1)" 
+                            class="absolute right-4 top-1/2 transform -translate-y-1/2 text-white hover:text-gray-300">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 @endsection 

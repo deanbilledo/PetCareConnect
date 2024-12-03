@@ -51,11 +51,29 @@ class Service extends Model
             return $this->base_price;
         }
 
-        $size = strtolower($size);
-        $pricing = collect($this->variable_pricing)->first(function($price) use ($size) {
-            return strtolower($price['size']) === $size;
-        });
+        $pricing = collect($this->variable_pricing)
+            ->firstWhere('size', strtolower($size));
 
         return $pricing ? (float) $pricing['price'] : $this->base_price;
+    }
+
+    public function getVariablePricingAttribute($value)
+    {
+        return json_decode($value, true) ?? [];
+    }
+
+    public function getAddOnsAttribute($value)
+    {
+        return json_decode($value, true) ?? [];
+    }
+
+    public function getPetTypesAttribute($value)
+    {
+        return json_decode($value, true) ?? [];
+    }
+
+    public function getSizeRangesAttribute($value)
+    {
+        return json_decode($value, true) ?? [];
     }
 } 

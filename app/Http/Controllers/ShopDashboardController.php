@@ -26,7 +26,6 @@ class ShopDashboardController extends Controller
         
         // Set shop mode in session
         session(['shop_mode' => true]);
-        session()->save();
         
         // Get appointments query
         $appointmentsQuery = $shop->appointments()->with(['user', 'pet']);

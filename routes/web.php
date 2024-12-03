@@ -79,6 +79,8 @@ Route::middleware(['auth'])->group(function () {
             Route::view('/employees', 'shop.employees.index')->name('employees');
             Route::view('/analytics', 'shop.analytics.index')->name('analytics');
             Route::view('/settings', 'shop.settings.index')->name('settings');
+            Route::post('/gallery', [ShopProfileController::class, 'uploadGalleryPhoto'])->name('gallery.upload');
+            Route::delete('/gallery/{photo}', [ShopProfileController::class, 'deleteGalleryPhoto'])->name('gallery.delete');
         });
     });
 
@@ -160,7 +162,7 @@ Route::middleware(['auth', IsAdmin::class])->prefix('admin')->name('admin.')->gr
     Route::get('/settings', [AdminController::class, 'settings'])->name('settings');
 });
 
-Route::middleware(['auth', 'has.shop'])->group(function () {
+Route::middleware(['auth', 'has-shop'])->group(function () {
     Route::post('/shop/services', [ShopServicesController::class, 'store']);
     Route::put('/shop/services/{service}', [ShopServicesController::class, 'update']);
     Route::get('/shop/services/{service}', [ShopServicesController::class, 'show']);

@@ -1,5 +1,6 @@
 @php
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 @endphp
 
 @extends('layouts.app')
@@ -80,14 +81,14 @@ use Illuminate\Support\Facades\Log;
                 <label class="block text-sm font-medium text-gray-700 mb-2">Select Your Pet(s)</label>
                 <div class="space-y-2">
                     @forelse($pets as $pet)
-                    <div class="flex items-center p-3 border rounded-lg hover:bg-gray-50">
+                    <div class="flex items-center p-3 border rounded-lg hover:bg-gray-50 relative">
                         <input type="checkbox" 
                                id="pet_{{ $pet->id }}"
                                name="pet_ids[]" 
                                value="{{ $pet->id }}" 
-                               class="rounded border-gray-300 text-blue-500 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                               data-pet-type="{{ Str::singular(strtolower($pet->type)) }}"
                                data-size="{{ $pet->size_category }}"
-                               onchange="handlePetSelection(this)">
+                               class="pet-checkbox rounded border-gray-300 text-blue-500 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
                         <label for="pet_{{ $pet->id }}" class="ml-3 flex-grow cursor-pointer">
                             <div class="flex items-center justify-between">
                                 <div>
@@ -97,6 +98,8 @@ use Illuminate\Support\Facades\Log;
                                 </div>
                             </div>
                         </label>
+                        <!-- Error message container -->
+                        <div class="hidden text-red-500 text-xs mt-1 pet-error" id="error_pet_{{ $pet->id }}"></div>
                     </div>
                     @empty
                     <div class="text-center py-4 border rounded-lg">
@@ -185,11 +188,66 @@ use Illuminate\Support\Facades\Log;
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.querySelector('form');
-    const petCheckboxes = document.querySelectorAll('input[name="pet_ids[]"]');
+    const petCheckboxes = document.querySelectorAll('.pet-checkbox');
     const singleRadio = document.getElementById('single');
     const multipleRadio = document.getElementById('multiple');
     const singleOption = document.getElementById('singleAppointmentOption');
     const multipleOption = document.getElementById('multipleAppointmentOption');
+
+    // Get shop's services and their supported pet types
+    const shopServices = @json($shop->services->pluck('pet_types', 'id'));
+
+    // Add debug logging
+    console.log('Shop Services:', shopServices);
+
+    function validatePetType(petType, checkbox) {
+        let isValid = false;
+        const errorDiv = document.getElementById(`error_pet_${checkbox.value}`);
+        
+        // Normalize the pet type to lowercase and handle singular/plural
+        const normalizedPetType = petType.toLowerCase();
+        const singularPetType = normalizedPetType.endsWith('s') ? 
+            normalizedPetType.slice(0, -1) : normalizedPetType;
+        const pluralPetType = normalizedPetType.endsWith('s') ? 
+            normalizedPetType : normalizedPetType + 's';
+        
+        // Debug logging
+        console.log('Checking pet types:', {
+            original: petType,
+            normalized: normalizedPetType,
+            singular: singularPetType,
+            plural: pluralPetType
+        });
+
+        // Check if any service supports this pet type
+        Object.values(shopServices).forEach(supportedTypes => {
+            if (Array.isArray(supportedTypes)) {
+                // Convert all types to lowercase for comparison
+                const normalizedTypes = supportedTypes.map(type => type.toLowerCase());
+                console.log('Normalized supported types:', normalizedTypes);
+                
+                // Check both singular and plural forms
+                if (normalizedTypes.includes(singularPetType) || 
+                    normalizedTypes.includes(pluralPetType)) {
+                    isValid = true;
+                }
+            }
+        });
+
+        console.log('Is valid:', isValid);
+
+        if (!isValid) {
+            checkbox.checked = false;
+            errorDiv.textContent = `Sorry, we don't offer services for ${petType}s at this time.`;
+            errorDiv.classList.remove('hidden');
+            checkbox.closest('.border').classList.add('border-red-300');
+        } else {
+            errorDiv.classList.add('hidden');
+            checkbox.closest('.border').classList.remove('border-red-300');
+        }
+
+        return isValid;
+    }
 
     function updateAppointmentOptions() {
         const checkedPets = Array.from(petCheckboxes).filter(cb => cb.checked);
@@ -235,7 +293,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Add event listeners
     petCheckboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', updateAppointmentOptions);
+        checkbox.addEventListener('change', function() {
+            const petType = this.dataset.petType;
+            if (this.checked) {
+                if (!validatePetType(petType, this)) {
+                    return;
+                }
+            }
+            updateAppointmentOptions();
+        });
     });
 
     // Form validation
@@ -245,6 +311,17 @@ document.addEventListener('DOMContentLoaded', function() {
         if (checkedPets.length === 0) {
             e.preventDefault();
             alert('Please select at least one pet');
+            return;
+        }
+
+        // Validate each selected pet
+        let allValid = checkedPets.every(checkbox => {
+            const petType = checkbox.dataset.petType;
+            return validatePetType(petType, checkbox);
+        });
+
+        if (!allValid) {
+            e.preventDefault();
             return;
         }
 

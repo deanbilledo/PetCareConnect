@@ -73,6 +73,84 @@
         </div>
     </div>
 
+    <!-- Photo Gallery Section -->
+    <div class="bg-white rounded-2xl shadow-lg overflow-hidden mb-8">
+        <div class="p-6">
+            <h2 class="text-xl font-semibold mb-4">Photo Gallery</h2>
+            
+            <!-- Gallery Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                <!-- Image 1 -->
+                <div class="relative group cursor-pointer" onclick="openGalleryModal(0)">
+                    <img src="{{ asset('images/gallery/grooming1.jpg') }}" 
+                         alt="Gallery Image 1" 
+                         class="w-full h-48 object-cover rounded-lg transition-transform duration-300 group-hover:scale-105">
+                    <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity duration-300 rounded-lg"></div>
+                </div>
+
+                <!-- Image 2 -->
+                <div class="relative group cursor-pointer" onclick="openGalleryModal(1)">
+                    <img src="{{ asset('images/gallery/grooming2.jpg') }}" 
+                         alt="Gallery Image 2" 
+                         class="w-full h-48 object-cover rounded-lg transition-transform duration-300 group-hover:scale-105">
+                    <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity duration-300 rounded-lg"></div>
+                </div>
+
+                <!-- Image 3 -->
+                <div class="relative group cursor-pointer" onclick="openGalleryModal(2)">
+                        <img src="{{ asset('images/gallery/grooming3.jpg') }}" 
+                         alt="Gallery Image 3" 
+                         class="w-full h-48 object-cover rounded-lg transition-transform duration-300 group-hover:scale-105">
+                    <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity duration-300 rounded-lg"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gallery Modal -->
+    <div id="galleryModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+        <!-- Backdrop -->
+        <div class="fixed inset-0 bg-black bg-opacity-75 transition-opacity"></div>
+        
+        <!-- Modal Content -->
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div class="relative max-w-4xl w-full">
+                <!-- Close Button -->
+                <button onclick="closeGalleryModal()" 
+                        class="absolute top-4 right-4 text-white hover:text-gray-300 z-10">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+
+                <!-- Image Container -->
+                <div class="relative">
+                    <!-- Previous Button -->
+                    <button onclick="changeImage(-1)" 
+                            class="absolute left-4 top-1/2 transform -translate-y-1/2 text-white hover:text-gray-300">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                        </svg>
+                    </button>
+
+                    <!-- Image -->
+                    <img id="modalImage" 
+                         src="" 
+                         alt="Gallery Image" 
+                         class="w-full h-auto max-h-[80vh] object-contain rounded-lg">
+
+                    <!-- Next Button -->
+                    <button onclick="changeImage(1)" 
+                            class="absolute right-4 top-1/2 transform -translate-y-1/2 text-white hover:text-gray-300">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Booking Section -->
     <div class="bg-white rounded-2xl shadow-lg overflow-hidden mb-8">
         <div class="p-6">

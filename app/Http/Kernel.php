@@ -61,19 +61,8 @@ class Kernel extends HttpKernel
         'signed' => \App\Http\Middleware\ValidateSignature::class,
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
-        'has.shop' => \App\Http\Middleware\HasShop::class,
+        'has-shop' => \App\Http\Middleware\HasShop::class,
         'admin' => \App\Http\Middleware\IsAdmin::class,
         'shop.setup' => \App\Http\Middleware\CheckShopSetup::class,
-    ];
-
-    /**
-     * The application's route middleware.
-     *
-     * These middleware may be assigned to groups or used individually.
-     *
-     * @var array<string, class-string|string>
-     */
-    protected $routeMiddleware = [
-        // ... other middleware
     ];
 } 

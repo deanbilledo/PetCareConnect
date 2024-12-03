@@ -104,4 +104,9 @@ class Shop extends Model
             return asset('images/default-shop.png');
         }
     }
+
+    public function gallery()
+    {
+        return $this->hasMany(ShopGallery::class);
+    }
 } 

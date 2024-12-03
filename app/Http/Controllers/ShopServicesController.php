@@ -12,7 +12,7 @@ class ShopServicesController extends Controller
 {
     public function __construct()
     {
-        $this->middleware(['auth', HasShop::class]);
+        $this->middleware(['auth', 'has-shop']);
     }
 
     public function index()
@@ -191,14 +191,31 @@ class ShopServicesController extends Controller
                 ], 403);
             }
 
-            // The model's cast will handle the JSON conversion
-            $serviceData = $service->toArray();
+            // Log the raw service data for debugging
+            Log::info('Raw service data:', [
+                'service' => $service->toArray(),
+                'pet_types' => $service->pet_types,
+                'size_ranges' => $service->size_ranges,
+                'variable_pricing' => $service->variable_pricing,
+                'add_ons' => $service->add_ons
+            ]);
 
-            // Ensure arrays are properly initialized
-            $serviceData['pet_types'] = $serviceData['pet_types'] ?? [];
-            $serviceData['size_ranges'] = $serviceData['size_ranges'] ?? [];
-            $serviceData['variable_pricing'] = $serviceData['variable_pricing'] ?? [];
-            $serviceData['add_ons'] = $serviceData['add_ons'] ?? [];
+            // Clean and prepare the data
+            $serviceData = [
+                'id' => $service->id,
+                'name' => $service->name,
+                'category' => $service->category,
+                'description' => $service->description,
+                'pet_types' => $service->pet_types ?? [],
+                'size_ranges' => $service->size_ranges ?? [],
+                'breed_specific' => (bool) $service->breed_specific,
+                'special_requirements' => $service->special_requirements,
+                'base_price' => (float) $service->base_price,
+                'duration' => (int) $service->duration,
+                'variable_pricing' => $service->variable_pricing ?? [],
+                'add_ons' => $service->add_ons ?? [],
+                'status' => $service->status
+            ];
 
             return response()->json([
                 'success' => true,
@@ -214,7 +231,7 @@ class ShopServicesController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to load service details'
+                'message' => 'Failed to load service details: ' . $e->getMessage()
             ], 500);
         }
     }
