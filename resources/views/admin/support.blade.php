@@ -45,96 +45,34 @@
 
             <!-- Support Content -->
             <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 dark:bg-gray-900 p-6">
-                <!-- Support Tickets -->
+                <!-- Shop Reports -->
                 <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 mb-6 transform hover:scale-105 transition-transform duration-300">
-                    <h3 class="text-lg font-semibold mb-4">Support Tickets</h3>
+                    <h3 class="text-lg font-semibold mb-4">Shop Reports</h3>
                     <div class="flex mb-4 space-x-4">
-                        <input type="text" placeholder="Search tickets..." class="w-full p-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <input type="text" placeholder="Search reports..." class="w-full p-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
                         <select class="p-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
                             <option value="">All Status</option>
-                            <option value="open">Open</option>
-                            <option value="inProgress">In Progress</option>
+                            <option value="pending">Pending</option>
+                            <option value="investigating">Investigating</option>
                             <option value="resolved">Resolved</option>
+                            <option value="dismissed">Dismissed</option>
                         </select>
                         <select class="p-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                            <option value="">All Types</option>
-                            <option value="customer">Customer</option>
-                            <option value="shopOwner">Shop Owner</option>
+                            <option value="">Report Type</option>
+                            <option value="service">Poor Service</option>
+                            <option value="misconduct">Misconduct</option>
+                            <option value="pricing">Pricing Issues</option>
+                            <option value="safety">Safety Concerns</option>
                         </select>
                     </div>
                     <div class="overflow-x-auto rounded-xl">
                         <table class="w-full table-auto">
                             <thead>
                                 <tr class="bg-gray-200 dark:bg-gray-700">
-                                    <th class="px-4 py-2 text-left rounded-tl-xl">Ticket ID</th>
-                                    <th class="px-4 py-2 text-left">User</th>
-                                    <th class="px-4 py-2 text-left">Type</th>
-                                    <th class="px-4 py-2 text-left">Subject</th>
-                                    <th class="px-4 py-2 text-left">Status</th>
-                                    <th class="px-4 py-2 text-left rounded-tr-xl">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr class="border-b dark:border-gray-700">
-                                    <td class="px-4 py-2">TKT-001</td>
-                                    <td class="px-4 py-2">John Doe</td>
-                                    <td class="px-4 py-2">Customer</td>
-                                    <td class="px-4 py-2">Booking Issue</td>
-                                    <td class="px-4 py-2"><span class="px-2 py-1 bg-yellow-200 text-yellow-800 rounded-full text-sm">Open</span></td>
-                                    <td class="px-4 py-2">
-                                        <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded-lg mr-2" onclick="viewTicket('TKT-001')">View</button>
-                                        <button class="bg-green-500 hover:bg-green-700 text-white font-bold py-1 px-2 rounded-lg" onclick="resolveTicket('TKT-001')">Resolve</button>
-                                    </td>
-                                </tr>
-                                <!-- Add more rows as needed -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- Disputes -->
-                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 mb-6 transform hover:scale-105 transition-transform duration-300">
-                    <h3 class="text-lg font-semibold mb-4">Disputes</h3>
-                    <div class="overflow-x-auto rounded-xl">
-                        <table class="w-full table-auto">
-                            <thead>
-                                <tr class="bg-gray-200 dark:bg-gray-700">
-                                    <th class="px-4 py-2 text-left rounded-tl-xl">Dispute ID</th>
-                                    <th class="px-4 py-2 text-left">Customer</th>
-                                    <th class="px-4 py-2 text-left">Shop</th>
-                                    <th class="px-4 py-2 text-left">Issue</th>
-                                    <th class="px-4 py-2 text-left">Status</th>
-                                    <th class="px-4 py-2 text-left rounded-tr-xl">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr class="border-b dark:border-gray-700">
-                                    <td class="px-4 py-2">DSP-001</td>
-                                    <td class="px-4 py-2">Jane Smith</td>
-                                    <td class="px-4 py-2">Pawsome Grooming</td>
-                                    <td class="px-4 py-2">Service Quality</td>
-                                    <td class="px-4 py-2"><span class="px-2 py-1 bg-red-200 text-red-800 rounded-full text-sm">Unresolved</span></td>
-                                    <td class="px-4 py-2">
-                                        <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded-lg mr-2" onclick="viewDispute('DSP-001')">View</button>
-                                        <button class="bg-green-500 hover:bg-green-700 text-white font-bold py-1 px-2 rounded-lg" onclick="resolveDispute('DSP-001')">Resolve</button>
-                                    </td>
-                                </tr>
-                                <!-- Add more rows as needed -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- Flagged Issues -->
-                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 mb-6 transform hover:scale-105 transition-transform duration-300">
-                    <h3 class="text-lg font-semibold mb-4">Flagged Issues</h3>
-                    <div class="overflow-x-auto rounded-xl">
-                        <table class="w-full table-auto">
-                            <thead>
-                                <tr class="bg-gray-200 dark:bg-gray-700">
-                                    <th class="px-4 py-2 text-left rounded-tl-xl">Issue ID</th>
+                                    <th class="px-4 py-2 text-left rounded-tl-xl">Report ID</th>
+                                    <th class="px-4 py-2 text-left">Shop Name</th>
                                     <th class="px-4 py-2 text-left">Reported By</th>
-                                    <th class="px-4 py-2 text-left">Issue Type</th>
+                                    <th class="px-4 py-2 text-left">Report Type</th>
                                     <th class="px-4 py-2 text-left">Description</th>
                                     <th class="px-4 py-2 text-left">Status</th>
                                     <th class="px-4 py-2 text-left rounded-tr-xl">Actions</th>
@@ -142,14 +80,15 @@
                             </thead>
                             <tbody>
                                 <tr class="border-b dark:border-gray-700">
-                                    <td class="px-4 py-2">FLG-001</td>
-                                    <td class="px-4 py-2">Admin</td>
-                                    <td class="px-4 py-2">Policy Violation</td>
-                                    <td class="px-4 py-2">Inappropriate content in shop description</td>
-                                    <td class="px-4 py-2"><span class="px-2 py-1 bg-orange-200 text-orange-800 rounded-full text-sm">Under Review</span></td>
+                                    <td class="px-4 py-2">RPT-001</td>
+                                    <td class="px-4 py-2">Pawsome Grooming</td>
+                                    <td class="px-4 py-2">John Doe</td>
+                                    <td class="px-4 py-2">Poor Service</td>
+                                    <td class="px-4 py-2">Unprofessional handling of pets</td>
+                                    <td class="px-4 py-2"><span class="px-2 py-1 bg-yellow-200 text-yellow-800 rounded-full text-sm">Pending</span></td>
                                     <td class="px-4 py-2">
-                                        <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded-lg mr-2" onclick="viewFlaggedIssue('FLG-001')">View</button>
-                                        <button class="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded-lg" onclick="takeAction('FLG-001')">Take Action</button>
+                                        <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded-lg mr-2" onclick="viewReport('RPT-001')">View</button>
+                                        <button class="bg-green-500 hover:bg-green-700 text-white font-bold py-1 px-2 rounded-lg" onclick="investigateReport('RPT-001')">Investigate</button>
                                     </td>
                                 </tr>
                                 <!-- Add more rows as needed -->
@@ -172,40 +111,16 @@
             document.getElementById('profileMenu').classList.toggle('hidden');
         });
 
-        // Function to view ticket details
-        function viewTicket(ticketId) {
-            console.log(`Viewing ticket ${ticketId}`);
-            // Implement view ticket logic
+        // Function to view report details
+        function viewReport(reportId) {
+            console.log(`Viewing report ${reportId}`);
+            // Implement view report logic
         }
 
-        // Function to resolve ticket
-        function resolveTicket(ticketId) {
-            console.log(`Resolving ticket ${ticketId}`);
-            // Implement resolve ticket logic
-        }
-
-        // Function to view dispute details
-        function viewDispute(disputeId) {
-            console.log(`Viewing dispute ${disputeId}`);
-            // Implement view dispute logic
-        }
-
-        // Function to resolve dispute
-        function resolveDispute(disputeId) {
-            console.log(`Resolving dispute ${disputeId}`);
-            // Implement resolve dispute logic
-        }
-
-        // Function to view flagged issue details
-        function viewFlaggedIssue(issueId) {
-            console.log(`Viewing flagged issue ${issueId}`);
-            // Implement view flagged issue logic
-        }
-
-        // Function to take action on flagged issue
-        function takeAction(issueId) {
-            console.log(`Taking action on flagged issue ${issueId}`);
-            // Implement take action logic
+        // Function to investigate report
+        function investigateReport(reportId) {
+            console.log(`Investigating report ${reportId}`);
+            // Implement investigate report logic
         }
     </script>
 </body>

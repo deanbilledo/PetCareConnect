@@ -78,6 +78,7 @@ Route::middleware(['auth'])->group(function () {
             // Static routes
             Route::view('/employees', 'shop.employees.index')->name('employees');
             Route::view('/analytics', 'shop.analytics.index')->name('analytics');
+            Route::view('/reviews', 'shop.reviews.index')->name('reviews');
             Route::view('/settings', 'shop.settings.index')->name('settings');
             Route::post('/gallery', [ShopProfileController::class, 'uploadGalleryPhoto'])->name('gallery.upload');
             Route::delete('/gallery/{photo}', [ShopProfileController::class, 'deleteGalleryPhoto'])->name('gallery.delete');
