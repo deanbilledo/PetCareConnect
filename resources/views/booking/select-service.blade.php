@@ -95,26 +95,24 @@ use Illuminate\Support\Facades\Log;
                         @php
                             $petServices = $bookingData['pet_services'] ?? [];
                             $selectedServiceId = $petServices[$pet->id] ?? null;
+                            $selectedAddOns = $bookingData['add_ons'][$pet->id] ?? [];
                         @endphp
 
                         @foreach($services as $service)
                             @php
-                                // Convert arrays and ensure proper format
                                 $petTypes = is_array($service->pet_types) ? $service->pet_types : json_decode($service->pet_types, true) ?? [];
                                 $sizeRanges = is_array($service->size_ranges) ? $service->size_ranges : json_decode($service->size_ranges, true) ?? [];
+                                $addOns = is_array($service->addOns) ? $service->addOns : json_decode($service->addOns, true) ?? [];
                                 
-                                // Convert everything to lowercase and singular form
                                 $petType = strtolower(rtrim($pet->type, 's'));
                                 $petSize = strtolower($pet->size_category);
                                 
-                                // Normalize service data
                                 $normalizedPetTypes = array_map(function($type) {
                                     return strtolower(rtrim($type, 's'));
                                 }, $petTypes);
                                 
                                 $normalizedSizeRanges = array_map('strtolower', $sizeRanges);
 
-                                // Check if service is available for this pet
                                 $typeMatch = in_array($petType, $normalizedPetTypes);
                                 $sizeMatch = in_array($petSize, $normalizedSizeRanges);
                             @endphp
@@ -146,6 +144,26 @@ use Illuminate\Support\Facades\Log;
                                                     <p class="text-xs text-gray-500">Base price</p>
                                                 </div>
                                             </div>
+
+                                            <!-- Add-ons Section -->
+                                            @if(!empty($addOns))
+                                                <div class="mt-4 border-t border-gray-200 pt-4">
+                                                    <p class="text-sm font-medium text-gray-700 mb-2">Available Add-ons:</p>
+                                                    <div class="space-y-2">
+                                                        @foreach($addOns as $addOn)
+                                                            <label class="flex items-center">
+                                                                <input type="checkbox" 
+                                                                       name="add_ons[{{ $pet->id }}][{{ $service->id }}][]" 
+                                                                       value="{{ $addOn['name'] }}"
+                                                                       {{ in_array($addOn['name'], $selectedAddOns) ? 'checked' : '' }}
+                                                                       class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                                                <span class="ml-2 text-sm text-gray-600">{{ $addOn['name'] }}</span>
+                                                                <span class="ml-auto text-sm font-medium">+₱{{ number_format($addOn['price'], 2) }}</span>
+                                                            </label>
+                                                        @endforeach
+                                                    </div>
+                                                </div>
+                                            @endif
                                         </label>
                                     </div>
                                 </div>

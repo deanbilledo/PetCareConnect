@@ -403,6 +403,7 @@ use Illuminate\Support\Facades\Log;
                                     <input type="tel" 
                                         name="phone" 
                                         placeholder="Contact Number"
+                                        x-model="formData.phone"
                                         class="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-custom-blue focus:border-custom-blue">
                                 </div>
                                 <div class="relative">
@@ -487,6 +488,7 @@ use Illuminate\Support\Facades\Log;
                                     <input type="text" 
                                         name="tin" 
                                         placeholder="Tax Identification Number (TIN)"
+                                        x-model="formData.tin"
                                         class="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-custom-blue focus:border-custom-blue">
                                 </div>
                                 
@@ -505,77 +507,75 @@ use Illuminate\Support\Facades\Log;
                                 </div>
 
                                 <div class="space-y-2">
-                                    <label class="block text-sm text-gray-700">BIR Certificate of Registration</label>
-                                    <div class="flex items-center space-x-2">
-                                        <input type="file" 
-                                            name="bir_certificate" 
-                                            accept=".pdf,.jpg,.jpeg,.png"
-                                            class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-custom-blue file:text-white hover:file:bg-blue-600">
-                                    </div>
+                                    <input type="file" 
+                                        name="bir_certificate" 
+                                        accept=".pdf,.jpg,.jpeg,.png"
+                                        @change="formData.bir_certificate = $event.target.files[0]?.name"
+                                        class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-custom-blue file:text-white hover:file:bg-blue-600">
                                 </div>
                             </div>
                         </div>
 
                         <!-- Step 4: Review -->
                         <div x-show="currentStep === 4" class="min-h-[600px] w-full">
-                            <div class="space-y-6 px-6">
+                            <div class="space-y-6">
                                 <!-- Basic Information Review -->
-                                <div class="bg-gray-50 rounded-lg p-8">
-                                    <h3 class="text-xl font-semibold text-gray-900 mb-6">Basic Information</h3>
-                                    <div class="grid grid-cols-2 gap-x-12 gap-y-6">
+                                <div class="bg-gray-50 rounded-lg p-6">
+                                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Basic Information</h3>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div>
                                             <p class="text-sm font-medium text-gray-500">Shop Name</p>
-                                            <p class="mt-2 text-lg" x-text="formData.shop_name"></p>
+                                            <p class="mt-1 text-base" x-text="formData.shop_name"></p>
                                         </div>
                                         <div>
                                             <p class="text-sm font-medium text-gray-500">Shop Type</p>
-                                            <p class="mt-2 text-lg" x-text="formData.shop_type === 'veterinary' ? 'Veterinary Clinic' : 'Grooming Shop'"></p>
+                                            <p class="mt-1 text-base" x-text="formData.shop_type === 'veterinary' ? 'Veterinary Clinic' : 'Grooming Shop'"></p>
                                         </div>
                                     </div>
                                 </div>
 
                                 <!-- Contact Information Review -->
-                                <div class="bg-gray-50 rounded-lg p-8">
-                                    <h3 class="text-xl font-semibold text-gray-900 mb-6">Contact Information</h3>
-                                    <div class="grid grid-cols-2 gap-x-12 gap-y-6">
+                                <div class="bg-gray-50 rounded-lg p-6">
+                                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Contact Information</h3>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div>
                                             <p class="text-sm font-medium text-gray-500">Phone Number</p>
-                                            <p class="mt-2 text-lg" x-text="formData.phone"></p>
+                                            <p class="mt-1 text-base" x-text="formData.phone"></p>
                                         </div>
                                         <div>
                                             <p class="text-sm font-medium text-gray-500">Address</p>
-                                            <p class="mt-2 text-lg" x-text="address"></p>
+                                            <p class="mt-1 text-base" x-text="address"></p>
                                         </div>
                                     </div>
                                 </div>
 
                                 <!-- Business Information Review -->
-                                <div class="bg-gray-50 rounded-lg p-8">
-                                    <h3 class="text-xl font-semibold text-gray-900 mb-6">Business Information</h3>
-                                    <div class="grid grid-cols-2 gap-x-12 gap-y-6">
+                                <div class="bg-gray-50 rounded-lg p-6">
+                                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Business Information</h3>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div>
                                             <p class="text-sm font-medium text-gray-500">TIN</p>
-                                            <p class="mt-2 text-lg" x-text="formData.tin"></p>
+                                            <p class="mt-1 text-base" x-text="formData.tin"></p>
                                         </div>
                                         <div>
                                             <p class="text-sm font-medium text-gray-500">VAT Status</p>
-                                            <p class="mt-2 text-lg" x-text="formData.vat_status === 'registered' ? 'VAT Registered' : 'Non-VAT Registered'"></p>
+                                            <p class="mt-1 text-base" x-text="formData.vat_status === 'registered' ? 'VAT Registered' : 'Non-VAT Registered'"></p>
                                         </div>
-                                        <div class="col-span-2">
+                                        <div class="sm:col-span-2">
                                             <p class="text-sm font-medium text-gray-500">BIR Certificate</p>
-                                            <p class="mt-2 text-lg" x-text="formData.bir_certificate || 'No file selected'"></p>
+                                            <p class="mt-1 text-base" x-text="formData.bir_certificate || 'No file selected'"></p>
                                         </div>
                                     </div>
                                 </div>
 
                                 <!-- Terms and Conditions -->
-                                <div class="bg-gray-50 rounded-lg p-8">
+                                <div class="bg-gray-50 rounded-lg p-6">
                                     <label class="flex items-start">
                                         <input type="checkbox" 
                                                name="terms" 
                                                class="form-checkbox h-5 w-5 text-custom-blue mt-1">
-                                        <span class="ml-3 text-base text-gray-600 flex-1">
-                                               I confirm that all the information provided is accurate and I agree to the 
+                                        <span class="ml-3 text-sm text-gray-600">
+                                            I confirm that all the information provided is accurate and I agree to the 
                                             <a href="{{ route('terms') }}" class="text-custom-blue hover:underline" target="_blank">Terms and Conditions</a>
                                         </span>
                                     </label>
