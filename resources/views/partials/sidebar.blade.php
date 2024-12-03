@@ -1,6 +1,6 @@
 <nav class="h-full bg-white border-r" x-data="{ currentFragment: window.location.hash }">
     <div class="p-4">
-        <h2 class="text-xl font-semibold text-gray-800">Shop Dashboard</h2>
+        
     </div>
 
     <!-- Navigation Links -->

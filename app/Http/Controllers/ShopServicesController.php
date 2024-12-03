@@ -43,8 +43,22 @@ class ShopServicesController extends Controller
                 'variable_pricing' => 'nullable|array',
                 'variable_pricing.*.size' => 'required_with:variable_pricing|string',
                 'variable_pricing.*.price' => 'required_with:variable_pricing|numeric|min:0',
-                'add_ons' => 'nullable|array'
+                'add_ons' => 'nullable|json'
             ]);
+
+            // Decode and validate add-ons
+            if (!empty($validated['add_ons'])) {
+                $addOns = json_decode($validated['add_ons'], true);
+                foreach ($addOns as $addOn) {
+                    if (!isset($addOn['name']) || !isset($addOn['price']) || 
+                        empty($addOn['name']) || !is_numeric($addOn['price']) || $addOn['price'] < 0) {
+                        throw new \Exception('Invalid add-on data format');
+                    }
+                }
+                $validated['add_ons'] = $addOns;
+            } else {
+                $validated['add_ons'] = [];
+            }
 
             // Filter out empty variable pricing entries
             if (isset($validated['variable_pricing'])) {
@@ -102,8 +116,22 @@ class ShopServicesController extends Controller
                 'variable_pricing' => 'nullable|array',
                 'variable_pricing.*.size' => 'required_with:variable_pricing|string',
                 'variable_pricing.*.price' => 'required_with:variable_pricing|numeric|min:0',
-                'add_ons' => 'nullable|array'
+                'add_ons' => 'nullable|json'
             ]);
+
+            // Decode and validate add-ons
+            if (!empty($validated['add_ons'])) {
+                $addOns = json_decode($validated['add_ons'], true);
+                foreach ($addOns as $addOn) {
+                    if (!isset($addOn['name']) || !isset($addOn['price']) || 
+                        empty($addOn['name']) || !is_numeric($addOn['price']) || $addOn['price'] < 0) {
+                        throw new \Exception('Invalid add-on data format');
+                    }
+                }
+                $validated['add_ons'] = $addOns;
+            } else {
+                $validated['add_ons'] = [];
+            }
 
             \Log::info('Validated data:', $validated);
 
