@@ -4,19 +4,18 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class PetVaccination extends Model
+class HealthRecord extends Model
 {
     protected $fillable = [
         'pet_id',
-        'vaccine_name',
-        'veterinarian',
+        'record_type',
+        'description',
         'date',
-        'next_due_date'
+        'notes'
     ];
 
     protected $casts = [
-        'date' => 'date',
-        'next_due_date' => 'date'
+        'date' => 'date'
     ];
 
     public function pet()

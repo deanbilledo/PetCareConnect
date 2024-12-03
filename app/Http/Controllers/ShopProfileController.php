@@ -15,7 +15,7 @@ class ShopProfileController extends Controller
 
     public function show()
     {
-        $shop = auth()->user()->shop;
+        $shop = auth()->user()->shop->load('operatingHours');
         return view('shop.profile', compact('shop'));
     }
 
@@ -67,6 +67,52 @@ class ShopProfileController extends Controller
         } catch (\Exception $e) {
             \Log::error('Error updating shop image: ' . $e->getMessage());
             return back()->with('error', 'Failed to update shop image: ' . $e->getMessage());
+        }
+    }
+
+    public function uploadGalleryPhoto(Request $request)
+    {
+        $request->validate([
+            'gallery_photo' => 'required|image|mimes:jpeg,png,jpg|max:2048'
+        ]);
+
+        try {
+            if ($request->hasFile('gallery_photo')) {
+                $path = $request->file('gallery_photo')->store('shop-gallery', 'public');
+                
+                $shop = auth()->user()->shop;
+                $shop->gallery()->create([
+                    'path' => $path
+                ]);
+
+                return back()->with('success', 'Photo added to gallery successfully');
+            }
+
+            return back()->with('error', 'No photo was uploaded');
+        } catch (\Exception $e) {
+            \Log::error('Error uploading gallery photo: ' . $e->getMessage());
+            return back()->with('error', 'Failed to upload photo');
+        }
+    }
+
+    public function deleteGalleryPhoto($photoId)
+    {
+        try {
+            $shop = auth()->user()->shop;
+            $photo = $shop->gallery()->findOrFail($photoId);
+            
+            // Delete file from storage
+            if (Storage::disk('public')->exists($photo->path)) {
+                Storage::disk('public')->delete($photo->path);
+            }
+            
+            // Delete record from database
+            $photo->delete();
+
+            return response()->json(['success' => true]);
+        } catch (\Exception $e) {
+            \Log::error('Error deleting gallery photo: ' . $e->getMessage());
+            return response()->json(['success' => false], 500);
         }
     }
 } 

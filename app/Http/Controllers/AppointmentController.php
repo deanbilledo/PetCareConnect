@@ -5,6 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Appointment;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class AppointmentController extends Controller
 {
@@ -22,9 +25,9 @@ class AppointmentController extends Controller
             ->get();
         
         // Add debugging
-        \Log::info('User ID: ' . $user->id);
-        \Log::info('Appointments count: ' . $appointments->count());
-        \Log::info('Raw appointments:', $appointments->toArray());
+        Log::info('User ID: ' . $user->id);
+        Log::info('Appointments count: ' . $appointments->count());
+        Log::info('Raw appointments:', $appointments->toArray());
 
         $groupedAppointments = $appointments->groupBy(function($appointment) {
             return $appointment->appointment_date->format('Y-m-d');
@@ -47,7 +50,7 @@ class AppointmentController extends Controller
     public function cancel(Appointment $appointment, Request $request)
     {
         try {
-            \Log::info('Cancel request received', [
+            Log::info('Cancel request received', [
                 'appointment_id' => $appointment->id,
                 'user_id' => auth()->id(),
                 'reason' => $request->reason,
@@ -55,12 +58,12 @@ class AppointmentController extends Controller
             ]);
 
             if ($appointment->user_id !== auth()->id()) {
-                \Log::warning('Unauthorized cancellation attempt');
+                Log::warning('Unauthorized cancellation attempt');
                 return response()->json(['error' => 'Unauthorized'], 403);
             }
 
             if ($appointment->status === 'cancelled') {
-                \Log::info('Appointment already cancelled');
+                Log::info('Appointment already cancelled');
                 return response()->json(['error' => 'Appointment is already cancelled'], 400);
             }
 
@@ -68,14 +71,14 @@ class AppointmentController extends Controller
             $appointment->cancellation_reason = $request->reason;
             $appointment->save();
 
-            \Log::info('Appointment cancelled successfully');
+            Log::info('Appointment cancelled successfully');
 
             return response()->json([
                 'success' => true,
                 'message' => 'Appointment cancelled successfully'
             ]);
         } catch (\Exception $e) {
-            \Log::error('Error cancelling appointment: ' . $e->getMessage(), [
+            Log::error('Error cancelling appointment: ' . $e->getMessage(), [
                 'exception' => $e,
                 'trace' => $e->getTraceAsString()
             ]);
@@ -151,7 +154,7 @@ class AppointmentController extends Controller
             return redirect()->route('appointments.show', $appointment)
                 ->with('success', 'Appointment rescheduled successfully');
         } catch (\Exception $e) {
-            \Log::error('Error rescheduling appointment: ' . $e->getMessage());
+            Log::error('Error rescheduling appointment: ' . $e->getMessage());
             return back()->with('error', 'Failed to reschedule appointment. Please try again.');
         }
     }
@@ -159,14 +162,14 @@ class AppointmentController extends Controller
     public function accept(Appointment $appointment)
     {
         try {
-            \Log::info('Accept request received', [
+            Log::info('Accept request received', [
                 'appointment_id' => $appointment->id,
                 'shop_id' => auth()->user()->shop->id
             ]);
 
             // Verify the shop owner owns this appointment
             if ($appointment->shop_id !== auth()->user()->shop->id) {
-                \Log::warning('Unauthorized accept attempt', [
+                Log::warning('Unauthorized accept attempt', [
                     'appointment_id' => $appointment->id,
                     'shop_id' => auth()->user()->shop->id
                 ]);
@@ -177,7 +180,7 @@ class AppointmentController extends Controller
 
             // Check if appointment is pending
             if ($appointment->status !== 'pending') {
-                \Log::info('Invalid status for acceptance', [
+                Log::info('Invalid status for acceptance', [
                     'appointment_id' => $appointment->id,
                     'current_status' => $appointment->status
                 ]);
@@ -192,7 +195,7 @@ class AppointmentController extends Controller
                 'accepted_at' => now()
             ]);
 
-            \Log::info('Appointment accepted successfully', [
+            Log::info('Appointment accepted successfully', [
                 'appointment_id' => $appointment->id
             ]);
 
@@ -201,7 +204,7 @@ class AppointmentController extends Controller
                 'message' => 'Appointment accepted successfully'
             ]);
         } catch (\Exception $e) {
-            \Log::error('Error accepting appointment: ' . $e->getMessage(), [
+            Log::error('Error accepting appointment: ' . $e->getMessage(), [
                 'exception' => $e,
                 'trace' => $e->getTraceAsString()
             ]);
@@ -233,7 +236,7 @@ class AppointmentController extends Controller
                 'message' => 'Appointment marked as paid'
             ]);
         } catch (\Exception $e) {
-            \Log::error('Error marking appointment as paid: ' . $e->getMessage());
+            Log::error('Error marking appointment as paid: ' . $e->getMessage());
             return response()->json([
                 'error' => 'Failed to update appointment status'
             ], 500);
@@ -260,7 +263,7 @@ class AppointmentController extends Controller
                 'message' => 'Appointment cancelled successfully'
             ]);
         } catch (\Exception $e) {
-            \Log::error('Error cancelling appointment: ' . $e->getMessage());
+            Log::error('Error cancelling appointment: ' . $e->getMessage());
             return response()->json([
                 'error' => 'Failed to cancel appointment'
             ], 500);

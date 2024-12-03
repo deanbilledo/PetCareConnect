@@ -33,8 +33,11 @@ return new class extends Migration
             if (!Schema::hasColumn('services', 'base_price')) {
                 $table->decimal('base_price', 10, 2)->after('special_requirements');
             }
+            if (!Schema::hasColumn('services', 'duration')) {
+                $table->integer('duration')->after('base_price');
+            }
             if (!Schema::hasColumn('services', 'variable_pricing')) {
-                $table->json('variable_pricing')->nullable()->after('base_price');
+                $table->json('variable_pricing')->nullable()->after('duration');
             }
             if (!Schema::hasColumn('services', 'add_ons')) {
                 $table->json('add_ons')->nullable()->after('variable_pricing');
@@ -53,6 +56,7 @@ return new class extends Migration
                 'breed_specific',
                 'special_requirements',
                 'base_price',
+                'duration',
                 'variable_pricing',
                 'add_ons'
             ];

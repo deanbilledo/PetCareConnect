@@ -6,6 +6,7 @@ use App\Models\Pet;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 class ProfileController extends Controller
 {
@@ -97,11 +98,10 @@ class ProfileController extends Controller
                     Storage::disk('public')->delete($user->profile_photo_path);
                 }
 
-                // Store new profile photo with timestamp to prevent caching issues
+                // Store new profile photo with timestamp
                 $fileName = time() . '_' . $request->file('profile_photo')->getClientOriginalName();
                 $path = $request->file('profile_photo')->storeAs('profile-photos', $fileName, 'public');
                 
-                // Update user with new photo path
                 $user->update([
                     'profile_photo_path' => $path
                 ]);
@@ -111,7 +111,7 @@ class ProfileController extends Controller
 
             return back()->with('error', 'No photo uploaded');
         } catch (\Exception $e) {
-            \Log::error('Error updating profile photo: ' . $e->getMessage());
+            Log::error('Error updating profile photo: ' . $e->getMessage());
             return back()->with('error', 'Failed to update profile photo');
         }
     }
@@ -132,7 +132,7 @@ class ProfileController extends Controller
 
     public function storePet(Request $request)
     {
-        \Log::info('Pet creation attempt with data:', $request->all());
+        Log::info('Pet creation attempt with data:', $request->all());
         $request->validate([
             'name' => 'required|string|max:255',
             'type' => 'required|string|max:255',
@@ -158,7 +158,7 @@ class ProfileController extends Controller
 
             return back()->with('success', 'Pet added successfully');
         } catch (\Exception $e) {
-            \Log::error('Error creating pet: ' . $e->getMessage());
+            Log::error('Error creating pet: ' . $e->getMessage());
             return back()->with('error', 'Failed to add pet. Please try again.');
         }
     }
@@ -190,7 +190,7 @@ class ProfileController extends Controller
 
             return back()->with('success', 'Pet updated successfully');
         } catch (\Exception $e) {
-            \Log::error('Error updating pet: ' . $e->getMessage());
+            Log::error('Error updating pet: ' . $e->getMessage());
             return back()->with('error', 'Failed to update pet. Please try again.');
         }
     }
@@ -227,7 +227,7 @@ class ProfileController extends Controller
 
             return back()->with('error', 'No photo uploaded');
         } catch (\Exception $e) {
-            \Log::error('Error updating pet photo: ' . $e->getMessage());
+            Log::error('Error updating pet photo: ' . $e->getMessage());
             return back()->with('error', 'Failed to update pet photo');
         }
     }
@@ -270,21 +270,50 @@ class ProfileController extends Controller
 
     public function showAddHealthRecord(Pet $pet)
     {
-        // Ensure the user can only access their own pets
         if ($pet->user_id !== auth()->id()) {
             abort(403);
         }
-
         return view('profile.pets.add-health-record', compact('pet'));
     }
 
     public function showHealthRecord(Pet $pet)
     {
-        // Check if the user is authorized to view this pet's records
-        if ($pet->user_id !== auth()->id() && !auth()->user()->hasRole('shop_owner')) {
+        if ($pet->user_id !== auth()->id()) {
+            abort(403);
+        }
+        
+        // Load health records and vaccinations
+        $pet->load(['healthRecords', 'vaccinations']);
+        
+        return view('profile.pets.health-record', compact('pet'));
+    }
+
+    public function storeHealthRecord(Request $request, Pet $pet)
+    {
+        if ($pet->user_id !== auth()->id()) {
             abort(403);
         }
 
-        return view('pets.health-record', compact('pet'));
+        $validated = $request->validate([
+            'record_type' => 'required|string',
+            'description' => 'required|string',
+            'date' => 'required|date',
+            'notes' => 'nullable|string'
+        ]);
+
+        $pet->healthRecords()->create($validated);
+
+        return redirect()->route('profile.pets.health-record', $pet)
+                        ->with('success', 'Health record added successfully');
+    }
+
+    public function storeParasiteControl(Request $request, Pet $pet)
+    {
+        // Validation and storage logic for parasite control
+    }
+
+    public function storeHealthIssue(Request $request, Pet $pet)
+    {
+        // Validation and storage logic for health issues
     }
 }

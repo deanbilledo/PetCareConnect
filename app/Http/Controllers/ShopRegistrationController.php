@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 class ShopRegistrationController extends Controller
 {
@@ -19,19 +20,19 @@ class ShopRegistrationController extends Controller
 
     public function showPreRegistration()
     {
-        \Log::info('Accessing pre-registration page', [
+        Log::info('Accessing pre-registration page', [
             'is_authenticated' => auth()->check(),
             'user' => auth()->user(),
             'has_shop' => auth()->check() ? auth()->user()->shop : null
         ]);
 
         if (auth()->check() && auth()->user()->shop) {
-            \Log::info('User already has a shop, redirecting to home');
+            Log::info('User already has a shop, redirecting to home');
             return redirect()->route('home')
                            ->with('error', 'You already have a registered shop.');
         }
 
-        \Log::info('Showing pre-registration page');
+        Log::info('Showing pre-registration page');
         return view('shopRegistration.pre-register');
     }
 
@@ -67,17 +68,17 @@ class ShopRegistrationController extends Controller
 
     public function register(Request $request)
     {
-        \Log::info('Session ID: ' . session()->getId());
-        \Log::info('Auth check: ' . (auth()->check() ? 'true' : 'false'));
-        \Log::info('User ID: ' . (auth()->id() ?? 'null'));
+        Log::info('Session ID: ' . session()->getId());
+        Log::info('Auth check: ' . (auth()->check() ? 'true' : 'false'));
+        Log::info('User ID: ' . (auth()->id() ?? 'null'));
         
         if (!auth()->check()) {
-            \Log::error('User not authenticated');
+            Log::error('User not authenticated');
             return redirect()->route('login')
                             ->with('error', 'Please login to register your shop.');
         }
 
-        \Log::info('Starting shop registration process');
+        Log::info('Starting shop registration process');
         
         $validated = $request->validate([
             'shop_name' => 'required|string|max:255|unique:shops,name',
@@ -94,7 +95,7 @@ class ShopRegistrationController extends Controller
             'terms' => 'required|accepted'
         ]);
 
-        \Log::info('Validation passed', $validated);
+        Log::info('Validation passed', $validated);
 
         try {
             DB::beginTransaction();
@@ -103,7 +104,7 @@ class ShopRegistrationController extends Controller
             $imagePath = $request->file('shop_image')->store('shop-images', 'public');
             $birCertificatePath = $request->file('bir_certificate')->store('bir-certificates', 'public');
 
-            \Log::info('Files stored successfully', [
+            Log::info('Files stored successfully', [
                 'image' => $imagePath,
                 'certificate' => $birCertificatePath
             ]);
@@ -127,7 +128,7 @@ class ShopRegistrationController extends Controller
                 'status' => 'pending' // Set initial status to pending
             ]);
 
-            \Log::info('Shop created successfully', $shop->toArray());
+            Log::info('Shop created successfully', $shop->toArray());
 
             DB::commit();
 
@@ -137,7 +138,7 @@ class ShopRegistrationController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             
-            \Log::error('Shop registration failed', [
+            Log::error('Shop registration failed', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);

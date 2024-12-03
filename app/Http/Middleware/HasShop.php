@@ -8,48 +8,52 @@ use Symfony\Component\HttpFoundation\Response;
 
 class HasShop
 {
-    /**
-     * Handle an incoming request.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \Closure  $next
-     * @return mixed
-     */
     public function handle(Request $request, Closure $next): Response
     {
         if (!auth()->check()) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Please login to access this feature'
+                ], 401);
+            }
             return redirect()->route('login')
                 ->with('error', 'Please login to access this feature.');
         }
 
         $user = auth()->user();
         
-        // If user has no shop
         if (!$user->shop) {
-            if ($request->routeIs('shop.profile*')) {
-                return redirect()->route('shop.register.form')
-                    ->with('error', 'You need to register a shop first.');
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You must have a registered shop to access this resource'
+                ], 403);
             }
-            return redirect()->route('home')
+            return redirect()->route('shop.register.form')
                 ->with('error', 'You need to register a shop first.');
         }
 
-        // If shop is pending approval
         if ($user->shop->status === 'pending') {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Your shop registration is still pending approval'
+                ], 403);
+            }
             return redirect()->route('shop.registration.pending')
                 ->with('info', 'Your shop registration is still pending approval.');
         }
 
-        // If shop is suspended
-        if ($user->shop->status === 'suspended') {
+        if ($user->shop->status === 'suspended' || $user->shop->status !== 'active') {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Your shop access has been suspended or is inactive'
+                ], 403);
+            }
             return redirect()->route('home')
-                ->with('error', 'Your shop access has been suspended. Please contact support for more information.');
-        }
-
-        // Only allow access if shop is active
-        if ($user->shop->status !== 'active') {
-            return redirect()->route('home')
-                ->with('error', 'Shop access denied. Please contact support for assistance.');
+                ->with('error', 'Shop access denied.');
         }
 
         return $next($request);

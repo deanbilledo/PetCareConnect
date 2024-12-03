@@ -12,7 +12,7 @@ class ShopServicesController extends Controller
 {
     public function __construct()
     {
-        $this->middleware(['auth', HasShop::class]);
+        $this->middleware(['auth', 'has-shop']);
     }
 
     public function index()
@@ -25,16 +25,40 @@ class ShopServicesController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'price' => 'required|numeric|min:0',
-            'duration' => 'required|integer|min:1',
-            'description' => 'nullable|string'
-        ]);
-
         try {
+            \Log::info('Storing service with data:', $request->all());
+            
+            $validated = $request->validate([
+                'name' => 'required|string|max:255',
+                'category' => 'required|string',
+                'description' => 'nullable|string',
+                'pet_types' => 'required|array',
+                'pet_types.*' => 'string',
+                'size_ranges' => 'required|array',
+                'size_ranges.*' => 'string',
+                'breed_specific' => 'boolean',
+                'special_requirements' => 'nullable|string',
+                'base_price' => 'required|numeric|min:0',
+                'duration' => 'required|integer|min:15',
+                'variable_pricing' => 'nullable|array',
+                'variable_pricing.*.size' => 'required_with:variable_pricing|string',
+                'variable_pricing.*.price' => 'required_with:variable_pricing|numeric|min:0',
+                'add_ons' => 'nullable|array'
+            ]);
+
+            // Filter out empty variable pricing entries
+            if (isset($validated['variable_pricing'])) {
+                $validated['variable_pricing'] = array_filter($validated['variable_pricing'], function($price) {
+                    return !empty($price['size']) && isset($price['price']);
+                });
+            }
+
+            \Log::info('Validated data:', $validated);
+
             $shop = auth()->user()->shop;
             $service = $shop->services()->create($validated);
+
+            \Log::info('Service created:', $service->toArray());
 
             return response()->json([
                 'success' => true,
@@ -42,33 +66,50 @@ class ShopServicesController extends Controller
                 'service' => $service
             ]);
         } catch (\Exception $e) {
-            Log::error('Error creating service: ' . $e->getMessage());
+            \Log::error('Error creating service: ' . $e->getMessage());
+            \Log::error($e->getTraceAsString());
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to add service'
+                'message' => 'Failed to add service: ' . $e->getMessage()
             ], 500);
         }
     }
 
     public function update(Request $request, Service $service)
     {
-        // Check if the service belongs to the authenticated user's shop
-        if ($service->shop_id !== auth()->user()->shop->id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized'
-            ], 403);
-        }
-
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'price' => 'required|numeric|min:0',
-            'duration' => 'required|integer|min:1',
-            'description' => 'nullable|string'
-        ]);
-
         try {
+            \Log::info('Updating service with data:', $request->all());
+            
+            if ($service->shop_id !== auth()->user()->shop->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized'
+                ], 403);
+            }
+
+            $validated = $request->validate([
+                'name' => 'required|string|max:255',
+                'category' => 'required|string',
+                'description' => 'nullable|string',
+                'pet_types' => 'required|array',
+                'pet_types.*' => 'string',
+                'size_ranges' => 'required|array',
+                'size_ranges.*' => 'string',
+                'breed_specific' => 'boolean',
+                'special_requirements' => 'nullable|string',
+                'base_price' => 'required|numeric|min:0',
+                'duration' => 'required|integer|min:15',
+                'variable_pricing' => 'nullable|array',
+                'variable_pricing.*.size' => 'required_with:variable_pricing|string',
+                'variable_pricing.*.price' => 'required_with:variable_pricing|numeric|min:0',
+                'add_ons' => 'nullable|array'
+            ]);
+
+            \Log::info('Validated data:', $validated);
+
             $service->update($validated);
+
+            \Log::info('Service updated:', $service->fresh()->toArray());
 
             return response()->json([
                 'success' => true,
@@ -76,10 +117,11 @@ class ShopServicesController extends Controller
                 'service' => $service
             ]);
         } catch (\Exception $e) {
-            Log::error('Error updating service: ' . $e->getMessage());
+            \Log::error('Error updating service: ' . $e->getMessage());
+            \Log::error($e->getTraceAsString());
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to update service'
+                'message' => 'Failed to update service: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -140,14 +182,57 @@ class ShopServicesController extends Controller
 
     public function show(Service $service)
     {
-        // Check if the service belongs to the authenticated user's shop
-        if ($service->shop_id !== auth()->user()->shop->id) {
+        try {
+            // Check if the service belongs to the authenticated user's shop
+            if ($service->shop_id !== auth()->user()->shop->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized to view this service'
+                ], 403);
+            }
+
+            // Log the raw service data for debugging
+            Log::info('Raw service data:', [
+                'service' => $service->toArray(),
+                'pet_types' => $service->pet_types,
+                'size_ranges' => $service->size_ranges,
+                'variable_pricing' => $service->variable_pricing,
+                'add_ons' => $service->add_ons
+            ]);
+
+            // Clean and prepare the data
+            $serviceData = [
+                'id' => $service->id,
+                'name' => $service->name,
+                'category' => $service->category,
+                'description' => $service->description,
+                'pet_types' => $service->pet_types ?? [],
+                'size_ranges' => $service->size_ranges ?? [],
+                'breed_specific' => (bool) $service->breed_specific,
+                'special_requirements' => $service->special_requirements,
+                'base_price' => (float) $service->base_price,
+                'duration' => (int) $service->duration,
+                'variable_pricing' => $service->variable_pricing ?? [],
+                'add_ons' => $service->add_ons ?? [],
+                'status' => $service->status
+            ];
+
+            return response()->json([
+                'success' => true,
+                'data' => $serviceData
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error in show method: ' . $e->getMessage(), [
+                'service_id' => $service->id ?? null,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthorized'
-            ], 403);
+                'message' => 'Failed to load service details: ' . $e->getMessage()
+            ], 500);
         }
-
-        return response()->json($service);
     }
 } 

@@ -1,3 +1,15 @@
+@php
+try {
+    $homeRoute = route('home');
+    $loginRoute = route('login');
+    $registerRoute = route('register');
+} catch (\Exception $e) {
+    $homeRoute = '/';
+    $loginRoute = '/login';
+    $registerRoute = '/register';
+}
+@endphp
+
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
@@ -19,7 +31,7 @@
             <div class="w-full max-w-md space-y-8 px-4 sm:px-8 py-8 sm:py-10 bg-white rounded-3xl shadow-xl">
                 <div class="text-center">
                     <h2 class="text-1xl sm:text-3xl font-bold">Get Started With</h2>
-                    <a href="{{ route('home') }}">
+                    <a href="{{ $homeRoute }}">
                         <img src="{{ asset('images/logo.png') }}" alt="Pet Care Connect Logo" class="w-24 sm:w-32 mx-auto mt-2">
                     </a>
                     <p class="text-gray-600 mt-2 text-sm sm:text-base">Getting started is easy</p>
@@ -55,7 +67,7 @@
                 </div>
 
                 <!-- Registration form -->
-                <form method="POST" action="{{ route('register') }}" class="space-y-4 sm:space-y-6" x-data="{ 
+                <form method="POST" action="{{ $registerRoute }}" class="space-y-4 sm:space-y-6" x-data="{ 
                     first_name: '', 
                     last_name: '',
                     updateFullName() {
@@ -176,7 +188,7 @@
 
                 <p class="text-center text-xs sm:text-sm text-gray-600">
                     Have an account?
-                    <a href="{{ route('login') }}" class="text-custom-blue hover:underline">
+                    <a href="{{ $loginRoute }}" class="text-custom-blue hover:underline">
                         Sign in!
                     </a>
                 </p>
@@ -186,7 +198,7 @@
         <!-- Image container for desktop only -->
         <div class="hidden lg:flex flex-1 relative overflow-hidden bg-custom-bg min-h-screen items-center justify-center order-2 lg:order-2">
             <div class="absolute top-4 right-4 z-20">
-                <a href="{{ route('home') }}">
+                <a href="{{ $homeRoute }}">
                     <img src="{{ asset('images/logo.png') }}" alt="Pet Care Connect Logo" class="w-32 md:w-48">
                 </a>
             </div>

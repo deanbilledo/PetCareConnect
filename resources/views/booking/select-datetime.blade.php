@@ -1,3 +1,6 @@
+@php
+use Illuminate\Support\Facades\Log;
+@endphp
 @extends('layouts.app')
 
 @section('content')
@@ -6,12 +9,12 @@
     <div class="mb-4 mt-8">
         <form action="{{ route('booking.select-service', $shop) }}" method="POST" id="backForm">
             @csrf
-            @foreach(request('pet_ids') as $petId)
+            @foreach($bookingData['pet_ids'] as $petId)
                 <input type="hidden" name="pet_ids[]" value="{{ $petId }}">
             @endforeach
-            <input type="hidden" name="appointment_type" value="{{ request('appointment_type') }}">
+            <input type="hidden" name="appointment_type" value="single">
             <a href="javascript:void(0)" 
-               onclick="event.preventDefault(); document.getElementById('backForm').submit();"
+               onclick="document.getElementById('backForm').submit()"
                class="text-gray-600 hover:text-gray-800 flex items-center">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
@@ -119,24 +122,25 @@
     </div>
 
     <!-- Date and Time Selection -->
-    <div class="bg-white rounded-lg shadow-md p-6 mb-6" 
-         x-data="timeSlotPicker()">
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6" x-data="timeSlotPicker()">
         <h2 class="text-lg font-semibold mb-4">Select Date and Time</h2>
         <p class="text-sm text-gray-600 mb-4">Total duration of selected services: {{ $totalDuration }} minutes</p>
 
-        <form action="{{ route('booking.confirm', $shop) }}" 
-              method="POST"
-              id="bookingForm">
+        <form action="{{ route('booking.confirm.show', $shop) }}" method="GET" id="bookingForm" onsubmit="return validateForm()">
             @csrf
             
             <!-- Hidden fields for pet_ids and services -->
-            @foreach(session('booking.pet_ids', []) as $petId)
-                <input type="hidden" name="pet_ids[]" value="{{ $petId }}">
-            @endforeach
+            @if(isset($bookingData['pet_ids']))
+                @foreach($bookingData['pet_ids'] as $petId)
+                    <input type="hidden" name="pet_ids[]" value="{{ $petId }}">
+                @endforeach
+            @endif
             
-            @foreach(session('booking.services', []) as $service)
-                <input type="hidden" name="services[]" value="{{ $service }}">
-            @endforeach
+            @if(isset($bookingData['pet_services']))
+                @foreach($bookingData['pet_services'] as $petId => $serviceId)
+                    <input type="hidden" name="services[]" value="{{ $serviceId }}">
+                @endforeach
+            @endif
 
             <!-- Date Selection -->
             <div class="mb-6">
@@ -192,8 +196,7 @@
 
             <!-- Submit Button -->
             <div class="mt-6">
-                <button type="button" 
-                        @click="submitForm"
+                <button type="submit" 
                         class="w-full bg-blue-500 text-white py-3 rounded-lg font-medium hover:bg-blue-600 transition-colors"
                         :disabled="!selectedTime || loading">
                     Next
@@ -205,6 +208,19 @@
 
 @push('scripts')
 <script>
+function validateForm() {
+    const form = document.getElementById('bookingForm');
+    const date = form.querySelector('input[name="appointment_date"]').value;
+    const time = form.querySelector('select[name="appointment_time"]').value;
+    
+    if (!date || !time) {
+        alert('Please select both date and time');
+        return false;
+    }
+    
+    return true;
+}
+
 function timeSlotPicker() {
     return {
         selectedDate: '',
@@ -249,28 +265,10 @@ function timeSlotPicker() {
                     this.errorMessage = data.message;
                 }
             } catch (error) {
-                console.error('Error fetching time slots:', error);
-                this.errorMessage = error.message || 'Failed to load time slots. Please try again.';
+                this.errorMessage = error.message || 'Failed to load time slots';
             } finally {
                 this.loading = false;
             }
-        },
-        
-        submitForm() {
-            if (!this.selectedTime) {
-                this.errorMessage = 'Please select a time slot';
-                return;
-            }
-            if (!this.selectedDate) {
-                this.errorMessage = 'Please select a date';
-                return;
-            }
-            
-            // Clear any previous error messages
-            this.errorMessage = '';
-            
-            // Submit the form
-            document.getElementById('bookingForm').submit();
         }
     }
 }

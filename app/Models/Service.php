@@ -39,4 +39,41 @@ class Service extends Model
     {
         return $this->belongsTo(Shop::class);
     }
+
+    public function appointments()
+    {
+        return $this->hasMany(Appointment::class);
+    }
+
+    public function getPriceForSize($size)
+    {
+        if (empty($this->variable_pricing)) {
+            return $this->base_price;
+        }
+
+        $pricing = collect($this->variable_pricing)
+            ->firstWhere('size', strtolower($size));
+
+        return $pricing ? (float) $pricing['price'] : $this->base_price;
+    }
+
+    public function getVariablePricingAttribute($value)
+    {
+        return json_decode($value, true) ?? [];
+    }
+
+    public function getAddOnsAttribute($value)
+    {
+        return json_decode($value, true) ?? [];
+    }
+
+    public function getPetTypesAttribute($value)
+    {
+        return json_decode($value, true) ?? [];
+    }
+
+    public function getSizeRangesAttribute($value)
+    {
+        return json_decode($value, true) ?? [];
+    }
 } 

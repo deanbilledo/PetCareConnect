@@ -12,6 +12,115 @@
                     </button>
                 </div>
 
+                <!-- Discount Modal -->
+                <div id="discountModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+                    <!-- Backdrop -->
+                    <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity"></div>
+                    
+                    <!-- Modal -->
+                    <div class="flex items-center justify-center min-h-screen p-4">
+                        <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-auto">
+                            <div class="px-6 py-4">
+                                <h3 class="text-lg font-medium text-gray-900">Add Discount</h3>
+                                <form id="discountForm" class="mt-4">
+                                    @csrf
+                                    <input type="hidden" id="serviceIdForDiscount">
+                                    
+                                    <!-- Discount Type -->
+                                    <div class="mb-4">
+                                        <label class="block text-gray-700 text-sm font-bold mb-2">Discount Type</label>
+                                        <select id="discountType" name="discount_type" 
+                                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                            <option value="percentage">Percentage (%)</option>
+                                            <option value="fixed">Fixed Amount (₱)</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- Discount Value -->
+                                    <div class="mb-4">
+                                        <label class="block text-gray-700 text-sm font-bold mb-2">Discount Value</label>
+                                        <input type="number" 
+                                               id="discountValue" 
+                                               name="discount_value" 
+                                               min="0" 
+                                               step="0.01" 
+                                               class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                               required>
+                                        <p class="mt-1 text-sm text-gray-500" id="discountHelp">
+                                            Enter percentage (0-100) or fixed amount
+                                        </p>
+                                    </div>
+
+                                    <!-- Add Voucher Code field here -->
+                                    <div class="mb-4">
+                                        <label class="block text-gray-700 text-sm font-bold mb-2">
+                                            Voucher Code
+                                            <span class="text-sm font-normal text-gray-500 ml-1">(Optional)</span>
+                                        </label>
+                                        <div class="flex gap-2">
+                                            <input type="text" 
+                                                   id="voucherCode" 
+                                                   name="voucher_code" 
+                                                   class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 uppercase"
+                                                   placeholder="Enter voucher code">
+                                            <button type="button" 
+                                                    onclick="generateVoucherCode()" 
+                                                    class="px-3 py-2 bg-gray-100 text-gray-600 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500">
+                                                Generate
+                                            </button>
+                                        </div>
+                                        <p class="mt-1 text-xs text-gray-500">
+                                            Leave empty to not use a voucher code
+                                        </p>
+                                    </div>
+
+                                    <!-- Valid From -->
+                                    <div class="mb-4">
+                                        <label class="block text-gray-700 text-sm font-bold mb-2">Valid From</label>
+                                        <input type="datetime-local" 
+                                               id="validFrom" 
+                                               name="valid_from" 
+                                               class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                               required>
+                                    </div>
+
+                                    <!-- Valid Until -->
+                                    <div class="mb-4">
+                                        <label class="block text-gray-700 text-sm font-bold mb-2">Valid Until</label>
+                                        <input type="datetime-local" 
+                                               id="validUntil" 
+                                               name="valid_until" 
+                                               class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                               required>
+                                    </div>
+
+                                    <!-- Description -->
+                                    <div class="mb-4">
+                                        <label class="block text-gray-700 text-sm font-bold mb-2">Description</label>
+                                        <textarea id="discountDescription" 
+                                                 name="description" 
+                                                 rows="2" 
+                                                 class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                                 placeholder="Optional description of the discount"></textarea>
+                                    </div>
+
+                                    <div class="flex justify-end space-x-2">
+                                        <button type="button" 
+                                                onclick="closeDiscountModal()" 
+                                                class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500">
+                                            Cancel
+                                        </button>
+                                        <button type="submit" 
+                                                class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                            Add Discount
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Services List -->
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-gray-200">
@@ -49,6 +158,7 @@
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                     <button onclick="openEditModal({{ $service->id }})" class="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
+                                    <button onclick="openDiscountModal({{ $service->id }})" class="text-green-600 hover:text-green-900 mr-3">Add Discount</button>
                                     <button onclick="toggleStatus({{ $service->id }})" class="text-yellow-600 hover:text-yellow-900 mr-3">
                                         {{ $service->status === 'active' ? 'Deactivate' : 'Activate' }}
                                     </button>
@@ -188,186 +298,317 @@
 
 @push('scripts')
 <script>
-let currentServiceId = null;
+document.addEventListener('DOMContentLoaded', function() {
+    let currentServiceId = null;
 
-function addVariablePricing() {
-    const container = document.getElementById('variablePricingContainer');
-    const index = container.children.length;
-    const html = `
-        <div class="grid grid-cols-2 gap-2 mb-2">
-            <select name="variable_pricing[${index}][size]" class="shadow border rounded py-2 px-3 text-gray-700">
-                <option value="">Select Size</option>
-                <option value="small">Small</option>
-                <option value="medium">Medium</option>
-                <option value="large">Large</option>
-            </select>
-            <input type="number" step="0.01" name="variable_pricing[${index}][price]" placeholder="Price" 
-                   class="shadow appearance-none border rounded py-2 px-3 text-gray-700">
-        </div>
-    `;
-    container.insertAdjacentHTML('beforeend', html);
-}
+    // Form submission
+    const serviceForm = document.getElementById('serviceForm');
+    if (serviceForm) {
+        serviceForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = {
+                name: document.getElementById('name').value,
+                category: document.getElementById('category').value,
+                description: document.getElementById('description').value,
+                pet_types: Array.from(document.querySelectorAll('input[name="pet_types[]"]:checked')).map(cb => cb.value),
+                size_ranges: Array.from(document.querySelectorAll('input[name="size_ranges[]"]:checked')).map(cb => cb.value),
+                breed_specific: document.querySelector('input[name="breed_specific"]').checked,
+                special_requirements: document.getElementById('special_requirements').value,
+                base_price: parseFloat(document.getElementById('base_price').value),
+                duration: parseInt(document.getElementById('duration').value)
+            };
 
-function addAddOn() {
-    const container = document.getElementById('addOnsContainer');
-    const index = container.children.length;
-    const html = `
-        <div class="grid grid-cols-2 gap-2 mb-2">
-            <input type="text" name="add_ons[${index}][name]" placeholder="Add-on Name" 
-                   class="shadow appearance-none border rounded py-2 px-3 text-gray-700">
-            <input type="number" step="0.01" name="add_ons[${index}][price]" placeholder="Price" 
-                   class="shadow appearance-none border rounded py-2 px-3 text-gray-700">
-        </div>
-    `;
-    container.insertAdjacentHTML('beforeend', html);
-}
+            const url = currentServiceId ? `/shop/services/${currentServiceId}` : '/shop/services';
+            const method = currentServiceId ? 'PUT' : 'POST';
 
-function openAddModal() {
-    currentServiceId = null;
-    document.getElementById('modalTitle').textContent = 'Add New Service';
-    document.getElementById('serviceForm').reset();
-    document.getElementById('variablePricingContainer').innerHTML = '';
-    document.getElementById('addOnsContainer').innerHTML = '';
-    document.getElementById('serviceModal').classList.remove('hidden');
-    document.body.style.overflow = 'hidden';
-}
+            fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.reload();
+                } else {
+                    throw new Error(data.message || 'Failed to save service');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to save service. Please try again.');
+            });
+        });
+    }
 
-function openEditModal(serviceId) {
-    currentServiceId = serviceId;
-    document.getElementById('modalTitle').textContent = 'Edit Service';
-    
-    fetch(`/shop/services/${serviceId}`)
+    // Helper functions
+    window.getVariablePricing = function() {
+        const container = document.getElementById('variablePricingContainer');
+        return Array.from(container.children).map(row => ({
+            size: row.querySelector('select').value,
+            price: parseFloat(row.querySelector('input[type="number"]').value)
+        })).filter(item => item.size && !isNaN(item.price));
+    }
+
+    window.getAddOns = function() {
+        const container = document.getElementById('addOnsContainer');
+        return Array.from(container.children).map(row => ({
+            name: row.querySelector('input[type="text"]').value,
+            price: parseFloat(row.querySelector('input[type="number"]').value)
+        })).filter(item => item.name && !isNaN(item.price));
+    }
+
+    window.addVariablePricing = function() {
+        const container = document.getElementById('variablePricingContainer');
+        const index = container.children.length;
+        const html = `
+            <div class="variable-pricing-row grid grid-cols-2 gap-2 mb-2">
+                <select name="variable_pricing[${index}][size]" class="shadow border rounded py-2 px-3 text-gray-700">
+                    <option value="">Select Size</option>
+                    <option value="small">Small</option>
+                    <option value="medium">Medium</option>
+                    <option value="large">Large</option>
+                </select>
+                <input type="number" step="0.01" name="variable_pricing[${index}][price]" placeholder="Price" 
+                       class="shadow appearance-none border rounded py-2 px-3 text-gray-700">
+            </div>
+        `;
+        container.insertAdjacentHTML('beforeend', html);
+    }
+
+    window.addAddOn = function() {
+        const container = document.getElementById('addOnsContainer');
+        const index = container.children.length;
+        const html = `
+            <div class="add-on-row grid grid-cols-2 gap-2 mb-2">
+                <input type="text" name="add_ons[${index}][name]" placeholder="Add-on Name" 
+                       class="shadow appearance-none border rounded py-2 px-3 text-gray-700">
+                <input type="number" step="0.01" name="add_ons[${index}][price]" placeholder="Price" 
+                       class="shadow appearance-none border rounded py-2 px-3 text-gray-700">
+            </div>
+        `;
+        container.insertAdjacentHTML('beforeend', html);
+    }
+
+    // Make functions available globally
+    window.openAddModal = function() {
+        currentServiceId = null;
+        document.getElementById('modalTitle').textContent = 'Add New Service';
+        document.getElementById('serviceForm').reset();
+        document.getElementById('variablePricingContainer').innerHTML = '';
+        document.getElementById('addOnsContainer').innerHTML = '';
+        document.getElementById('serviceModal').classList.remove('hidden');
+    }
+
+    window.openEditModal = function(serviceId) {
+        currentServiceId = serviceId;
+        document.getElementById('modalTitle').textContent = 'Edit Service';
+        
+        // Add loading state
+        const form = document.getElementById('serviceForm');
+        form.classList.add('opacity-50', 'pointer-events-none');
+        
+        fetch(`/shop/services/${serviceId}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (!data.success) {
+                    throw new Error(data.message || 'Failed to load service');
+                }
+
+                const service = data.data;
+
+                // Clear existing variable pricing and add-ons
+                document.getElementById('variablePricingContainer').innerHTML = '';
+                document.getElementById('addOnsContainer').innerHTML = '';
+
+                // Populate basic fields
+                document.getElementById('name').value = service.name || '';
+                document.getElementById('category').value = service.category || '';
+                document.getElementById('description').value = service.description || '';
+                document.getElementById('base_price').value = service.base_price || '';
+                document.getElementById('duration').value = service.duration || '';
+                document.getElementById('special_requirements').value = service.special_requirements || '';
+
+                // Set pet types
+                document.querySelectorAll('input[name="pet_types[]"]').forEach(cb => {
+                    cb.checked = (service.pet_types || []).includes(cb.value);
+                });
+
+                // Set size ranges
+                document.querySelectorAll('input[name="size_ranges[]"]').forEach(cb => {
+                    cb.checked = (service.size_ranges || []).includes(cb.value);
+                });
+
+                // Set breed specific
+                document.querySelector('input[name="breed_specific"]').checked = service.breed_specific || false;
+
+                // Add variable pricing rows
+                if (service.variable_pricing && Array.isArray(service.variable_pricing)) {
+                    service.variable_pricing.forEach(pricing => {
+                        addVariablePricing();
+                        const lastRow = document.querySelector('#variablePricingContainer .variable-pricing-row:last-child');
+                        if (lastRow) {
+                            lastRow.querySelector('select').value = pricing.size;
+                            lastRow.querySelector('input[type="number"]').value = pricing.price;
+                        }
+                    });
+                }
+
+                // Add add-ons rows
+                if (service.add_ons && Array.isArray(service.add_ons)) {
+                    service.add_ons.forEach(addon => {
+                        addAddOn();
+                        const lastRow = document.querySelector('#addOnsContainer .add-on-row:last-child');
+                        if (lastRow) {
+                            lastRow.querySelector('input[type="text"]').value = addon.name;
+                            lastRow.querySelector('input[type="number"]').value = addon.price;
+                        }
+                    });
+                }
+
+                // Show modal
+                document.getElementById('serviceModal').classList.remove('hidden');
+            })
+            .catch(error => {
+                console.error('Error fetching service:', error);
+                alert('Failed to load service details. Please try again.');
+            })
+            .finally(() => {
+                // Remove loading state
+                form.classList.remove('opacity-50', 'pointer-events-none');
+            });
+    }
+
+    window.closeModal = function() {
+        document.getElementById('serviceModal').classList.add('hidden');
+        document.getElementById('serviceForm').reset();
+        document.getElementById('variablePricingContainer').innerHTML = '';
+        document.getElementById('addOnsContainer').innerHTML = '';
+    }
+
+    // Close modal when clicking outside
+    document.getElementById('serviceModal').addEventListener('click', function(e) {
+        if (e.target === this || e.target.classList.contains('fixed')) {
+            closeModal();
+        }
+    });
+
+    window.toggleStatus = function(serviceId) {
+        if (!confirm('Are you sure you want to change this service\'s status?')) return;
+
+        fetch(`/shop/services/${serviceId}/status`, {
+            method: 'PUT',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            }
+        })
         .then(response => response.json())
         .then(data => {
-            // Populate basic fields
-            document.getElementById('name').value = data.name;
-            document.getElementById('category').value = data.category;
-            document.getElementById('description').value = data.description || '';
-            document.getElementById('base_price').value = data.base_price;
-            document.getElementById('duration').value = data.duration;
-            document.getElementById('special_requirements').value = data.special_requirements || '';
-            document.querySelector('input[name="breed_specific"]').checked = data.breed_specific;
-
-            // Populate pet types
-            const petTypeInputs = document.querySelectorAll('input[name="pet_types[]"]');
-            petTypeInputs.forEach(input => {
-                input.checked = data.pet_types.includes(input.value);
-            });
-
-            // Populate size ranges
-            const sizeRangeInputs = document.querySelectorAll('input[name="size_ranges[]"]');
-            sizeRangeInputs.forEach(input => {
-                input.checked = data.size_ranges.includes(input.value);
-            });
-
-            // Populate variable pricing
-            document.getElementById('variablePricingContainer').innerHTML = '';
-            if (data.variable_pricing) {
-                data.variable_pricing.forEach(() => addVariablePricing());
-                const inputs = document.querySelectorAll('[name^="variable_pricing"]');
-                data.variable_pricing.forEach((price, index) => {
-                    inputs[index*2].value = price.size;
-                    inputs[index*2+1].value = price.price;
-                });
+            if (data.success) {
+                window.location.reload();
+            } else {
+                alert('Error: ' + data.message);
             }
-
-            // Populate add-ons
-            document.getElementById('addOnsContainer').innerHTML = '';
-            if (data.add_ons) {
-                data.add_ons.forEach(() => addAddOn());
-                const inputs = document.querySelectorAll('[name^="add_ons"]');
-                data.add_ons.forEach((addon, index) => {
-                    inputs[index*2].value = addon.name;
-                    inputs[index*2+1].value = addon.price;
-                });
-            }
-
-            document.getElementById('serviceModal').classList.remove('hidden');
-            document.body.style.overflow = 'hidden';
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to update status. Please try again.');
         });
-}
-
-function closeModal() {
-    document.getElementById('serviceModal').classList.add('hidden');
-    document.getElementById('serviceForm').reset();
-    // Restore body scrolling
-    document.body.style.overflow = 'auto';
-}
-
-// Close modal when clicking outside
-document.getElementById('serviceModal').addEventListener('click', function(e) {
-    // Check if the click was on the backdrop (modal background)
-    if (e.target === this || e.target.classList.contains('fixed')) {
-        closeModal();
     }
-});
 
-document.getElementById('serviceForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    const formData = new FormData(this);
-    const url = currentServiceId 
-        ? `/shop/services/${currentServiceId}`
-        : '/shop/services';
-    const method = currentServiceId ? 'PUT' : 'POST';
+    window.deleteService = function(serviceId) {
+        if (!confirm('Are you sure you want to delete this service?')) return;
 
-    fetch(url, {
-        method: method,
-        headers: {
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(Object.fromEntries(formData))
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            closeModal();
-            window.location.reload();
+        fetch(`/shop/services/${serviceId}`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to delete service. Please try again.');
+        });
+    }
+
+    window.openDiscountModal = function(serviceId) {
+        document.getElementById('serviceIdForDiscount').value = serviceId;
+        document.getElementById('discountModal').classList.remove('hidden');
+        
+        // Set default dates
+        const now = new Date();
+        const tomorrow = new Date(now);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        
+        document.getElementById('validFrom').value = now.toISOString().slice(0, 16);
+        document.getElementById('validUntil').value = tomorrow.toISOString().slice(0, 16);
+    }
+
+    window.closeDiscountModal = function() {
+        document.getElementById('discountModal').classList.add('hidden');
+        document.getElementById('discountForm').reset();
+    }
+
+    // Add event listener for discount type change
+    document.getElementById('discountType').addEventListener('change', function(e) {
+        const helpText = document.getElementById('discountHelp');
+        if (e.target.value === 'percentage') {
+            document.getElementById('discountValue').max = 100;
+            helpText.textContent = 'Enter percentage (0-100)';
         } else {
-            alert('Error: ' + data.message);
+            document.getElementById('discountValue').removeAttribute('max');
+            helpText.textContent = 'Enter fixed amount';
+        }
+    });
+
+    // Add event listener for discount form submission
+    document.getElementById('discountForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const serviceId = document.getElementById('serviceIdForDiscount').value;
+        const formData = {
+            service_id: serviceId,
+            discount_type: document.getElementById('discountType').value,
+            discount_value: document.getElementById('discountValue').value,
+            valid_from: document.getElementById('validFrom').value,
+            valid_until: document.getElementById('validUntil').value,
+            description: document.getElementById('discountDescription').value
+        };
+
+        // Add your API call here to save the discount
+        console.log('Discount data:', formData);
+        alert('Discount added successfully!'); // Replace with actual API call
+        closeDiscountModal();
+    });
+
+    // Close modal when clicking outside
+    document.getElementById('discountModal').addEventListener('click', function(e) {
+        if (e.target === this || e.target.classList.contains('fixed')) {
+            closeDiscountModal();
         }
     });
 });
-
-function toggleStatus(serviceId) {
-    if (!confirm('Are you sure you want to change this service\'s status?')) return;
-
-    fetch(`/shop/services/${serviceId}/status`, {
-        method: 'PUT',
-        headers: {
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-            'Content-Type': 'application/json',
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            window.location.reload();
-        } else {
-            alert('Error: ' + data.message);
-        }
-    });
-}
-
-function deleteService(serviceId) {
-    if (!confirm('Are you sure you want to delete this service?')) return;
-
-    fetch(`/shop/services/${serviceId}`, {
-        method: 'DELETE',
-        headers: {
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-            'Content-Type': 'application/json',
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            window.location.reload();
-        } else {
-            alert('Error: ' + data.message);
-        }
-    });
-}
 </script>
 @endpush 

@@ -1,4 +1,8 @@
-@extends('layouts.app')
+@php
+use Illuminate\Support\Facades\Storage;
+@endphp
+
+@extends('layouts.shop')
 
 @section('content')
 <div class="container mx-auto px-4 py-8">
@@ -7,7 +11,7 @@
         <div class="flex items-center justify-between mb-6">
             <div class="flex items-center space-x-4">
                 <img 
-                    src="{{ Storage::url($shop->image) }}" 
+                    src="{{ $shop->image_url }}" 
                     alt="{{ $shop->name }}" 
                     class="w-16 h-16 rounded-full object-cover"
                 >
