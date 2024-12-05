@@ -119,13 +119,19 @@ class BookingController extends Controller
             // Calculate total duration
             $totalDuration = $selectedServices->sum('duration');
 
+            // Load pets data
+            $pets = auth()->user()->pets()
+                ->whereIn('id', $validated['pet_ids'])
+                ->get();
+
             // Create pet services mapping
             $petServices = array_combine($validated['pet_ids'], $validated['services']);
 
             // Store in session
             $bookingData = [
                 'pet_ids' => $validated['pet_ids'],
-                'pet_services' => $petServices
+                'pet_services' => $petServices,
+                'pets' => $pets
             ];
             
             session(['booking' => $bookingData]);
@@ -183,12 +189,51 @@ class BookingController extends Controller
             // Create pet services mapping
             $petServices = array_combine($validated['pet_ids'], $validated['services']);
 
+            // Calculate total amount
+            $totalAmount = 0;
+            $servicesBreakdown = [];
+
+            foreach ($pets as $pet) {
+                $serviceId = $petServices[$pet->id] ?? null;
+                $service = $services->firstWhere('id', $serviceId);
+                
+                if ($service) {
+                    // Get base price
+                    $price = $service->base_price;
+                    
+                    // Apply size-based pricing if available
+                    if (!empty($service->variable_pricing)) {
+                        $variablePricing = is_string($service->variable_pricing) ? 
+                            json_decode($service->variable_pricing, true) : 
+                            $service->variable_pricing;
+                        
+                        $sizePrice = collect($variablePricing)->firstWhere('size', $pet->size_category);
+                        if ($sizePrice && isset($sizePrice['price'])) {
+                            $price = $sizePrice['price'];
+                        }
+                    }
+
+                    $totalAmount += $price;
+
+                    // Add to services breakdown
+                    $servicesBreakdown[] = [
+                        'pet_name' => $pet->name,
+                        'service_name' => $service->name,
+                        'size' => $pet->size_category,
+                        'price' => $price
+                    ];
+                }
+            }
+
             // Store booking data
             $bookingData = [
                 'pet_ids' => $validated['pet_ids'],
                 'pet_services' => $petServices,
+                'pets' => $pets,
                 'appointment_date' => $validated['appointment_date'],
-                'appointment_time' => $validated['appointment_time']
+                'appointment_time' => $validated['appointment_time'],
+                'total_amount' => $totalAmount,
+                'services' => $servicesBreakdown
             ];
             
             session(['booking' => $bookingData]);
