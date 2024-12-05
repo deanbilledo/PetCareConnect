@@ -19,8 +19,7 @@ class Appointment extends Model
         'status',
         'notes',
         'cancellation_reason',
-        'accepted_at',
-        'reschedule_reason'
+        'accepted_at'
     ];
 
     protected $casts = [

@@ -92,7 +92,7 @@
                             <i class="fas fa-exclamation-circle text-2xl text-red-500 dark:text-red-300"></i>
                         </div>
                         <div>
-                            <h3 class="text-lg font-semibold">Shops Reported</h3>
+                            <h3 class="text-lg font-semibold">Pending Complaints</h3>
                             <p class="text-2xl font-bold">15</p>
                         </div>
                     </div>
@@ -285,8 +285,8 @@
                     ]
                 },
                 services: {
-                    labels: ['Grooming', 'Veterinary'],
-                    data: [55, 45],  // Adjusted percentages to total 100%
+                    labels: ['Grooming', 'Veterinary', 'Boarding', 'Training', 'Pet Sitting'],
+                    data: [30, 25, 20, 15, 10],
                 }
             };
 

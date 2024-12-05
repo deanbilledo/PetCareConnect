@@ -373,7 +373,6 @@
             </div>
         </div>
     </div>
-    <div class="mb-12"></div>
 </div>
 @endsection
 

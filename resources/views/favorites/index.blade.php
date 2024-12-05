@@ -49,7 +49,7 @@
         </div>
     @endif
 </div>
-<div class="mb-64"></div>
+
 @push('scripts')
 <script>
 document.querySelectorAll('.favorite-btn').forEach(button => {

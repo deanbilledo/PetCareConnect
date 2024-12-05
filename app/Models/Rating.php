@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Rating extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'user_id',
         'shop_id',
@@ -13,13 +16,19 @@ class Rating extends Model
         'comment'
     ];
 
+    protected $with = ['user'];
+
     protected $casts = [
-        'rating' => 'float'
+        'rating' => 'integer'
     ];
 
     public function user()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class)->withDefault([
+            'first_name' => 'Deleted',
+            'last_name' => 'User',
+            'profile_photo_path' => null
+        ]);
     }
 
     public function shop()
