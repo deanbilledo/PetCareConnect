@@ -84,6 +84,7 @@
                                 @php
                                     $totalAppointmentsCount = DB::table('appointments')->count();
                                 @endphp
+                                {{ $totalAppointmentsCount }}
                             </p>
                         </div>
                     </div>
