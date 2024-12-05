@@ -202,7 +202,7 @@
                                     <option value="">Select Category</option>
                                     <option value="grooming">Grooming</option>
                                     <option value="veterinary">Veterinary</option>
-                                    <option value="boarding">Boarding</option>
+                                
                                 </select>
                             </div>
                         </div>

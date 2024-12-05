@@ -79,6 +79,8 @@
                                     <td class="px-4 py-2"><span class="px-2 py-1 bg-green-200 text-green-800 rounded-full text-sm">Active</span></td>
                                     <td class="px-4 py-2">
                                         <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded-lg mr-2" onclick="openEditForm('Basic Grooming', 'Pawsome Grooming', 'Grooming', 500)">Edit</button>
+                                        <button class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-1 px-2 rounded-lg mr-2">View</button>
+                                        <button class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-1 px-2 rounded-lg mr-2">Deactivate</button>
                                         <button class="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded-lg">Remove</button>
                                     </td>
                                 </tr>
@@ -113,73 +115,6 @@
                             </div>
                         </div>
                     </div>
-                </div>
-
-                <!-- New Service Approvals -->
-                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 mb-6 transform hover:scale-105 transition-transform duration-300">
-                    <h3 class="text-lg font-semibold mb-4">New Service Approvals</h3>
-                    <div class="overflow-x-auto rounded-xl">
-                        <table class="w-full table-auto">
-                            <thead>
-                                <tr class="bg-gray-200 dark:bg-gray-700">
-                                    <th class="px-4 py-2 text-left rounded-tl-xl">Service Name</th>
-                                    <th class="px-4 py-2 text-left">Shop</th>
-                                    <th class="px-4 py-2 text-left">Category</th>
-                                    <th class="px-4 py-2 text-left">Proposed Price</th>
-                                    <th class="px-4 py-2 text-left rounded-tr-xl">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr class="border-b dark:border-gray-700">
-                                    <td class="px-4 py-2">Premium Cat Grooming</td>
-                                    <td class="px-4 py-2">Pawsome Grooming</td>
-                                    <td class="px-4 py-2">Grooming</td>
-                                    <td class="px-4 py-2">₱1,500</td>
-                                    <td class="px-4 py-2">
-                                        <button class="bg-green-500 hover:bg-green-700 text-white font-bold py-1 px-2 rounded-lg mr-2">Approve</button>
-                                        <button class="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded-lg">Reject</button>
-                                    </td>
-                                </tr>
-                                <!-- Add more rows as needed -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- Platform-Wide Service Settings -->
-                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 mb-6 transform hover:scale-105 transition-transform duration-300">
-                    <h3 class="text-lg font-semibold mb-4">Platform-Wide Service Settings</h3>
-                    <form>
-                        <div class="mb-4">
-                            <label class="block text-sm font-medium mb-2" for="minPrice">Minimum Price Cap (₱)</label>
-                            <input type="number" id="minPrice" name="minPrice" class="w-full p-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        </div>
-                        <div class="mb-4">
-                            <label class="block text-sm font-medium mb-2" for="maxPrice">Maximum Price Cap (₱)</label>
-                            <input type="number" id="maxPrice" name="maxPrice" class="w-full p-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        </div>
-                        <div class="mb-4">
-                            <label class="block text-sm font-medium mb-2" for="newCategory">Add New Service Category</label>
-                            <input type="text" id="newCategory" name="newCategory" class="w-full p-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        </div>
-                        <div class="mb-4">
-                            <label class="block text-sm font-medium mb-2" for="existingCategories">Existing Categories</label>
-                            <select id="existingCategories" name="existingCategories" class="w-full p-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                                <option value="grooming">Grooming</option>
-                                <option value="veterinary">Veterinary</option>
-                                <option value="boarding">Boarding</option>
-                                <option value="training">Training</option>
-                            </select>
-                        </div>
-                        <div class="flex justify-between">
-                            <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-xl">
-                                Save Settings
-                            </button>
-                            <button type="button" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-xl" id="deleteCategory">
-                                Delete Selected Category
-                            </button>
-                        </div>
-                    </form>
                 </div>
             </main>
         </div>

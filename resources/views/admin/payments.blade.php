@@ -46,43 +46,32 @@
             <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 dark:bg-gray-900 p-6">
                 <!-- All Payments -->
                 <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 mb-6 transform hover:scale-105 transition-transform duration-300">
-                    <h3 class="text-lg font-semibold mb-4">All Payments</h3>
+                    <h3 class="text-lg font-semibold mb-4">Shop Subscriptions</h3>
                     <div class="flex mb-4 space-x-4">
-                        <input type="text" placeholder="Search payments..." class="w-full p-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        <select class="p-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                            <option value="">All Shops</option>
-                            <option value="shop1">Pawsome Grooming</option>
-                            <option value="shop2">Happy Paws</option>
-                        </select>
-                        <input type="date" class="p-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <input type="text" placeholder="Search shops..." class="w-full p-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
                         <select class="p-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
                             <option value="">All Status</option>
-                            <option value="completed">Completed</option>
-                            <option value="pending">Pending</option>
-                            <option value="failed">Failed</option>
+                            <option value="verified">Verified</option>
+                            <option value="unverified">Unverified</option>
                         </select>
                     </div>
                     <div class="overflow-x-auto rounded-xl">
                         <table class="w-full table-auto">
                             <thead>
                                 <tr class="bg-gray-200 dark:bg-gray-700">
-                                    <th class="px-4 py-2 text-left rounded-tl-xl">Transaction ID</th>
-                                    <th class="px-4 py-2 text-left">Shop</th>
-                                    <th class="px-4 py-2 text-left">Amount</th>
-                                    <th class="px-4 py-2 text-left">Date</th>
-                                    <th class="px-4 py-2 text-left">Status</th>
+                                    <th class="px-4 py-2 text-left rounded-tl-xl">Shop Name</th>
+                                    <th class="px-4 py-2 text-left">Reference Number</th>
                                     <th class="px-4 py-2 text-left rounded-tr-xl">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr class="border-b dark:border-gray-700">
-                                    <td class="px-4 py-2">TRX123456</td>
                                     <td class="px-4 py-2">Pawsome Grooming</td>
-                                    <td class="px-4 py-2">₱500</td>
-                                    <td class="px-4 py-2">2023-05-15</td>
-                                    <td class="px-4 py-2"><span class="px-2 py-1 bg-green-200 text-green-800 rounded-full text-sm">Completed</span></td>
+                                    <td class="px-4 py-2">REF123456</td>
                                     <td class="px-4 py-2">
-                                        <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded-lg mr-2 view-details-btn" data-id="TRX123456">View Details</button>
+                                        <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded-lg mr-2 view-btn">View</button>
+                                        <button class="bg-green-500 hover:bg-green-700 text-white font-bold py-1 px-2 rounded-lg mr-2 verify-btn">Verify</button>
+                                        <button class="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded-lg unverify-btn">Unverify</button>
                                     </td>
                                 </tr>
                                 <!-- Add more rows as needed -->
@@ -92,64 +81,34 @@
                 </div>
 
                 <!-- Refund Management -->
-                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 mb-6 transform hover:scale-105 transition-transform duration-300">
-                    <h3 class="text-lg font-semibold mb-4">Refund Requests</h3>
-                    <div class="overflow-x-auto rounded-xl">
-                        <table class="w-full table-auto">
-                            <thead>
-                                <tr class="bg-gray-200 dark:bg-gray-700">
-                                    <th class="px-4 py-2 text-left rounded-tl-xl">Refund ID</th>
-                                    <th class="px-4 py-2 text-left">Shop</th>
-                                    <th class="px-4 py-2 text-left">Amount</th>
-                                    <th class="px-4 py-2 text-left">Reason</th>
-                                    <th class="px-4 py-2 text-left">Status</th>
-                                    <th class="px-4 py-2 text-left rounded-tr-xl">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr class="border-b dark:border-gray-700">
-                                    <td class="px-4 py-2">RFD789012</td>
-                                    <td class="px-4 py-2">Happy Paws</td>
-                                    <td class="px-4 py-2">₱250</td>
-                                    <td class="px-4 py-2">Service not provided</td>
-                                    <td class="px-4 py-2"><span class="px-2 py-1 bg-yellow-200 text-yellow-800 rounded-full text-sm">Pending</span></td>
-                                    <td class="px-4 py-2">
-                                        <button class="bg-green-500 hover:bg-green-700 text-white font-bold py-1 px-2 rounded-lg mr-2 approve-refund-btn" data-id="RFD789012">Approve</button>
-                                        <button class="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded-lg deny-refund-btn" data-id="RFD789012">Deny</button>
-                                    </td>
-                                </tr>
-                                <!-- Add more rows as needed -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+                
 
                 <!-- Revenue Distribution -->
                 <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 mb-6 transform hover:scale-105 transition-transform duration-300">
-                    <h3 class="text-lg font-semibold mb-4">Revenue Distribution</h3>
+                    <h3 class="text-lg font-semibold mb-4">Subscription Plans</h3>
                     <div class="mb-4">
-                        <label class="block text-sm font-medium mb-2" for="commissionRate">Platform Commission Rate (%)</label>
-                        <input type="number" id="commissionRate" name="commissionRate" class="w-full p-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500" value="15">
+                        <label class="block text-sm font-medium mb-2" for="subscriptionRate">Monthly Subscription Rate (₱)</label>
+                        <input type="number" id="subscriptionRate" name="subscriptionRate" class="w-full p-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500" value="299">
                     </div>
                     <div class="overflow-x-auto rounded-xl">
                         <table class="w-full table-auto">
                             <thead>
                                 <tr class="bg-gray-200 dark:bg-gray-700">
                                     <th class="px-4 py-2 text-left rounded-tl-xl">Shop</th>
-                                    <th class="px-4 py-2 text-left">Total Revenue</th>
-                                    <th class="px-4 py-2 text-left">Shop Owner Receives</th>
-                                    <th class="px-4 py-2 text-left">Platform Commission</th>
+                                    <th class="px-4 py-2 text-left">Subscription Status</th>
+                                    <th class="px-4 py-2 text-left">Start Date</th>
+                                    <th class="px-4 py-2 text-left">End Date</th>
                                     <th class="px-4 py-2 text-left rounded-tr-xl">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr class="border-b dark:border-gray-700">
                                     <td class="px-4 py-2">Pawsome Grooming</td>
-                                    <td class="px-4 py-2">₱10,000</td>
-                                    <td class="px-4 py-2">₱8,500</td>
-                                    <td class="px-4 py-2">₱1,500</td>
+                                    <td class="px-4 py-2"><span class="px-2 py-1 bg-green-200 text-green-800 rounded-full">Active</span></td>
+                                    <td class="px-4 py-2">May 1, 2024</td>
+                                    <td class="px-4 py-2">May 31, 2024</td>
                                     <td class="px-4 py-2">
-                                        <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded-lg process-commission-btn" data-shop="Pawsome Grooming" data-commission="1500">Process Commission</button>
+                                        <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded-lg manage-subscription-btn" data-shop="Pawsome Grooming">Manage Subscription</button>
                                     </td>
                                 </tr>
                                 <!-- Add more rows as needed -->

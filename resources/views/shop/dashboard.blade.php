@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Storage;
         <div class="flex items-center justify-between mb-6">
             <div class="flex items-center space-x-4">
                 <img 
-                    src="{{ $shop->image_url }}" 
+                    src="{{ $shop->image ? asset('storage/' . $shop->image) : asset('images/default-shop.png') }}" 
                     alt="{{ $shop->name }}" 
                     class="w-16 h-16 rounded-full object-cover"
                 >

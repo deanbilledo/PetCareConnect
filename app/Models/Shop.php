@@ -44,6 +44,16 @@ class Shop extends Model
         return $query->where('status', 'active');
     }
 
+    public function scopeVeterinary($query)
+    {
+        return $query->where('type', 'veterinary')->active();
+    }
+
+    public function scopeGrooming($query)
+    {
+        return $query->where('type', 'grooming')->active();
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class);
