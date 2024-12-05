@@ -26,7 +26,9 @@ use App\Http\Middleware\IsAdmin;
 
 // Public routes
 Route::get('/', [HomeController::class, 'index'])->name('home');
-Route::get('/petlandingpage', [ShopController::class, 'index'])->name('petlandingpage');
+Route::get('/petlandingpage', function () {
+    return view('groomVetLandingPage.petlandingpage');
+})->name('petlandingpage');
 Route::get('/book/{shop}', [BookingController::class, 'show'])->name('booking.show');
 Route::get('/grooming', function () {
     return view('groomVetLandingPage.groominglandingpage');
