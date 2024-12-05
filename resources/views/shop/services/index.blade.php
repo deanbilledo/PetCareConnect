@@ -181,7 +181,7 @@
     
     <!-- Modal -->
     <div class="flex items-center justify-center min-h-screen p-4">
-        <div class="relative bg-white rounded-lg shadow-xl max-w-2xl w-full mx-auto">
+        <div class="relative bg-white rounded-lg shadow-xl max-w-5xl w-full mx-auto">
             <div class="px-6 py-4">
                 <h3 class="text-lg font-medium text-gray-900" id="modalTitle">Add New Service</h3>
                 <form id="serviceForm" class="mt-4">
