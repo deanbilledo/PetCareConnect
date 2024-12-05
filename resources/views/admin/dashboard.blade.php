@@ -56,7 +56,13 @@
                         </div>
                         <div>
                             <h3 class="text-lg font-semibold">Total Shops</h3>
-                            <p class="text-2xl font-bold">85</p>
+                            <p class="text-2xl font-bold">
+                                @php
+                                    $activeShopsCount = DB::table('shops')->where('status', 'active')->count();
+                                @endphp
+                            </p>
+
+                        <p class="text-2xl font-bold">{{ $activeShopsCount }}</p>
                         </div>
                     </div>
                     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 flex items-center transform hover:scale-105 transition-transform duration-300">
@@ -74,7 +80,11 @@
                         </div>
                         <div>
                             <h3 class="text-lg font-semibold">Total Appointments</h3>
-                            <p class="text-2xl font-bold">750</p>
+                            <p class="text-2xl font-bold">
+                                @php
+                                    $totalAppointmentsCount = DB::table('appointments')->count();
+                                @endphp
+                            </p>
                         </div>
                     </div>
                     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 flex items-center transform hover:scale-105 transition-transform duration-300">
