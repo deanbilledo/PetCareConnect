@@ -159,10 +159,10 @@
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                     <button onclick="openEditModal({{ $service->id }})" class="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
                                     <button onclick="openDiscountModal({{ $service->id }})" class="text-green-600 hover:text-green-900 mr-3">Add Discount</button>
-                                    <button onclick="toggleStatus({{ $service->id }})" class="text-yellow-600 hover:text-yellow-900 mr-3">
+                                    <button onclick="openDeactivateModal({{ $service->id }})" class="text-yellow-600 hover:text-yellow-900 mr-3">
                                         {{ $service->status === 'active' ? 'Deactivate' : 'Activate' }}
                                     </button>
-                                    <button onclick="deleteService({{ $service->id }})" class="text-red-600 hover:text-red-900">Delete</button>
+                                    <button onclick="openDeleteModal({{ $service->id }})" class="text-red-600 hover:text-red-900">Delete</button>
                                 </td>
                             </tr>
                             @endforeach
@@ -294,6 +294,64 @@
     </div>
 </div>
 
+<!-- Deactivate Service Modal -->
+<div id="deactivateModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+    <!-- Backdrop -->
+    <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity"></div>
+    
+    <!-- Modal -->
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-auto">
+            <div class="p-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Confirm Service Status Change</h3>
+                <p class="text-gray-600 mb-4">Are you sure you want to change this service's status? This will affect its visibility to customers.</p>
+                
+                <input type="hidden" id="serviceIdToDeactivate">
+                
+                <div class="flex justify-end space-x-2">
+                    <button onclick="closeDeactivateModal()" 
+                            class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500">
+                        Cancel
+                    </button>
+                    <button onclick="confirmToggleStatus()" 
+                            class="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-500">
+                        Confirm
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Service Modal -->
+<div id="deleteModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+    <!-- Backdrop -->
+    <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity"></div>
+    
+    <!-- Modal -->
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-auto">
+            <div class="p-6">
+                <h3 class="text-lg font-medium text-red-600 mb-4">Delete Service</h3>
+                <p class="text-gray-600 mb-4">Are you sure you want to delete this service? This action cannot be undone.</p>
+                
+                <input type="hidden" id="serviceIdToDelete">
+                
+                <div class="flex justify-end space-x-2">
+                    <button onclick="closeDeleteModal()" 
+                            class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500">
+                        Cancel
+                    </button>
+                    <button onclick="confirmDelete()" 
+                            class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500">
+                        Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @push('scripts')
@@ -301,26 +359,100 @@
 document.addEventListener('DOMContentLoaded', function() {
     let currentServiceId = null;
 
-    // Form submission
+    // Add price validation function
+    function validatePriceFields() {
+        const basePrice = parseFloat(document.getElementById('base_price').value);
+        if (basePrice <= 0) {
+            alert('Base price must be greater than 0');
+            return false;
+        }
+
+        // Validate variable pricing
+        const variablePricingRows = document.querySelectorAll('#variablePricingContainer .variable-pricing-row');
+        for (const row of variablePricingRows) {
+            const price = parseFloat(row.querySelector('input[type="number"]').value);
+            if (price <= 0) {
+                alert('Variable pricing amounts must be greater than 0');
+                return false;
+            }
+        }
+
+        // Validate add-ons
+        const addOnRows = document.querySelectorAll('#addOnsContainer .add-on-row');
+        for (const row of addOnRows) {
+            const price = parseFloat(row.querySelector('input[type="number"]').value);
+            if (price <= 0) {
+                alert('Add-on prices must be greater than 0');
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    // Update the form submission handler
     const serviceForm = document.getElementById('serviceForm');
     if (serviceForm) {
         serviceForm.addEventListener('submit', function(e) {
             e.preventDefault();
             
+            // Validate prices before submission
+            if (!validatePriceFields()) {
+                return;
+            }
+
+            // Get all form data
             const formData = {
-                name: document.getElementById('name').value,
+                name: document.getElementById('name').value.trim(),
                 category: document.getElementById('category').value,
-                description: document.getElementById('description').value,
+                description: document.getElementById('description').value.trim(),
                 pet_types: Array.from(document.querySelectorAll('input[name="pet_types[]"]:checked')).map(cb => cb.value),
                 size_ranges: Array.from(document.querySelectorAll('input[name="size_ranges[]"]:checked')).map(cb => cb.value),
                 breed_specific: document.querySelector('input[name="breed_specific"]').checked,
-                special_requirements: document.getElementById('special_requirements').value,
+                special_requirements: document.getElementById('special_requirements').value.trim(),
                 base_price: parseFloat(document.getElementById('base_price').value),
-                duration: parseInt(document.getElementById('duration').value)
+                duration: parseInt(document.getElementById('duration').value),
+                variable_pricing: getVariablePricing(),
+                add_ons: JSON.stringify(getAddOns())
             };
+
+            // Validate required fields
+            if (!formData.name) {
+                alert('Service name is required');
+                return;
+            }
+
+            if (!formData.category) {
+                alert('Please select a category');
+                return;
+            }
+
+            if (formData.pet_types.length === 0) {
+                alert('Please select at least one pet type');
+                return;
+            }
+
+            if (formData.size_ranges.length === 0) {
+                alert('Please select at least one size range');
+                return;
+            }
+
+            if (isNaN(formData.duration) || formData.duration < 15) {
+                alert('Duration must be at least 15 minutes');
+                return;
+            }
+
+            // Log the data being sent for debugging
+            console.log('Sending data:', formData);
 
             const url = currentServiceId ? `/shop/services/${currentServiceId}` : '/shop/services';
             const method = currentServiceId ? 'PUT' : 'POST';
+
+            // Show loading state
+            const submitButton = serviceForm.querySelector('button[type="submit"]');
+            const originalButtonText = submitButton.textContent;
+            submitButton.disabled = true;
+            submitButton.textContent = 'Saving...';
 
             fetch(url, {
                 method: method,
@@ -331,7 +463,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 body: JSON.stringify(formData)
             })
-            .then(response => response.json())
+            .then(async response => {
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.message || 'Failed to save service');
+                }
+                return data;
+            })
             .then(data => {
                 if (data.success) {
                     window.location.reload();
@@ -341,26 +479,50 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('Failed to save service. Please try again.');
+                alert(error.message || 'Failed to save service. Please try again.');
+            })
+            .finally(() => {
+                // Reset button state
+                submitButton.disabled = false;
+                submitButton.textContent = originalButtonText;
             });
         });
     }
 
-    // Helper functions
+    // Update getVariablePricing function to better handle validation
     window.getVariablePricing = function() {
         const container = document.getElementById('variablePricingContainer');
-        return Array.from(container.children).map(row => ({
-            size: row.querySelector('select').value,
-            price: parseFloat(row.querySelector('input[type="number"]').value)
-        })).filter(item => item.size && !isNaN(item.price));
+        const pricing = Array.from(container.children).map(row => {
+            const size = row.querySelector('select').value;
+            const price = parseFloat(row.querySelector('input[type="number"]').value);
+            
+            if (!size || isNaN(price) || price <= 0) {
+                return null;
+            }
+            
+            return { size, price };
+        }).filter(item => item !== null);
+
+        return pricing;
     }
 
+    // Update getAddOns function to ensure proper format
     window.getAddOns = function() {
         const container = document.getElementById('addOnsContainer');
-        return Array.from(container.children).map(row => ({
-            name: row.querySelector('input[type="text"]').value,
-            price: parseFloat(row.querySelector('input[type="number"]').value)
-        })).filter(item => item.name && !isNaN(item.price));
+        if (!container) return [];
+
+        const addOns = Array.from(container.children).map(row => {
+            const name = row.querySelector('input[type="text"]').value.trim();
+            const price = parseFloat(row.querySelector('input[type="number"]').value);
+            
+            if (!name || isNaN(price) || price <= 0) {
+                return null;
+            }
+            
+            return { name, price };
+        }).filter(item => item !== null);
+
+        return addOns;
     }
 
     window.addVariablePricing = function() {
@@ -374,8 +536,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     <option value="medium">Medium</option>
                     <option value="large">Large</option>
                 </select>
-                <input type="number" step="0.01" name="variable_pricing[${index}][price]" placeholder="Price" 
-                       class="shadow appearance-none border rounded py-2 px-3 text-gray-700">
+                <input type="number" step="0.01" min="0.01" name="variable_pricing[${index}][price]" placeholder="Price" 
+                       class="shadow appearance-none border rounded py-2 px-3 text-gray-700"
+                       oninput="this.value = this.value <= 0 ? '' : this.value">
             </div>
         `;
         container.insertAdjacentHTML('beforeend', html);
@@ -388,8 +551,9 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="add-on-row grid grid-cols-2 gap-2 mb-2">
                 <input type="text" name="add_ons[${index}][name]" placeholder="Add-on Name" 
                        class="shadow appearance-none border rounded py-2 px-3 text-gray-700">
-                <input type="number" step="0.01" name="add_ons[${index}][price]" placeholder="Price" 
-                       class="shadow appearance-none border rounded py-2 px-3 text-gray-700">
+                <input type="number" step="0.01" min="0.01" name="add_ons[${index}][price]" placeholder="Price" 
+                       class="shadow appearance-none border rounded py-2 px-3 text-gray-700"
+                       oninput="this.value = this.value <= 0 ? '' : this.value">
             </div>
         `;
         container.insertAdjacentHTML('beforeend', html);
@@ -607,6 +771,105 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('discountModal').addEventListener('click', function(e) {
         if (e.target === this || e.target.classList.contains('fixed')) {
             closeDiscountModal();
+        }
+    });
+
+    window.openDeactivateModal = function(serviceId) {
+        document.getElementById('serviceIdToDeactivate').value = serviceId;
+        document.getElementById('deactivateModal').classList.remove('hidden');
+    }
+
+    window.closeDeactivateModal = function() {
+        document.getElementById('deactivateModal').classList.add('hidden');
+        document.getElementById('serviceIdToDeactivate').value = '';
+    }
+
+    window.confirmToggleStatus = function() {
+        const serviceId = document.getElementById('serviceIdToDeactivate').value;
+        const button = document.querySelector(`button[onclick="openDeactivateModal(${serviceId})"]`);
+        
+        if (button) {
+            button.disabled = true;
+        }
+
+        fetch(`/shop/services/${serviceId}/status`, {
+            method: 'PUT',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.reload();
+            } else {
+                throw new Error(data.message || 'Failed to update status');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to update service status. Please try again.');
+            if (button) {
+                button.disabled = false;
+            }
+        });
+    }
+
+    window.openDeleteModal = function(serviceId) {
+        document.getElementById('serviceIdToDelete').value = serviceId;
+        document.getElementById('deleteModal').classList.remove('hidden');
+    }
+
+    window.closeDeleteModal = function() {
+        document.getElementById('deleteModal').classList.add('hidden');
+        document.getElementById('serviceIdToDelete').value = '';
+    }
+
+    window.confirmDelete = function() {
+        const serviceId = document.getElementById('serviceIdToDelete').value;
+        const button = document.querySelector(`button[onclick="openDeleteModal(${serviceId})"]`);
+        
+        if (button) {
+            button.disabled = true;
+        }
+
+        fetch(`/shop/services/${serviceId}`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.reload();
+            } else {
+                throw new Error(data.message || 'Failed to delete service');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to delete service. Please try again.');
+            if (button) {
+                button.disabled = false;
+            }
+        });
+    }
+
+    // Add click handlers to close modals when clicking outside
+    document.getElementById('deactivateModal').addEventListener('click', function(e) {
+        if (e.target === this || e.target.classList.contains('fixed')) {
+            closeDeactivateModal();
+        }
+    });
+
+    document.getElementById('deleteModal').addEventListener('click', function(e) {
+        if (e.target === this || e.target.classList.contains('fixed')) {
+            closeDeleteModal();
         }
     });
 });
