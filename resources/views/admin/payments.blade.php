@@ -81,8 +81,95 @@
                     </div>
                 </div>
 
-                <!-- Refund Management -->
-                
+                <!-- Discounts Verification -->
+                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 mb-6 transform hover:scale-105 transition-transform duration-300">
+                    <h3 class="text-lg font-semibold mb-4">Discounts Verification</h3>
+                    <div class="flex mb-4 space-x-4">
+                        <input type="text" 
+                               placeholder="Search by name or ID..." 
+                               class="w-full p-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <select class="p-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="">All Types</option>
+                            <option value="senior">Senior Citizen</option>
+                            <option value="pwd">PWD</option>
+                        </select>
+                        <select class="p-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="">All Status</option>
+                            <option value="pending">Pending</option>
+                            <option value="verified">Verified</option>
+                            <option value="rejected">Rejected</option>
+                        </select>
+                    </div>
+                    <div class="overflow-x-auto rounded-xl">
+                        <table class="w-full table-auto">
+                            <thead>
+                                <tr class="bg-gray-200 dark:bg-gray-700">
+                                    <th class="px-4 py-2 text-left rounded-tl-xl">Name</th>
+                                    <th class="px-4 py-2 text-left">ID Number</th>
+                                    <th class="px-4 py-2 text-left">Type</th>
+                                    <th class="px-4 py-2 text-left">Status</th>
+                                    <th class="px-4 py-2 text-left rounded-tr-xl">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Senior Citizen Entries -->
+                                <tr class="border-b dark:border-gray-700">
+                                    <td class="px-4 py-2">Juan Dela Cruz</td>
+                                    <td class="px-4 py-2">SC-2024-001</td>
+                                    <td class="px-4 py-2">Senior Citizen</td>
+                                    <td class="px-4 py-2">
+                                        <span class="px-2 py-1 bg-yellow-200 text-yellow-800 rounded-full text-sm">Pending</span>
+                                    </td>
+                                    <td class="px-4 py-2 space-x-2">
+                                        <button onclick="viewID('SC-2024-001')" 
+                                                class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded-lg">
+                                            View
+                                        </button>
+                                        <button onclick="verifyID('SC-2024-001')" 
+                                                class="bg-green-500 hover:bg-green-700 text-white font-bold py-1 px-2 rounded-lg">
+                                            Verify
+                                        </button>
+                                        <button onclick="rejectID('SC-2024-001')" 
+                                                class="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded-lg">
+                                            Reject
+                                        </button>
+                                        <button onclick="removeID('SC-2024-001')" 
+                                                class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-1 px-2 rounded-lg">
+                                            Remove
+                                        </button>
+                                    </td>
+                                </tr>
+                                <!-- PWD Entries -->
+                                <tr class="border-b dark:border-gray-700">
+                                    <td class="px-4 py-2">Maria Santos</td>
+                                    <td class="px-4 py-2">PWD-2024-001</td>
+                                    <td class="px-4 py-2">PWD</td>
+                                    <td class="px-4 py-2">
+                                        <span class="px-2 py-1 bg-green-200 text-green-800 rounded-full text-sm">Verified</span>
+                                    </td>
+                                    <td class="px-4 py-2 space-x-2">
+                                        <button onclick="viewID('PWD-2024-001')" 
+                                                class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded-lg">
+                                            View
+                                        </button>
+                                        <button onclick="verifyID('PWD-2024-001')" 
+                                                class="bg-green-500 hover:bg-green-700 text-white font-bold py-1 px-2 rounded-lg">
+                                            Verify
+                                        </button>
+                                        <button onclick="rejectID('PWD-2024-001')" 
+                                                class="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded-lg">
+                                            Reject
+                                        </button>
+                                        <button onclick="removeID('PWD-2024-001')" 
+                                                class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-1 px-2 rounded-lg">
+                                            Remove
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
 
                 <!-- Revenue Distribution -->
                 <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 mb-6 transform hover:scale-105 transition-transform duration-300">
@@ -185,6 +272,34 @@
 
         // Initialize the page with payment data
         populateTable();
+
+        // Add these new functions to your existing script
+        function viewID(idNumber) {
+            // Show modal with ID details
+            alert(`Viewing ID: ${idNumber}`);
+            // You can implement a proper modal here
+        }
+
+        function verifyID(idNumber) {
+            if (confirm(`Are you sure you want to verify ID: ${idNumber}?`)) {
+                // Implement verification logic
+                alert(`ID ${idNumber} has been verified`);
+            }
+        }
+
+        function rejectID(idNumber) {
+            if (confirm(`Are you sure you want to reject ID: ${idNumber}?`)) {
+                // Implement rejection logic
+                alert(`ID ${idNumber} has been rejected`);
+            }
+        }
+
+        function removeID(idNumber) {
+            if (confirm(`Are you sure you want to remove ID: ${idNumber}? This action cannot be undone.`)) {
+                // Implement removal logic
+                alert(`ID ${idNumber} has been removed`);
+            }
+        }
     </script>
 
     <!-- Commission Processed Modal -->

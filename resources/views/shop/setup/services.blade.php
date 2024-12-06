@@ -27,6 +27,61 @@
                           variablePricing: [],
                           addOns: []
                       }],
+                      errors: {},
+                      validatePrice(value, fieldName, serviceIndex) {
+                          const price = parseFloat(value);
+                          if (isNaN(price) || price <= 0) {
+                              this.errors[`${fieldName}_${serviceIndex}`] = 'Price must be greater than 0';
+                              return false;
+                          }
+                          delete this.errors[`${fieldName}_${serviceIndex}`];
+                          return true;
+                      },
+                      validateForm() {
+                          this.errors = {};
+                          let isValid = true;
+
+                          this.services.forEach((service, index) => {
+                              // Validate base price
+                              if (!this.validatePrice(service.base_price, 'base_price', index)) {
+                                  isValid = false;
+                              }
+
+                              // Validate variable pricing
+                              service.variablePricing.forEach((pricing, priceIndex) => {
+                                  if (!this.validatePrice(pricing.price, `variable_price_${priceIndex}`, index)) {
+                                      isValid = false;
+                                  }
+                              });
+
+                              // Validate add-ons
+                              service.addOns.forEach((addOn, addOnIndex) => {
+                                  if (!this.validatePrice(addOn.price, `addon_price_${addOnIndex}`, index)) {
+                                      isValid = false;
+                                  }
+                              });
+
+                              // Validate required fields
+                              if (!service.name.trim()) {
+                                  this.errors[`name_${index}`] = 'Service name is required';
+                                  isValid = false;
+                              }
+                              if (!service.category) {
+                                  this.errors[`category_${index}`] = 'Category is required';
+                                  isValid = false;
+                              }
+                              if (service.pet_types.length === 0) {
+                                  this.errors[`pet_types_${index}`] = 'At least one pet type must be selected';
+                                  isValid = false;
+                              }
+                              if (service.size_ranges.length === 0) {
+                                  this.errors[`size_ranges_${index}`] = 'At least one size range must be selected';
+                                  isValid = false;
+                              }
+                          });
+
+                          return isValid;
+                      },
                       addService() {
                           this.services.push({
                               name: '',
@@ -62,7 +117,7 @@
                   }">
                 @csrf
 
-                <div class="px-8 py-6">
+                <div class="px-8 py-6" @submit.prevent="if(validateForm()) $el.submit()">
                     <!-- Service Templates -->
                     <template x-for="(service, index) in services" :key="index">
                         <div class="mb-8 p-6 bg-gray-50 rounded-lg relative">
@@ -211,10 +266,14 @@
                                         <input type="number" 
                                                x-model="service.base_price"
                                                :name="'services[' + index + '][base_price]'"
-                                               min="0"
+                                               min="0.01"
                                                step="0.01"
+                                               @input="validatePrice($event.target.value, 'base_price', index)"
                                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                                                required>
+                                        <div x-show="errors[`base_price_${index}`]" 
+                                             x-text="errors[`base_price_${index}`]"
+                                             class="mt-1 text-sm text-red-600"></div>
                                     </div>
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700">Duration (minutes)</label>
@@ -252,9 +311,13 @@
                                                    x-model="price.price"
                                                    :name="`services[${index}][variable_pricing][${priceIndex}][price]`"
                                                    placeholder="Price"
-                                                   min="0"
+                                                   min="0.01"
                                                    step="0.01"
+                                                   @input="validatePrice($event.target.value, `variable_price_${priceIndex}`, index)"
                                                    class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                            <div x-show="errors[`variable_price_${priceIndex}_${index}`]" 
+                                                 x-text="errors[`variable_price_${priceIndex}_${index}`]"
+                                                 class="mt-1 text-sm text-red-600"></div>
                                         </div>
                                     </template>
                                 </div>
@@ -278,11 +341,15 @@
                                                    class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                                             <input type="number"
                                                    x-model="addOn.price"
-                                                   :name="'services[' + index + '][addOns][' + addOnIndex + '][price]'"
+                                                   :name="`services[${index}][addOns][${addOnIndex}][price]`"
                                                    placeholder="Price"
-                                                   min="0"
+                                                   min="0.01"
                                                    step="0.01"
+                                                   @input="validatePrice($event.target.value, `addon_price_${addOnIndex}`, index)"
                                                    class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                            <div x-show="errors[`addon_price_${addOnIndex}_${index}`]" 
+                                                 x-text="errors[`addon_price_${addOnIndex}_${index}`]"
+                                                 class="mt-1 text-sm text-red-600"></div>
                                         </div>
                                     </template>
                                 </div>
@@ -311,7 +378,8 @@
                         Back
                     </a>
                     <button type="submit"
-                            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700">
+                            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                            :disabled="Object.keys(errors).length > 0">
                         Continue
                         <svg class="ml-2 -mr-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
