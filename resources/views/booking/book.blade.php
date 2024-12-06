@@ -375,5 +375,80 @@
     </div>
     <div class="mb-12"></div>
 </div>
+
+    <!-- Report Shop Modal -->
+    <div id="reportModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+        <!-- Backdrop -->
+        <div class="fixed inset-0 bg-black bg-opacity-50"></div>
+        
+        <!-- Modal Content -->
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-lg max-w-md w-full p-6 relative">
+                <!-- Close Button -->
+                <button onclick="closeReportModal()" 
+                        class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+
+                <!-- Modal Header -->
+                <div class="mb-6">
+                    <h3 class="text-xl font-semibold text-gray-900">Report Shop</h3>
+                    <p class="text-sm text-gray-600 mt-1">Please provide details about your concern</p>
+                </div>
+
+                <!-- Report Form -->
+                <form class="space-y-4">
+                    <!-- Report Type -->
+                    <div>
+                        <label for="reportType" class="block text-sm font-medium text-gray-700 mb-1">Report Type</label>
+                        <select id="reportType" 
+                                class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            <option value="">Select a reason</option>
+                            <option value="inappropriate">Inappropriate Content</option>
+                            <option value="scam">Potential Scam</option>
+                            <option value="misrepresentation">False Information</option>
+                            <option value="harassment">Harassment</option>
+                            <option value="poor_service">Poor Service</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+
+                    <!-- Description -->
+                    <div>
+                        <label for="reportDescription" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                        <textarea id="reportDescription" 
+                                  rows="4" 
+                                  class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                  placeholder="Please provide more details about your report..."></textarea>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="button"
+                            onclick="submitReport()"
+                            class="w-full bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600 transition-colors">
+                        Submit Report
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function reportShop() {
+            document.getElementById('reportModal').classList.remove('hidden');
+        }
+
+        function closeReportModal() {
+            document.getElementById('reportModal').classList.add('hidden');
+        }
+
+        function submitReport() {
+            alert('Report submitted successfully!');
+            closeReportModal();
+        }
+    </script>
+
 @endsection
 
