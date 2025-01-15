@@ -1,3 +1,17 @@
+@php
+try {
+    $homeRoute = route('home');
+    $loginRoute = route('login');
+    $registerRoute = route('register');
+    $passwordResetRoute = route('password.request');
+} catch (\Exception $e) {
+    $homeRoute = '/';
+    $loginRoute = '/login';
+    $registerRoute = '/register';
+    $passwordResetRoute = '/forgot-password';
+}
+@endphp
+
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
@@ -15,7 +29,7 @@
 <body class="bg-custom-bg font-[Poppins]">
     <!-- Logo in upper left -->
     <div class="absolute top-4 left-4 z-20">
-        <a href="{{ route('home') }}">
+        <a href="{{ $homeRoute }}">
             <img src="{{ asset('images/logo.png') }}" alt="Pet Care Connect Logo" class="w-32 md:w-48">
         </a>
     </div>
@@ -35,6 +49,12 @@
                     <h2 class="text-1xl sm:text-3xl font-bold">Welcome Back to</h2>
                     <p class="text-gray-600 mt-2 text-sm sm:text-base">Sign in to continue</p>
                 </div>
+
+                @if (session('status'))
+                    <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4">
+                        <span class="block sm:inline">{{ session('status') }}</span>
+                    </div>
+                @endif
 
                 @if ($errors->any())
                     <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
@@ -67,7 +87,7 @@
                 </div>
 
                 <!-- Login form -->
-                <form method="POST" action="{{ route('login') }}" class="space-y-6">
+                <form method="POST" action="{{ $loginRoute }}" class="space-y-6">
                     @csrf
                     
                     <div>
@@ -103,23 +123,24 @@
 
                     <div class="flex items-center justify-between">
                         <div class="flex items-center">
-                            <!-- Switch container -->
-                            <label for="remember" class="switch">
-                                <input type="checkbox" id="remember" name="remember" {{ old('remember') ? 'checked' : '' }}>
-                                <span class="slider"></span>
-                            </label>
+                            <input 
+                                type="checkbox" 
+                                name="remember" 
+                                id="remember" 
+                                class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                {{ old('remember') ? 'checked' : '' }}
+                            >
                             <label for="remember" class="ml-2 block text-sm text-gray-900">
                                 Remember me
                             </label>
                         </div>
-                    
-                        @if (Route::has('password.request'))
-                            <a href="{{ route('password.request') }}" class="text-sm font-medium text-blue-600 hover:text-blue-500">
+
+                        @if ($passwordResetRoute)
+                            <a href="{{ $passwordResetRoute }}" class="text-sm font-medium text-blue-600 hover:text-blue-500">
                                 Forgot password?
                             </a>
                         @endif
                     </div>
-                    
 
                     <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                         Sign in
@@ -128,7 +149,7 @@
 
                 <p class="text-center text-sm text-gray-600">
                     Don't have an account?
-                    <a href="{{ route('register') }}" class="font-medium text-blue-600 hover:text-blue-500">
+                    <a href="{{ $registerRoute }}" class="font-medium text-blue-600 hover:text-blue-500">
                         Sign up
                     </a>
                 </p>

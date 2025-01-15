@@ -1,8 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
-@import 'bootstrap/dist/css/bootstrap.css';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+@import 'bootstrap/dist/css/bootstrap.css';
 
 /* Custom styles */
 .bg-custom-bg {
@@ -14,7 +14,7 @@
 }
 
 .bg-custom-blue {
-    background-color: #3b82f6;
+    background-color: #4f46e5;
 }
 
 /* Focus styles */
@@ -28,55 +28,174 @@
 
 /* Hover styles */
 .hover\:bg-blue-600:hover {
-    background-color: #2563eb;
+    background-color: #4338ca;
 }
-/* Switch container */
-.switch {
-    position: relative;
-    display: inline-block;
-    width: 34px;
-    height: 20px;
-  }
-  
-  /* Hide the default checkbox */
-  .switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-  }
-  
-  /* Slider */
-  .slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: #ccc;
-    transition: 0.4s;
-    border-radius: 34px;
-  }
-  
-  /* Dot inside the switch */
-  .slider:before {
-    position: absolute;
-    content: "";
-    height: 12px;
-    width: 12px;
-    border-radius: 50%;
-    left: 4px;
-    bottom: 4px;
-    background-color: white;
-    transition: 0.4s;
-  }
-  
-  /* When checked, move the dot and change the background color */
-  input:checked + .slider {
-    background-color: #4CAF50;
-  }
-  
-  input:checked + .slider:before {
-    transform: translateX(14px);
-  }
-  
+
+/* Scrollbar styling */
+.overflow-y-auto {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+}
+
+.overflow-y-auto::-webkit-scrollbar {
+    width: 6px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb {
+    background-color: rgba(156, 163, 175, 0.5);
+    border-radius: 3px;
+}
+
+/* Form transitions */
+.form-transition {
+    transition: all 0.3s ease-in-out;
+}
+
+/* Input field focus animation */
+.form-input:focus {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
+}
+
+/* Button hover animation */
+.btn-hover-effect {
+    transition: transform 0.2s ease-in-out;
+}
+
+.btn-hover-effect:hover {
+    transform: translateY(-1px);
+}
+
+/* Progress bar animation */
+.progress-transition {
+    transition: width 0.4s ease-in-out;
+}
+
+/* Card hover effect */
+.card-hover {
+    transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+}
+
+.card-hover:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+}
+
+/* Updated custom styles */
+.text-custom-blue {
+    color: #4f46e5;
+}
+
+/* Form specific styles */
+.form-input:focus, .form-select:focus {
+    outline: none;
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
+}
+
+/* Progress bar animation */
+.progress-step {
+    transition: all 0.3s ease;
+}
+
+.progress-step.active {
+    transform: scale(1.05);
+}
+
+/* Progress Container */
+.progress-container {
+    @apply relative w-full max-w-xs mx-auto py-4;
+}
+
+/* Vertical line */
+.progress-line {
+    @apply absolute left-1/2 top-0 bottom-0 w-0.5 bg-gray-200 -translate-x-1/2;
+    z-index: 0;
+}
+
+/* Active progress line */
+.progress-line-active {
+    @apply absolute left-1/2 top-0 w-0.5 bg-indigo-600 -translate-x-1/2 transition-all duration-500;
+    z-index: 1;
+}
+
+/* Steps container */
+.steps-container {
+    @apply relative flex flex-col space-y-8;
+}
+
+/* Step item */
+.step-item {
+    @apply relative flex-1 flex flex-col items-center;
+}
+
+.step-item::before {
+    content: '';
+    @apply absolute w-full h-0.5 bg-gray-200 top-5 left-0 -translate-x-1/2;
+}
+
+.step-item:first-child::before {
+    @apply hidden;
+}
+
+/* Step number */
+.step-number {
+    @apply w-10 h-10 rounded-full bg-white border-2 border-gray-300 flex items-center justify-center font-medium text-gray-500 relative z-10 transition-all duration-300;
+}
+
+/* Step label */
+.step-label {
+    @apply mt-2 text-xs text-gray-500 font-medium;
+}
+
+/* Active state */
+.step-item.active .step-number {
+    @apply border-custom-blue bg-custom-blue text-white;
+}
+
+.step-item.active .step-label {
+    @apply text-custom-blue;
+}
+
+.step-item.active::before {
+    @apply bg-custom-blue;
+}
+
+/* Completed state */
+.step-item.completed .step-number {
+    @apply border-custom-blue bg-custom-blue text-white;
+}
+
+.step-item.completed .step-label {
+    @apply text-custom-blue;
+}
+
+.step-item.completed::before {
+    @apply bg-custom-blue;
+}
+
+/* Add this to your custom styles */
+.text-orange-500, 
+nav .text-orange-500 {
+    color: #f97316 !important;
+}
+
+/* Add with higher specificity */
+header nav .text-orange-500,
+header nav span.text-orange-500 {
+    color: #f97316 !important;
+}
+
+/* Place this at the bottom of your CSS file to ensure it takes precedence */
+header nav .nav-active {
+    color: #fa8c7c !important; /* Orange-500 color */
+}
+
+/* Add this to your CSS */
+.step-4-width {
+    max-width: 72rem !important;
+}

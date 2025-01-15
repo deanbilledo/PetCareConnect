@@ -10,19 +10,29 @@ class Rating extends Model
     use HasFactory;
 
     protected $fillable = [
-        'rating',
-        'shop_id',
         'user_id',
+        'shop_id',
+        'rating',
         'comment'
     ];
+
+    protected $with = ['user'];
+
+    protected $casts = [
+        'rating' => 'integer'
+    ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class)->withDefault([
+            'first_name' => 'Deleted',
+            'last_name' => 'User',
+            'profile_photo_path' => null
+        ]);
+    }
 
     public function shop()
     {
         return $this->belongsTo(Shop::class);
-    }
-    
-    public function veterinarian()
-    {
-        return $this->belongsTo(Veterinarian::class, 'veterinarian_id');
     }
 } 

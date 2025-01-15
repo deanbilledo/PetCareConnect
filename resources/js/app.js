@@ -18,8 +18,13 @@ document.addEventListener('alpine:init', () => {
     }));
 });
 
-$.ajaxSetup({
-    headers: {
-        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+// Wait for jQuery to be loaded
+document.addEventListener('DOMContentLoaded', function() {
+    if (window.jQuery) {
+        $.ajaxSetup({
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            }
+        });
     }
 });

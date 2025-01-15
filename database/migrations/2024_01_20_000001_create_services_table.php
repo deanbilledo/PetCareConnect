@@ -10,10 +10,19 @@ return new class extends Migration
     {
         Schema::create('services', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('shop_id')->constrained()->onDelete('cascade');
             $table->string('name');
-            $table->text('description');
-            $table->string('image');
-            $table->string('type');
+            $table->string('category');
+            $table->text('description')->nullable();
+            $table->json('pet_types');
+            $table->json('size_ranges');
+            $table->boolean('breed_specific')->default(false);
+            $table->text('special_requirements')->nullable();
+            $table->decimal('base_price', 10, 2);
+            $table->integer('duration');
+            $table->json('variable_pricing')->nullable();
+            $table->json('add_ons')->nullable();
+            $table->string('status')->default('active');
             $table->timestamps();
         });
     }

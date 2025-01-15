@@ -1,9 +1,25 @@
+@php
+use Illuminate\Support\Str;
+@endphp
+
 @extends('layouts.app')
+
+@section('styles')
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin="anonymous"/>
+@endsection
+
+@section('scripts')
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+        crossorigin="anonymous"></script>
+@endsection
 
 @section('content')
 <div class="container mx-auto px-4 py-8">
     <!-- Back Button -->
-    <div class="mb-6">
+    <div class="mb-6 mt-8">
         <a href="{{ route('home') }}" class="flex items-center text-gray-600 hover:text-gray-900">
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
@@ -14,21 +30,65 @@
 
     <!-- Profile Header -->
     <div class="flex flex-col items-center mb-8">
-        <div class="relative">
-            <img src="{{ $user->profile_photo_url }}" alt="Profile Photo" class="w-32 h-32 rounded-full object-cover">
-            <form action="{{ route('profile.update-photo') }}" method="POST" enctype="multipart/form-data" class="absolute bottom-0 right-0">
+        <div class="relative inline-block">
+            <img src="{{ $user->profile_photo_path ? asset('storage/' . $user->profile_photo_path) : asset('images/default-profile.png') }}" 
+                 alt="Profile Photo" 
+                 class="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg"
+                 onerror="this.src='{{ asset('images/default-profile.png') }}'">
+
+            <form action="{{ route('profile.update-photo') }}" 
+                  method="POST" 
+                  enctype="multipart/form-data" 
+                  id="profile-photo-form"
+                  class="absolute bottom-0 right-0">
                 @csrf
-                <label for="profile_photo" class="cursor-pointer bg-white rounded-full p-2 shadow-md">
-                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <label for="profile_photo" 
+                       class="cursor-pointer bg-white rounded-full p-2 shadow-lg hover:bg-gray-50 border border-gray-200 flex items-center justify-center w-8 h-8">
+                    <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
                 </label>
-                <input type="file" id="profile_photo" name="profile_photo" class="hidden" onchange="this.form.submit()">
+                <input type="file" 
+                       id="profile_photo" 
+                       name="profile_photo" 
+                       class="hidden" 
+                       accept="image/*"
+                       onchange="this.form.submit()"> <!-- Add direct submit on change -->
             </form>
         </div>
-        <h1 class="text-2xl font-bold mt-4">{{ $user->first_name }} {{ $user->last_name }}</h1>
+        <h1 class="mt-4 text-2xl font-semibold text-gray-900">{{ $user->first_name }} {{ $user->last_name }}</h1>
     </div>
+
+    <!-- Add this right after the profile header section -->
+    @if(auth()->user()->shop)
+    <div class="bg-white rounded-lg shadow-md p-4 mb-8">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <span class="text-gray-700">Account Mode:</span>
+                <div class="relative" x-data="{ mode: 'customer' }">
+                    <button @click="mode = mode === 'customer' ? 'shop' : 'customer'" 
+                            class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
+                            :class="mode === 'shop' ? 'bg-teal-500' : 'bg-gray-200'"
+                            @click="$nextTick(() => { 
+                                if (mode === 'shop') {
+                                    window.location.href = '{{ route('shop.profile') }}';
+                                }
+                            })">
+                        <span class="sr-only">Toggle shop mode</span>
+                        <span aria-hidden="true" 
+                              class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+                              :class="mode === 'shop' ? 'translate-x-5' : 'translate-x-0'"></span>
+                    </button>
+                </div>
+                <span class="text-sm text-gray-500" x-text="mode === 'shop' ? 'Shop Mode' : 'Customer Mode'"></span>
+            </div>
+            <a href="{{ route('shop.profile') }}" class="text-teal-500 hover:text-teal-600 text-sm">
+                Manage Shop Profile
+            </a>
+        </div>
+    </div>
+    @endif
 
     <!-- Personal Info Section -->
     <div class="bg-white rounded-lg shadow-md p-6 mb-8">
@@ -58,7 +118,83 @@
     </div>
 
     <!-- Location Section -->
-    <div class="bg-white rounded-lg shadow-md p-6 mb-8 relative" x-data="{ isEditing: false }">
+    <div class="bg-white rounded-lg shadow-md p-6 mb-8 relative" 
+         x-data="{ 
+            isEditing: false,
+            map: null,
+            marker: null,
+            async initMap() {
+                // Wait for the editing state to be true and the map container to be visible
+                await this.$nextTick();
+                
+                // Add a small delay to ensure DOM is ready
+                setTimeout(() => {
+                    const mapContainer = document.getElementById('map');
+                    if (!mapContainer || this.map) return;
+
+                    try {
+                        this.map = L.map('map').setView([8.1479, 123.8370], 13);
+                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                            attribution: '© OpenStreetMap contributors'
+                        }).addTo(this.map);
+
+                        // Force a map refresh
+                            this.map.invalidateSize();
+
+                        // Add click event to map
+                        this.map.on('click', (e) => {
+                            if (this.marker) {
+                                this.map.removeLayer(this.marker);
+                            }
+                            this.marker = L.marker(e.latlng).addTo(this.map);
+                            this.updateAddressFromLatLng(e.latlng.lat, e.latlng.lng);
+                        });
+                    } catch (error) {
+                        console.error('Map initialization error:', error);
+                    }
+                }, 250); // Added delay of 250ms
+            },
+            async getCurrentLocation() {
+                if (!navigator.geolocation) {
+                    alert('Geolocation is not supported by your browser');
+                    return;
+                }
+
+                try {
+                    const position = await new Promise((resolve, reject) => {
+                        navigator.geolocation.getCurrentPosition(resolve, reject);
+                    });
+
+                    const { latitude, longitude } = position.coords;
+                    
+                    // Initialize map if it hasn't been initialized yet
+                    if (!this.map) {
+                        await this.initMap();
+                    }
+                    
+                    if (this.marker) {
+                        this.map.removeLayer(this.marker);
+                    }
+                    
+                    this.map.setView([latitude, longitude], 16);
+                    this.marker = L.marker([latitude, longitude]).addTo(this.map);
+                    
+                    await this.updateAddressFromLatLng(latitude, longitude);
+                } catch (error) {
+                    alert('Error getting location: ' + error.message);
+                }
+            },
+            async updateAddressFromLatLng(lat, lng) {
+                try {
+                    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`);
+                    const data = await response.json();
+                    document.getElementById('address-input').value = data.display_name;
+                } catch (error) {
+                    console.error('Error fetching address:', error);
+                }
+            }
+         }"
+         x-init="$watch('isEditing', value => { if (value) initMap() })">
         <div class="flex justify-between items-center mb-4">
             <h2 class="text-xl font-semibold">Location</h2>
             <button type="button" 
@@ -67,6 +203,7 @@
                 <span x-text="isEditing ? 'Cancel' : 'Edit'"></span>
             </button>
         </div>
+        
         <!-- Location Display -->
         <div x-show="!isEditing" 
              x-transition:enter="transition ease-out duration-300"
@@ -75,6 +212,7 @@
              class="min-h-[24px]">
             <p class="text-gray-600">{{ $user->address ?? 'No address set' }}</p>
         </div>
+
         <!-- Location Edit Form -->
         <div x-show="isEditing"
              x-transition:enter="transition ease-out duration-300"
@@ -86,13 +224,29 @@
             <form action="{{ route('profile.update-location') }}" method="POST">
                 @csrf
                 <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Address</label>
-                        <input type="text" 
-                               name="address" 
-                               value="{{ $user->address }}" 
-                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
+                    <div class="flex gap-2">
+                        <div class="flex-1">
+                            <label class="block text-sm font-medium text-gray-700">Address</label>
+                            <input type="text" 
+                                   id="address-input"
+                                   name="address" 
+                                   value="{{ $user->address }}" 
+                                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
+                        </div>
+                        <div class="flex items-end">
+                            <button type="button" 
+                                    @click="getCurrentLocation()"
+                                    class="h-10 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                        </div>
                     </div>
+
+                    <!-- Map Container -->
+                    <div id="map" class="h-64 rounded-lg border border-gray-300"></div>
+
                     <div class="flex justify-end space-x-3">
                         <button type="button" 
                                 @click="isEditing = false" 
@@ -116,11 +270,6 @@
             editingPet: null,
             toggleEdit(petId) {
                 this.editingPet = this.editingPet === petId ? null : petId;
-            },
-            deletePet(petId) {
-                if (confirm('Are you sure you want to delete this pet?')) {
-                    document.getElementById(`delete-pet-form-${petId}`).submit();
-                }
             }
          }">
         <div class="flex justify-between items-center mb-4">
@@ -150,11 +299,13 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Pet Name</label>
-                        <input type="text" name="name" required class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
+                        <input type="text" name="name" required 
+                               class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                        <select name="type" required class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
+                        <select name="type" required 
+                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
                             <option value="">Select Type</option>
                             <option value="Dog">Dog</option>
                             <option value="Cat">Cat</option>
@@ -164,15 +315,50 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Breed</label>
-                        <input type="text" name="breed" required class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
+                        <input type="text" name="breed" required 
+                               class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Weight</label>
-                        <input type="text" name="weight" required class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Size Category</label>
+                        <select name="size_category" required 
+                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
+                            <option value="">Select Size</option>
+                            <option value="Small">Small (0-15 kg)</option>
+                            <option value="Medium">Medium (15-30 kg)</option>
+                            <option value="Large">Large (30+ kg)</option>
+                        </select>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Height</label>
-                        <input type="text" name="height" required class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Weight (kg)</label>
+                        <input type="number" name="weight" step="0.1" required 
+                               class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Color/Markings</label>
+                        <input type="text" name="color_markings" required 
+                               class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500"
+                               placeholder="e.g., Brown with white chest">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Coat Type</label>
+                        <select name="coat_type" required 
+                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
+                            <option value="">Select Coat Type</option>
+                            <option value="Short">Short</option>
+                            <option value="Medium">Medium</option>
+                            <option value="Long">Long</option>
+                            <option value="Curly">Curly</option>
+                            <option value="Double">Double-coated</option>
+                            <option value="Hairless">Hairless</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
+                        <input type="date" name="date_of_birth" required 
+                               class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500"
+                               max="{{ date('Y-m-d') }}"
+                               x-data
+                               x-init="$el.max = new Date().toISOString().split('T')[0]">
                     </div>
                 </div>
                 <div class="flex justify-end space-x-3">
@@ -191,95 +377,178 @@
 
         <!-- Pets Table -->
         <div class="overflow-x-auto">
-            <table class="min-w-full">
+            <table class="w-full">
                 <thead>
                     <tr class="text-left text-gray-500">
-                        <th class="pb-4">Name</th>
-                        <th class="pb-4">Type</th>
-                        <th class="pb-4">Breed</th>
-                        <th class="pb-4">Weight</th>
-                        <th class="pb-4">Height</th>
-                        <th class="pb-4"></th>
+                        <th class="pb-4 w-[15%]">Name</th>
+                        <th class="pb-4 w-[10%]">Type</th>
+                        <th class="pb-4 w-[15%]">Breed</th>
+                        <th class="pb-4 w-[10%]">Weight</th>
+                        <th class="pb-4 w-[10%]">Size</th>
+                        <th class="pb-4 w-[40%]">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach($pets as $pet)
-                    <tr class="border-t" :class="{ 'opacity-50': editingPet === {{ $pet->id }} }">
-                        <td class="py-4">{{ $pet->name }}</td>
-                        <td class="py-4">{{ $pet->type }}</td>
-                        <td class="py-4">{{ $pet->breed }}</td>
-                        <td class="py-4">{{ $pet->weight }}</td>
-                        <td class="py-4">{{ $pet->height }}</td>
-                        <td class="py-4">
-                            <div class="flex space-x-2">
-                                <button @click="toggleEdit({{ $pet->id }})" 
-                                        class="text-blue-500 hover:text-blue-700">
-                                    Edit
-                                </button>
-                                <button @click="deletePet({{ $pet->id }})" 
-                                        class="text-red-500 hover:text-red-700">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                    </svg>
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                    <!-- Edit Pet Form Row -->
-                    <tr x-show="editingPet === {{ $pet->id }}"
-                        x-transition:enter="transition ease-out duration-300"
-                        x-transition:enter-start="opacity-0 transform scale-y-0"
-                        x-transition:enter-end="opacity-100 transform scale-y-100"
-                        x-transition:leave="transition ease-in duration-300"
-                        x-transition:leave-start="opacity-100 transform scale-y-100"
-                        x-transition:leave-end="opacity-0 transform scale-y-0"
-                        class="border-t bg-gray-50">
-                        <td colspan="6" class="py-4">
-                            <form action="{{ route('profile.pets.update', $pet) }}" method="POST" class="p-4">
-                                @csrf
-                                @method('PUT')
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Pet Name</label>
-                                        <input type="text" name="name" value="{{ $pet->name }}" required class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
+                    @forelse($pets as $pet)
+                        <tr class="border-t" :class="{ 'bg-gray-50': editingPet === {{ $pet->id }} }">
+                            <td class="py-4">{{ $pet->name }}</td>
+                            <td class="py-4">{{ $pet->type }}</td>
+                            <td class="py-4">{{ $pet->breed }}</td>
+                            <td class="py-4">{{ $pet->weight }} kg</td>
+                            <td class="py-4">{{ $pet->size_category }}</td>
+                            <td class="py-4">
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <!-- Primary Actions Group -->
+                                    <div class="flex items-center gap-1">
+                                        <button @click="toggleEdit({{ $pet->id }})" 
+                                                class="inline-flex items-center gap-1 px-2 py-1 bg-white border border-gray-300 rounded text-xs text-gray-700 hover:bg-gray-50">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                            </svg>
+                                            Edit
+                                        </button>
+
+                                        <form id="delete-pet-form-{{ $pet->id }}" 
+                                              action="{{ route('profile.pets.delete', $pet) }}" 
+                                              method="POST" 
+                                              class="inline">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="button"
+                                                    @click="deletePet({{ $pet->id }})"
+                                                    class="inline-flex items-center gap-1 px-2 py-1 bg-white border border-gray-300 rounded text-xs text-gray-700 hover:bg-gray-50">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                                Delete
+                                            </button>
+                                        </form>
                                     </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                                        <select name="type" required class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
-                                            <option value="Dog" {{ $pet->type == 'Dog' ? 'selected' : '' }}>Dog</option>
-                                            <option value="Cat" {{ $pet->type == 'Cat' ? 'selected' : '' }}>Cat</option>
-                                            <option value="Bird" {{ $pet->type == 'Bird' ? 'selected' : '' }}>Bird</option>
-                                            <option value="Other" {{ $pet->type == 'Other' ? 'selected' : '' }}>Other</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Breed</label>
-                                        <input type="text" name="breed" value="{{ $pet->breed }}" required class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Weight</label>
-                                        <input type="text" name="weight" value="{{ $pet->weight }}" required class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Height</label>
-                                        <input type="text" name="height" value="{{ $pet->height }}" required class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
+
+                                    <!-- Divider -->
+                                    <div class="h-4 w-px bg-gray-300"></div>
+
+                                    <!-- Secondary Actions Group -->
+                                    <div class="flex items-center gap-1">
+                                        <a href="{{ route('profile.pets.details', ['pet' => $pet->id]) }}" 
+                                           class="inline-flex items-center gap-1 px-2 py-1 bg-white border border-gray-300 rounded text-xs text-gray-700 hover:bg-gray-50">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                            </svg>
+                                            Details
+                                        </a>
+
+                                        <a href="{{ route('profile.pets.health-record', ['pet' => $pet->id]) }}" 
+                                           class="inline-flex items-center gap-1 px-2 py-1 bg-white border border-gray-300 rounded text-xs text-gray-700 hover:bg-gray-50">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                            </svg>
+                                            Health
+                                        </a>
+
+                                        <a href="{{ route('profile.pets.add-health-record', ['pet' => $pet->id]) }}" 
+                                           class="inline-flex items-center gap-1 px-2 py-1 bg-white border border-gray-300 rounded text-xs text-gray-700 hover:bg-gray-50">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                            Add Record
+                                        </a>
                                     </div>
                                 </div>
-                                <div class="flex justify-end space-x-3">
-                                    <button type="button" 
-                                            @click="editingPet = null" 
-                                            class="text-teal-500 hover:text-teal-600">
-                                        Cancel
-                                    </button>
-                                    <button type="submit" 
-                                            class="px-4 py-2 bg-teal-500 text-white rounded-md hover:bg-teal-600">
-                                        Save Changes
-                                    </button>
-                                </div>
-                            </form>
-                        </td>
-                    </tr>
-                    @endforeach
+                            </td>
+                        </tr>
+
+                        <!-- Edit Form Row -->
+                        <tr x-show="editingPet === {{ $pet->id }}"
+                            x-cloak
+                            class="border-t">
+                            <td colspan="6" class="py-4">
+                                <form action="{{ route('profile.pets.update', $pet) }}" method="POST" class="p-4 bg-gray-50 rounded-lg">
+                                    @csrf
+                                    @method('PUT')
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Pet Name</label>
+                                            <input type="text" name="name" value="{{ $pet->name }}" required 
+                                                   class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                                            <select name="type" required 
+                                                    class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
+                                                <option value="Dog" {{ $pet->type == 'Dog' ? 'selected' : '' }}>Dog</option>
+                                                <option value="Cat" {{ $pet->type == 'Cat' ? 'selected' : '' }}>Cat</option>
+                                                <option value="Bird" {{ $pet->type == 'Bird' ? 'selected' : '' }}>Bird</option>
+                                                <option value="Other" {{ $pet->type == 'Other' ? 'selected' : '' }}>Other</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Breed</label>
+                                            <input type="text" name="breed" value="{{ $pet->breed }}" required 
+                                                   class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Size Category</label>
+                                            <select name="size_category" required 
+                                                    class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
+                                                <option value="Small" {{ $pet->size_category == 'Small' ? 'selected' : '' }}>Small (0-15 kg)</option>
+                                                <option value="Medium" {{ $pet->size_category == 'Medium' ? 'selected' : '' }}>Medium (15-30 kg)</option>
+                                                <option value="Large" {{ $pet->size_category == 'Large' ? 'selected' : '' }}>Large (30+ kg)</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Weight (kg)</label>
+                                            <input type="number" name="weight" value="{{ $pet->weight }}" step="0.1" required 
+                                                   class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Color/Markings</label>
+                                            <input type="text" name="color_markings" value="{{ $pet->color_markings }}" required 
+                                                   class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Coat Type</label>
+                                            <select name="coat_type" required 
+                                                    class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
+                                                <option value="Short" {{ $pet->coat_type == 'Short' ? 'selected' : '' }}>Short</option>
+                                                <option value="Medium" {{ $pet->coat_type == 'Medium' ? 'selected' : '' }}>Medium</option>
+                                                <option value="Long" {{ $pet->coat_type == 'Long' ? 'selected' : '' }}>Long</option>
+                                                <option value="Curly" {{ $pet->coat_type == 'Curly' ? 'selected' : '' }}>Curly</option>
+                                                <option value="Double" {{ $pet->coat_type == 'Double' ? 'selected' : '' }}>Double-coated</option>
+                                                <option value="Hairless" {{ $pet->coat_type == 'Hairless' ? 'selected' : '' }}>Hairless</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
+                                            <input type="date" name="date_of_birth" value="{{ $pet->date_of_birth?->format('Y-m-d') }}" required 
+                                                   class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500"
+                                                   max="{{ date('Y-m-d') }}"
+                                                   x-data
+                                                   x-init="$el.max = new Date().toISOString().split('T')[0]">
+                                        </div>
+                                    </div>
+                                    <div class="flex justify-end space-x-3">
+                                        <button type="button" 
+                                                @click="editingPet = null" 
+                                                class="text-gray-600 hover:text-gray-800">
+                                            Cancel
+                                        </button>
+                                        <button type="submit" 
+                                                class="px-4 py-2 bg-teal-500 text-white rounded-md hover:bg-teal-600">
+                                            Save Changes
+                                        </button>
+                                    </div>
+                                </form>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="6" class="py-4 text-center text-gray-500">
+                                No pets registered yet
+                            </td>
+                        </tr>
+                    @endforelse
                 </tbody>
             </table>
         </div>
@@ -292,12 +561,22 @@
             <input type="text" placeholder="Filter" class="border rounded-md px-3 py-1">
         </div>
         <div class="space-y-4">
-            @foreach($recentTransactions as $transaction)
-            <div class="flex justify-between items-center">
-                <span>{{ $transaction['service'] }}</span>
-                <span class="text-gray-500">{{ $transaction['date'] }}</span>
-            </div>
-            @endforeach
+            @forelse($recentTransactions as $transaction)
+                <div class="flex justify-between items-center p-3 hover:bg-gray-50 rounded-lg transition-colors">
+                    <div class="flex flex-col">
+                        <span class="font-medium">{{ $transaction['service'] }}</span>
+                        <span class="text-sm text-gray-500">{{ $transaction['shop_name'] }}</span>
+                    </div>
+                    <div class="flex flex-col items-end">
+                        <span class="font-medium text-green-600">₱{{ number_format($transaction['amount'], 2) }}</span>
+                        <span class="text-sm text-gray-500">{{ $transaction['date'] }}</span>
+                    </div>
+                </div>
+            @empty
+                <div class="text-center text-gray-500 py-4">
+                    No transactions yet
+                </div>
+            @endforelse
         </div>
     </div>
 
@@ -308,22 +587,63 @@
             <input type="text" placeholder="Filter" class="border rounded-md px-3 py-1">
         </div>
         <div class="space-y-4">
-            @foreach($recentVisits as $visit)
-            <div class="flex items-center space-x-4">
-                <img src="{{ asset($visit['image']) }}" alt="{{ $visit['name'] }}" class="w-16 h-16 object-cover rounded-lg">
-                <div>
-                    <h3 class="font-semibold">{{ $visit['name'] }}</h3>
-                    <div class="flex items-center text-yellow-400">
-                        <span>★★★★★</span>
-                        <span class="ml-1 text-gray-600">{{ $visit['rating'] }}</span>
+            @forelse($recentVisits as $visit)
+                <div class="flex items-center space-x-4 p-3 hover:bg-gray-50 rounded-lg transition-colors">
+                    <img src="{{ $visit['image'] }}" 
+                         alt="{{ $visit['name'] }}" 
+                         class="w-16 h-16 object-cover rounded-lg">
+                    <div class="flex-1">
+                        <h3 class="font-semibold">{{ $visit['name'] }}</h3>
+                        <div class="flex items-center text-yellow-400">
+                            <span class="flex">
+                                @for($i = 1; $i <= 5; $i++)
+                                    @if($i <= floor($visit['rating']))
+                                        <span>★</span>
+                                    @else
+                                        <span class="text-gray-300">★</span>
+                                    @endif
+                                @endfor
+                            </span>
+                            <span class="ml-1 text-gray-600">{{ $visit['rating'] }}</span>
+                        </div>
+                        <p class="text-gray-600 text-sm">{{ $visit['address'] }}</p>
+                        <p class="text-gray-500 text-xs mt-1">Last visit: {{ $visit['last_visit'] }}</p>
                     </div>
-                    <p class="text-gray-600 text-sm">{{ $visit['address'] }}</p>
                 </div>
-            </div>
-            @endforeach
+            @empty
+                <div class="text-center text-gray-500 py-4">
+                    No visits yet
+                </div>
+            @endforelse
         </div>
     </div>
 
     
 </div>
 @endsection 
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const profilePhotoInput = document.getElementById('profile_photo');
+    const form = document.getElementById('profile-photo-form');
+    const label = form.querySelector('label');
+
+    profilePhotoInput.addEventListener('change', function() {
+        if (this.files && this.files[0]) {
+            // Show loading state
+            const originalContent = label.innerHTML;
+            label.innerHTML = `
+                <svg class="animate-spin h-4 w-4 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+            `;
+
+            // Submit form
+            form.submit();
+        }
+    });
+});
+</script>
+@endpush

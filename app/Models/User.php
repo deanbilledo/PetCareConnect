@@ -24,6 +24,7 @@ class User extends Authenticatable
         'phone',
         'address',
         'profile_photo_path',
+        'role',
     ];
 
     /**
@@ -50,12 +51,57 @@ class User extends Authenticatable
         return $this->hasMany(Pet::class);
     }
 
+    public function getNameAttribute()
+    {
+        return "{$this->first_name} {$this->last_name}";
+    }
+
+    /**
+     * Get the user's profile photo URL.
+     */
     public function getProfilePhotoUrlAttribute()
     {
-        if ($this->profile_photo_path) {
-            return asset('storage/' . $this->profile_photo_path);
+        try {
+            if (empty($this->profile_photo_path)) {
+                return asset('images/default-profile.png');
+            }
+
+            if (Storage::disk('public')->exists($this->profile_photo_path)) {
+                return Storage::disk('public')->url($this->profile_photo_path);
+            }
+
+            return asset('images/default-profile.png');
+        } catch (\Exception $e) {
+            \Log::error('Error in getProfilePhotoUrlAttribute: ' . $e->getMessage(), [
+                'user_id' => $this->id,
+                'photo_path' => $this->profile_photo_path
+            ]);
+            return asset('images/default-profile.png');
         }
-        
-        return 'https://ui-avatars.com/api/?name=' . urlencode($this->first_name . ' ' . $this->last_name) . '&color=7F9CF5&background=EBF4FF';
     }
-} 
+
+    public function shop()
+    {
+        return $this->hasOne(Shop::class);
+    }
+
+    public function appointments()
+    {
+        return $this->hasMany(Appointment::class);
+    }
+
+    public function favorites()
+    {
+        return $this->hasMany(Favorite::class);
+    }
+
+    public function favoriteShops()
+    {
+        return $this->belongsToMany(Shop::class, 'favorites');
+    }
+
+    public function isAdmin()
+    {
+        return $this->role === 'admin';
+    }
+}
