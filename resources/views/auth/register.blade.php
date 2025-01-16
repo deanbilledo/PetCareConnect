@@ -28,7 +28,7 @@ try {
     <div class="flex flex-col lg:flex-row min-h-screen bg-custom-bg">
         <!-- Sign up form container -->
         <div class="flex-1 flex items-center justify-center bg-custom-bg p-4 lg:p-8 order-1 lg:order-1">
-            <div class="w-full max-w-md space-y-8 px-4 sm:px-8 py-8 sm:py-10 bg-white rounded-3xl shadow-xl">
+            <div class="w-full max-w-md px-4 sm:px-8 py-2 bg-white rounded-3xl shadow-xl">
                 <div class="text-center">
                     <h2 class="text-1xl sm:text-3xl font-bold">Get Started With</h2>
                     <a href="{{ $homeRoute }}">
