@@ -171,133 +171,47 @@
     </label>
 </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const chatMessages = document.getElementById('chat-messages');
-            const chatInput = document.getElementById('chat-input');
-            const sendButton = document.getElementById('send-message');
-            const thinkingIndicator = document.getElementById('thinking-indicator');
+<script>
+    document.getElementById('chat-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const input = document.getElementById('chat-input');
+        const messagesContainer = document.getElementById('chat-messages');
+        const message = input.value.trim();
 
-            function addMessage(content, type = 'system') {
-                const messageDiv = document.createElement('div');
-                
-                switch(type) {
-                    case 'user':
-                        messageDiv.className = 'p-3 bg-blue-100 text-blue-800 rounded-lg max-w-[80%] ml-auto';
-                        messageDiv.textContent = `You: ${content}`;
-                        break;
-                    case 'bot':
-                        messageDiv.className = 'p-3 bg-green-100 text-green-800 rounded-lg max-w-[80%]';
-                        messageDiv.textContent = `Daena: ${content}`;
-                        break;
-                    case 'system':
-                        messageDiv.className = 'text-sm text-gray-500 italic';
-                        messageDiv.textContent = content;
-                        break;
-                }
+        if (!message) return;
 
-                chatMessages.appendChild(messageDiv);
-                chatMessages.scrollTop = chatMessages.scrollHeight;
-            }
+        // Add user message
+        const userMessageEl = document.createElement('div');
+        userMessageEl.innerHTML = `<div class="text-right"><div class="inline-block bg-blue-100 p-2 rounded-lg">${message}</div></div>`;
+        messagesContainer.appendChild(userMessageEl);
 
-            async function checkOllamaConnection() {
-                try {
-                    const response = await fetch('http://127.0.0.1:11434/api/generate');
-                    return response.ok;
-                } catch (error) {
-                    return false;
-                }
-            }
+        // Clear input
+        input.value = '';
 
-            async function sendToOllama(message) {
-    try {
-        const response = await fetch('http://127.0.0.1:11434/api/generate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                model: "llama3.2",
-                prompt: message,
-                stream: true  // Enable streaming
-            })
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let fullResponse = '';
-
-        while(true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-
-            const chunk = decoder.decode(value);
-            const lines = chunk.split('\n').filter(line => line.trim());
-
-            lines.forEach(line => {
-                try {
-                    const jsonResponse = JSON.parse(line);
-                    if (jsonResponse.response) {
-                        fullResponse += jsonResponse.response;
-                    }
-                } catch (parseError) {
-                    console.error('Parsing error:', parseError);
-                }
+        try {
+            const response = await axios.post('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=AIzaSyDtxpM1REw73hZSbUQkOqL5_X-4Q86vC2I', {
+                contents: [{
+                    parts: [{ text: message }]
+                }]
             });
+
+            const aiResponse = response.data.candidates[0].content.parts[0].text;
+
+            // Add AI message
+            const aiMessageEl = document.createElement('div');
+            aiMessageEl.innerHTML = `<div class="text-left"><div class="inline-block bg-gray-100 p-2 rounded-lg">${aiResponse}</div></div>`;
+            messagesContainer.appendChild(aiMessageEl);
+
+            // Scroll to bottom
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        } catch (error) {
+            console.error('Error:', error);
+            const errorEl = document.createElement('div');
+            errorEl.innerHTML = `<div class="text-red-500">Error processing request</div>`;
+            messagesContainer.appendChild(errorEl);
         }
-
-        return fullResponse.trim();
-    } catch (error) {
-        console.error('Ollama connection error:', error);
-        return 'Connection failed. Check Ollama service.';
-    }
-}
-
-            async function handleMessage() {
-                const message = chatInput.value.trim();
-                if (!message) return;
-
-                // Add user message
-                addMessage(message, 'user');
-                chatInput.value = '';
-
-                // Show thinking indicator
-                thinkingIndicator.classList.remove('hidden');
-                sendButton.disabled = true;
-
-                // Get response from Ollama
-                const response = await sendToOllama(message);
-                
-                // Hide thinking indicator and add AI response
-                thinkingIndicator.classList.add('hidden');
-                sendButton.disabled = false;
-                addMessage(response, 'bot');
-            }
-
-            // Quick prompt function
-            window.sendQuickPrompt = function(prompt) {
-                chatInput.value = prompt;
-                handleMessage();
-            };
-
-            // Clear chat function
-            window.clearChat = function() {
-                chatMessages.innerHTML = '';
-                addMessage('Chat cleared. Using llama2 model');
-            };
-
-            sendButton.addEventListener('click', handleMessage);
-            chatInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleMessage();
-                }
-            });
-        });
+    });
     </script>
-
     
 
     
