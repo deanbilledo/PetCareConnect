@@ -189,7 +189,7 @@
         input.value = '';
 
         try {
-            const response = await axios.post('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=AIzaSyDtxpM1REw73hZSbUQkOqL5_X-4Q86vC2I', {
+            const response = await axios.post('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=AIzaSyDtxpM1REw73hZSbUQkOqL5_X-4Q86vC2I already destoyted the api ask dean for a new one the chat bot is temporarly disabled', {
                 contents: [{
                     parts: [{ text: message }]
                 }]
