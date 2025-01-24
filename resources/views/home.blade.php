@@ -109,6 +109,198 @@
         </div>
     </div>
 
+<!-- Chatbot Section -->
+<div class="fixed bottom-4 right-4 z-50">
+    <input type="checkbox" id="chat-toggle" class="hidden peer">
+    
+    <!-- Chat Window -->
+    <div class="hidden peer-checked:block w-96 h-[32rem] bg-white shadow-lg rounded-lg border flex flex-col absolute bottom-16 right-0">
+        <div class="bg-blue-600 text-white p-4 rounded-t-lg flex justify-between items-center">
+            <span class="font-bold text-lg">Daena AI Assistant</span>
+            <label for="chat-toggle" class="text-white hover:bg-blue-700 rounded-full p-2 cursor-pointer text-xl">
+                ×
+            </label>
+        </div>
+        
+        <!-- Quick Prompt Buttons -->
+        <div class="flex gap-2 p-3 bg-gray-50 border-b overflow-x-auto">
+            <button onclick="sendQuickPrompt('Please introduce yourself')" 
+                class="px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 text-sm whitespace-nowrap">Introduce</button>
+            <button onclick="sendQuickPrompt('What can you help me with?')" 
+                class="px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 text-sm whitespace-nowrap">Help</button>
+            <button onclick="clearChat()" 
+                class="px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 text-sm whitespace-nowrap">Clear</button>
+        </div>
+        
+        <!-- Message List -->
+        <div id="chat-messages" class="flex-grow overflow-y-auto p-4 space-y-3 scrollbar-thin scrollbar-thumb-blue-500 scrollbar-track-blue-100" style="max-height: 24rem;">
+            <!-- System message -->
+            <div class="text-sm text-gray-500 italic">Chat initialized with llama3.2 model</div>
+        </div>
+
+        <!-- Thinking Indicator -->
+        <div id="thinking-indicator" class="hidden px-4 py-2 text-sm text-gray-500 italic">
+            Daena is thinking...
+        </div>
+        
+        <!-- Message Input -->
+        <form id="chat-form" class="p-4 border-t flex flex-col gap-2">
+            <div class="flex gap-2 items-end">
+                <textarea 
+                    id="chat-input"
+                    rows="1"
+                    placeholder="Type a message..."
+                    class="flex-grow p-2 border rounded-lg resize-y overflow-auto focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                ></textarea>
+                <button 
+                    id="send-message"
+                    type="submit"
+                    class="h-[42px] bg-blue-600 text-white px-4 rounded-lg hover:bg-blue-700 transition-colors flex-shrink-0"
+                >
+                    Send
+                </button>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Chat Head Button -->
+    <label 
+        for="chat-toggle"
+        class="bg-blue-600 text-white px-4 py-3 rounded-full shadow-lg hover:bg-blue-700 transition-colors cursor-pointer">
+        Daena AI
+    </label>
+</div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const chatMessages = document.getElementById('chat-messages');
+            const chatInput = document.getElementById('chat-input');
+            const sendButton = document.getElementById('send-message');
+            const thinkingIndicator = document.getElementById('thinking-indicator');
+
+            function addMessage(content, type = 'system') {
+                const messageDiv = document.createElement('div');
+                
+                switch(type) {
+                    case 'user':
+                        messageDiv.className = 'p-3 bg-blue-100 text-blue-800 rounded-lg max-w-[80%] ml-auto';
+                        messageDiv.textContent = `You: ${content}`;
+                        break;
+                    case 'bot':
+                        messageDiv.className = 'p-3 bg-green-100 text-green-800 rounded-lg max-w-[80%]';
+                        messageDiv.textContent = `Daena: ${content}`;
+                        break;
+                    case 'system':
+                        messageDiv.className = 'text-sm text-gray-500 italic';
+                        messageDiv.textContent = content;
+                        break;
+                }
+
+                chatMessages.appendChild(messageDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+
+            async function checkOllamaConnection() {
+                try {
+                    const response = await fetch('http://127.0.0.1:11434/api/generate');
+                    return response.ok;
+                } catch (error) {
+                    return false;
+                }
+            }
+
+            async function sendToOllama(message) {
+    try {
+        const response = await fetch('http://127.0.0.1:11434/api/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: "llama3.2",
+                prompt: message,
+                stream: true  // Enable streaming
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let fullResponse = '';
+
+        while(true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n').filter(line => line.trim());
+
+            lines.forEach(line => {
+                try {
+                    const jsonResponse = JSON.parse(line);
+                    if (jsonResponse.response) {
+                        fullResponse += jsonResponse.response;
+                    }
+                } catch (parseError) {
+                    console.error('Parsing error:', parseError);
+                }
+            });
+        }
+
+        return fullResponse.trim();
+    } catch (error) {
+        console.error('Ollama connection error:', error);
+        return 'Connection failed. Check Ollama service.';
+    }
+}
+
+            async function handleMessage() {
+                const message = chatInput.value.trim();
+                if (!message) return;
+
+                // Add user message
+                addMessage(message, 'user');
+                chatInput.value = '';
+
+                // Show thinking indicator
+                thinkingIndicator.classList.remove('hidden');
+                sendButton.disabled = true;
+
+                // Get response from Ollama
+                const response = await sendToOllama(message);
+                
+                // Hide thinking indicator and add AI response
+                thinkingIndicator.classList.add('hidden');
+                sendButton.disabled = false;
+                addMessage(response, 'bot');
+            }
+
+            // Quick prompt function
+            window.sendQuickPrompt = function(prompt) {
+                chatInput.value = prompt;
+                handleMessage();
+            };
+
+            // Clear chat function
+            window.clearChat = function() {
+                chatMessages.innerHTML = '';
+                addMessage('Chat cleared. Using llama2 model');
+            };
+
+            sendButton.addEventListener('click', handleMessage);
+            chatInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleMessage();
+                }
+            });
+        });
+    </script>
+
+    
+
+    
 @endsection
 
 @push('styles')
