@@ -57,7 +57,13 @@
                         </div>
                         <div>
                             <h3 class="text-lg font-semibold">Total Shops</h3>
-                            <p class="text-2xl font-bold">85</p>
+                            <p class="text-2xl font-bold">
+                                @php
+                                    $activeShopsCount = DB::table('shops')->where('status', 'active')->count();
+                                @endphp
+                            </p>
+
+                        <p class="text-2xl font-bold">{{ $activeShopsCount }}</p>
                         </div>
                     </div>
                     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 flex items-center transform hover:scale-105 transition-transform duration-300">
@@ -75,7 +81,12 @@
                         </div>
                         <div>
                             <h3 class="text-lg font-semibold">Total Appointments</h3>
-                            <p class="text-2xl font-bold">750</p>
+                            <p class="text-2xl font-bold">
+                                @php
+                                    $totalAppointmentsCount = DB::table('appointments')->count();
+                                @endphp
+                                {{ $totalAppointmentsCount }}
+                            </p>
                         </div>
                     </div>
                     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 flex items-center transform hover:scale-105 transition-transform duration-300">
@@ -83,7 +94,7 @@
                             <i class="fas fa-exclamation-circle text-2xl text-red-500 dark:text-red-300"></i>
                         </div>
                         <div>
-                            <h3 class="text-lg font-semibold">Shops Reported</h3>
+                            <h3 class="text-lg font-semibold">Pending Complaints</h3>
                             <p class="text-2xl font-bold">15</p>
                         </div>
                     </div>
@@ -276,8 +287,8 @@
                     ]
                 },
                 services: {
-                    labels: ['Grooming', 'Veterinary'],
-                    data: [55, 45],  // Adjusted percentages to total 100%
+                    labels: ['Grooming', 'Veterinary', 'Boarding', 'Training', 'Pet Sitting'],
+                    data: [30, 25, 20, 15, 10],
                 }
             };
 

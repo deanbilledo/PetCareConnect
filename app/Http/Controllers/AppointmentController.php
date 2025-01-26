@@ -116,69 +116,46 @@ class AppointmentController extends Controller
 
     public function updateSchedule(Request $request, Appointment $appointment)
     {
+        if ($appointment->user_id !== auth()->id()) {
+            abort(403);
+        }
+
+        if ($appointment->status !== 'pending') {
+            return redirect()->route('appointments.show', $appointment)
+                ->with('error', 'Only pending appointments can be rescheduled');
+        }
+
+        $request->validate([
+            'new_date' => 'required|date|after:today',
+            'new_time' => 'required',
+            'service_type' => 'required|string',
+            'reschedule_reason' => 'required|string|max:500'
+        ]);
+
         try {
-            // Validate user ownership and status
-            if ($appointment->user_id !== auth()->id()) {
-                abort(403);
-            }
-
-            if ($appointment->status !== 'pending') {
-                return redirect()->route('appointments.show', $appointment)
-                    ->with('error', 'Only pending appointments can be rescheduled');
-            }
-
-            // Validate the request
-            $validated = $request->validate([
-                'new_date' => 'required|date|after:today',
-                'new_time' => 'required',
-                'service_type' => 'required|string',
-                'service_price' => 'required|numeric|min:0',
-                'reschedule_reason' => 'required|string|max:500'
-            ]);
-
-            // Get the service and calculate expected price
+            // Convert 12-hour format to 24-hour format
+            $time = date('H:i', strtotime($request->new_time));
+            $newDateTime = Carbon::parse($request->new_date . ' ' . $time);
+            
+            // Get the service details
             $service = $appointment->shop->services()
-                ->where('name', $validated['service_type'])
+                ->where('name', $request->service_type)
                 ->where('status', 'active')
                 ->firstOrFail();
-
-            $expectedPrice = $service->price;
             
-            // Apply size multiplier
-            switch($appointment->pet->size_category) {
-                case 'large':
-                    $expectedPrice *= 1.4;
-                    break;
-                case 'medium':
-                    $expectedPrice *= 1.2;
-                    break;
-                // small uses base price
-            }
-
-            // Verify the price matches our calculation (allowing for small floating point differences)
-            if (abs($expectedPrice - $validated['service_price']) > 0.01) {
-                throw new \Exception('Invalid service price');
-            }
-
-            // Convert time and create datetime
-            $newDateTime = Carbon::parse($validated['new_date'] . ' ' . $validated['new_time']);
-
-            // Update appointment
             $appointment->update([
                 'appointment_date' => $newDateTime,
-                'service_type' => $validated['service_type'],
-                'service_price' => $validated['service_price'],
-                'reschedule_reason' => $validated['reschedule_reason'],
+                'service_type' => $service->name,
+                'service_price' => $service->price,
+                'reschedule_reason' => $request->reschedule_reason,
                 'last_reschedule_at' => now()
             ]);
 
-            return redirect()->route('appointments.index')
-                ->with('success', 'Appointment rescheduled successfully.');
+            return redirect()->route('appointments.show', $appointment)
+                ->with('success', 'Appointment rescheduled successfully');
         } catch (\Exception $e) {
             Log::error('Error rescheduling appointment: ' . $e->getMessage());
-            return back()
-                ->withInput()
-                ->with('error', 'Failed to reschedule appointment. Please try again.');
+            return back()->with('error', 'Failed to reschedule appointment. Please try again.');
         }
     }
 

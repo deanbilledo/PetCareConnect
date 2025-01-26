@@ -25,7 +25,9 @@
                           base_price: '',
                           duration: 15,
                           variablePricing: [],
-                          addOns: []
+                          addOns: [],
+                          exoticPetService: false,
+                          exoticPetSpecies: []
                       }],
                       errors: {},
                       validatePrice(value, fieldName, serviceIndex) {
@@ -94,7 +96,9 @@
                               base_price: '',
                               duration: 15,
                               variablePricing: [],
-                              addOns: []
+                              addOns: [],
+                              exoticPetService: false,
+                              exoticPetSpecies: []
                           });
                       },
                       removeService(index) {
@@ -240,11 +244,43 @@
                                 <div class="mt-4">
                                     <label class="inline-flex items-center">
                                         <input type="checkbox" 
-                                               x-model="service.breedSpecific"
-                                               :name="'services[' + index + '][breedSpecific]'"
+                                               x-model="service.exoticPetService"
+                                               :name="'services[' + index + '][exoticPetService]'"
                                                class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                                        <span class="ml-2">Breed-Specific Service</span>
+                                        <span class="ml-2">Exotic Pet Service</span>
                                     </label>
+                                    <p class="mt-1 text-sm text-gray-500">Check this if this service is available for exotic pets (e.g., reptiles, amphibians, small mammals, etc.)</p>
+                                </div>
+
+                                <!-- Exotic Pet Species Section -->
+                                <div x-show="service.exoticPetService" class="mt-4">
+                                    <label class="block text-sm font-medium text-gray-700">Exotic Pet Species</label>
+                                    <div class="mt-2 space-y-2">
+                                        <template x-for="(species, speciesIndex) in service.exoticPetSpecies || []" :key="speciesIndex">
+                                            <div class="flex items-center space-x-2">
+                                                <input type="text" 
+                                                       x-model="service.exoticPetSpecies[speciesIndex]"
+                                                       :name="'services[' + index + '][exoticPetSpecies][]'"
+                                                       class="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                                       placeholder="Enter species name">
+                                                <button type="button" 
+                                                        @click="service.exoticPetSpecies.splice(speciesIndex, 1)"
+                                                        class="text-red-600 hover:text-red-800">
+                                                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        </template>
+                                        <button type="button"
+                                                @click="service.exoticPetSpecies = service.exoticPetSpecies || []; service.exoticPetSpecies.push('')"
+                                                class="inline-flex items-center px-3 py-1 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                            <svg class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                                            </svg>
+                                            Add Species
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <div class="mt-4">
@@ -407,7 +443,8 @@ document.getElementById('serviceForm').addEventListener('submit', function(e) {
                     .map(input => input.value),
                 size_ranges: Array.from(document.querySelectorAll(`input[name="services[${index}][size_ranges][]"]:checked`))
                     .map(input => input.value),
-                breed_specific: formData.get(`services[${index}][breed_specific]`) === 'on',
+                exotic_pet_service: formData.get(`services[${index}][exotic_pet_service]`) === 'on',
+                exotic_pet_species: formData.get(`services[${index}][exotic_pet_species]`) ? Array.from(formData.getAll(`services[${index}][exotic_pet_species][]`)) : [],
                 special_requirements: formData.get(`services[${index}][special_requirements]`),
                 base_price: parseFloat(formData.get(`services[${index}][base_price]`)),
                 duration: parseInt(formData.get(`services[${index}][duration]`)),

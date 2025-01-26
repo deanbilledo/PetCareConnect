@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Log;
 @extends('layouts.app')
 
 @section('content')
-<div class="container mx-auto px-4 py-12 mt-8">
+<div class="container mx-auto px-4 py-12">
     <div class="max-w-2xl mx-auto text-center">
         <!-- Success Icon -->
         <div class="mb-8 flex justify-center">
@@ -66,30 +66,25 @@ use Illuminate\Support\Facades\Log;
         </div>
 
         <!-- Action Buttons -->
-        <div class="flex flex-col sm:flex-row justify-center items-center gap-4 mt-8">
-            <!-- Appointment Acknowledgement Button -->
-            <button type="button" 
-                    onclick="window.location.href='{{ route('booking.receipt.download', ['shop' => $shop]) }}'"
-                    class="w-full sm:w-[200px] inline-flex items-center justify-center px-4 py-3 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 transition-colors">
+        <div class="space-y-4 sm:space-y-0 sm:space-x-4">
+            <!-- Download Receipt Button -->
+            <a href="{{ route('booking.receipt.download', ['shop' => $shop]) }}" 
+               class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"/>
                 </svg>
-                <span>Acknowledgement</span>
-            </button>
+                Download Receipt
+            </a>
 
-            <!-- Back to Home Button -->
-            <button type="button"
-                    onclick="window.location.href='{{ route('home') }}'"
-                    class="w-full sm:w-[200px] inline-flex items-center justify-center px-4 py-3 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors">
-                <span>Back to Home</span>
-            </button>
+            <a href="{{ route('home') }}" 
+               class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                Back to Home
+            </a>
             
-            <!-- View Appointments Button -->
-            <button type="button"
-                    onclick="window.location.href='{{ route('appointments.index') }}'"
-                    class="w-full sm:w-[200px] inline-flex items-center justify-center px-4 py-3 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors">
-                <span>View Appointments</span>
-            </button>
+            <a href="{{ route('appointments.index') }}" 
+               class="inline-flex items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                View Appointments
+            </a>
         </div>
     </div>
 </div>

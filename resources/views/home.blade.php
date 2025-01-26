@@ -109,6 +109,112 @@
         </div>
     </div>
 
+<!-- Chatbot Section -->
+<div class="fixed bottom-4 right-4 z-50">
+    <input type="checkbox" id="chat-toggle" class="hidden peer">
+    
+    <!-- Chat Window -->
+    <div class="hidden peer-checked:block w-96 h-[32rem] bg-white shadow-lg rounded-lg border flex flex-col absolute bottom-16 right-0">
+        <div class="bg-blue-600 text-white p-4 rounded-t-lg flex justify-between items-center">
+            <span class="font-bold text-lg">Daena AI Assistant</span>
+            <label for="chat-toggle" class="text-white hover:bg-blue-700 rounded-full p-2 cursor-pointer text-xl">
+                ×
+            </label>
+        </div>
+        
+        <!-- Quick Prompt Buttons -->
+        <div class="flex gap-2 p-3 bg-gray-50 border-b overflow-x-auto">
+            <button onclick="sendQuickPrompt('Please introduce yourself')" 
+                class="px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 text-sm whitespace-nowrap">Introduce</button>
+            <button onclick="sendQuickPrompt('What can you help me with?')" 
+                class="px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 text-sm whitespace-nowrap">Help</button>
+            <button onclick="clearChat()" 
+                class="px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 text-sm whitespace-nowrap">Clear</button>
+        </div>
+        
+        <!-- Message List -->
+        <div id="chat-messages" class="flex-grow overflow-y-auto p-4 space-y-3 scrollbar-thin scrollbar-thumb-blue-500 scrollbar-track-blue-100" style="max-height: 24rem;">
+            <!-- System message -->
+            <div class="text-sm text-gray-500 italic">Chat initialized with llama3.2 model</div>
+        </div>
+
+        <!-- Thinking Indicator -->
+        <div id="thinking-indicator" class="hidden px-4 py-2 text-sm text-gray-500 italic">
+            Daena is thinking...
+        </div>
+        
+        <!-- Message Input -->
+        <form id="chat-form" class="p-4 border-t flex flex-col gap-2">
+            <div class="flex gap-2 items-end">
+                <textarea 
+                    id="chat-input"
+                    rows="1"
+                    placeholder="Type a message..."
+                    class="flex-grow p-2 border rounded-lg resize-y overflow-auto focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                ></textarea>
+                <button 
+                    id="send-message"
+                    type="submit"
+                    class="h-[42px] bg-blue-600 text-white px-4 rounded-lg hover:bg-blue-700 transition-colors flex-shrink-0"
+                >
+                    Send
+                </button>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Chat Head Button -->
+    <label 
+        for="chat-toggle"
+        class="bg-blue-600 text-white px-4 py-3 rounded-full shadow-lg hover:bg-blue-700 transition-colors cursor-pointer">
+        Daena AI
+    </label>
+</div>
+
+<script>
+    document.getElementById('chat-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const input = document.getElementById('chat-input');
+        const messagesContainer = document.getElementById('chat-messages');
+        const message = input.value.trim();
+
+        if (!message) return;
+
+        // Add user message
+        const userMessageEl = document.createElement('div');
+        userMessageEl.innerHTML = `<div class="text-right"><div class="inline-block bg-blue-100 p-2 rounded-lg">${message}</div></div>`;
+        messagesContainer.appendChild(userMessageEl);
+
+        // Clear input
+        input.value = '';
+
+        try {
+            const response = await axios.post('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=AIzaSyDtxpM1REw73hZSbUQkOqL5_X-4Q86vC2I already destoyted the api ask dean for a new one the chat bot is temporarly disabled', {
+                contents: [{
+                    parts: [{ text: message }]
+                }]
+            });
+
+            const aiResponse = response.data.candidates[0].content.parts[0].text;
+
+            // Add AI message
+            const aiMessageEl = document.createElement('div');
+            aiMessageEl.innerHTML = `<div class="text-left"><div class="inline-block bg-gray-100 p-2 rounded-lg">${aiResponse}</div></div>`;
+            messagesContainer.appendChild(aiMessageEl);
+
+            // Scroll to bottom
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        } catch (error) {
+            console.error('Error:', error);
+            const errorEl = document.createElement('div');
+            errorEl.innerHTML = `<div class="text-red-500">Error processing request</div>`;
+            messagesContainer.appendChild(errorEl);
+        }
+    });
+    </script>
+    
+
+    
 @endsection
 
 @push('styles')

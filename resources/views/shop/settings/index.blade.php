@@ -147,7 +147,7 @@
             <!-- GCash Payment Details -->
             <div class="bg-blue-50 p-4 rounded-lg mb-6">
                 <div class="flex items-center justify-center mb-4">
-                    <img src="{{ asset('images/GCash_logo.svg') }}" alt="GCash Logo" class="h-8">
+                    <img src="{{ asset('images/gcash-logo.png') }}" alt="GCash Logo" class="h-8">
                 </div>
                 <div class="space-y-2">
                     <div class="flex justify-between">
@@ -268,49 +268,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             </div>
 
-            <!-- Add Reference Number Input -->
-            <div class="mt-4">
-                <label for="reference_number" class="block text-sm font-medium text-gray-700 mb-1">
-                    GCash Reference Number
-                </label>
-                <input 
-                    type="text" 
-                    id="reference_number" 
-                    name="reference_number" 
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Enter your GCash reference number"
-                    required
-                >
-                <p class="mt-1 text-xs text-gray-500">
-                    Please enter the reference number from your GCash transaction
-                </p>
-            </div>
-
-            <!-- Add Screenshot Upload Section -->
-            <div class="mt-4">
-                <label for="payment_screenshot" class="block text-sm font-medium text-gray-700 mb-1">
-                    Payment Screenshot
-                </label>
-                <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
-                    <div class="space-y-1 text-center">
-                        <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                            <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                        </svg>
-                        <div class="flex text-sm text-gray-600">
-                            <label for="payment_screenshot" class="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
-                                <span>Upload a file</span>
-                                <input id="payment_screenshot" name="payment_screenshot" type="file" class="sr-only" accept="image/*">
-                            </label>
-                            <p class="pl-1">or drag and drop</p>
-                        </div>
-                        <p class="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
-                    </div>
-                </div>
-                <div id="preview" class="mt-2 hidden">
-                    <img id="preview_image" src="" alt="Preview" class="max-h-40 rounded-md">
-                </div>
-            </div>
-
             <!-- Instructions -->
             <div class="text-sm text-gray-600">
                 <p class="font-medium mb-2">How to pay:</p>
@@ -323,19 +280,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 </ol>
             </div>
 
-            <!-- Update the buttons to include verification -->
-            <button onclick="verifyPayment()" class="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 mb-2">
-                Verify Payment
-            </button>
-            
-            <button onclick="hideGcashModal()" class="w-full border border-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+            <button onclick="hideGcashModal()" class="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
                 Close
             </button>
         </div>
     </div>
 </div>
 
-<!-- Update the script section -->
+<!-- Add this script section -->
 <script>
     function showGcashModal() {
         document.getElementById('gcashModal').classList.remove('hidden');
@@ -346,38 +298,5 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('gcashModal').classList.add('hidden');
         document.getElementById('gcashModal').classList.remove('flex');
     }
-
-    function verifyPayment() {
-        const referenceNumber = document.getElementById('reference_number').value;
-        const screenshot = document.getElementById('payment_screenshot').files[0];
-        
-        if (!referenceNumber) {
-            alert('Please enter the GCash reference number');
-            return;
-        }
-        
-        if (!screenshot) {
-            alert('Please upload a screenshot of your payment');
-            return;
-        }
-        
-        // Here you would typically make an API call to verify the payment
-        // For now, we'll just show a success message
-        alert('Payment verification submitted. We will process your subscription once verified.');
-        hideGcashModal();
-    }
-
-    // Add file preview functionality
-    document.getElementById('payment_screenshot').addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                document.getElementById('preview_image').src = e.target.result;
-                document.getElementById('preview').classList.remove('hidden');
-            }
-            reader.readAsDataURL(file);
-        }
-    });
 </script>
 @endsection 

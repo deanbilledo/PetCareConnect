@@ -49,6 +49,7 @@
                 <div class="mb-6">  
                     <div class="flex space-x-4">
                         <button class="bg-blue-500 text-white px-4 py-2 rounded-lg" onclick="showUserType('shopOwners')">Shop Owners</button>
+                        <button class="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg" onclick="showUserType('staff')">Staff</button>
                         <button class="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg" onclick="showUserType('customers')">Customers</button>
                     </div>
                 </div>
@@ -68,6 +69,28 @@
                                 </tr>
                             </thead>
                             <tbody id="shopOwnersTableBody">
+                                <!-- Table rows will be dynamically added here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Staff Management (hidden by default) -->
+                <div id="staff" class="hidden bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 mb-6 transform hover:scale-105 transition-transform duration-300">
+                    <h3 class="text-lg font-semibold mb-4">Staff</h3>
+                    <div class="overflow-x-auto rounded-xl">
+                        <table class="w-full table-auto">
+                            <thead>
+                                <tr class="bg-gray-200 dark:bg-gray-700">
+                                    <th class="px-4 py-2 text-left rounded-tl-xl">Name</th>
+                                    <th class="px-4 py-2 text-left">Email</th>
+                                    <th class="px-4 py-2 text-left">Shop</th>
+                                    <th class="px-4 py-2 text-left">Role</th>
+                                    <th class="px-4 py-2 text-left">Status</th>
+                                    <th class="px-4 py-2 text-left rounded-tr-xl">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="staffTableBody">
                                 <!-- Table rows will be dynamically added here -->
                             </tbody>
                         </table>
@@ -155,6 +178,10 @@
                 { name: "John Doe", email: "john@example.com", shop: "Pawsome Grooming", status: "Active" },
                 { name: "Jane Smith", email: "jane@example.com", shop: "Happy Paws", status: "Active" }
             ],
+            staff: [
+                { name: "Alice Johnson", email: "alice@example.com", shop: "Pawsome Grooming", role: "Groomer", status: "Active" },
+                { name: "Bob Williams", email: "bob@example.com", shop: "Happy Paws", role: "Veterinarian", status: "Active" }
+            ],
             customers: [
                 { name: "Charlie Brown", email: "charlie@example.com", joinDate: "2023-01-15", status: "Active" },
                 { name: "Diana Prince", email: "diana@example.com", joinDate: "2023-02-20", status: "Active" }
@@ -171,7 +198,8 @@
                 row.innerHTML = `
                     <td class="px-4 py-2">${user.name}</td>
                     <td class="px-4 py-2">${user.email}</td>
-                    <td class="px-4 py-2">${user[userType === 'shopOwners' ? 'shop' : 'joinDate']}</td>
+                    <td class="px-4 py-2">${user[userType === 'shopOwners' ? 'shop' : (userType === 'staff' ? 'shop' : 'joinDate')]}</td>
+                    ${userType === 'staff' ? `<td class="px-4 py-2">${user.role}</td>` : ''}
                     <td class="px-4 py-2"><span class="px-2 py-1 bg-green-200 text-green-800 rounded-full text-sm">${user.status}</span></td>
                     <td class="px-4 py-2">
                         <form onsubmit="viewEditProfile('${user.name}', '${userType}'); return false;">
@@ -193,6 +221,7 @@
         // Function to switch between user types
         function showUserType(userType) {
             document.getElementById('shopOwners').classList.add('hidden');
+            document.getElementById('staff').classList.add('hidden');
             document.getElementById('customers').classList.add('hidden');
             document.getElementById(userType).classList.remove('hidden');
 
@@ -223,7 +252,8 @@
             modalContent.innerHTML = `
                 <p><strong>Name:</strong> ${user.name}</p>
                 <p><strong>Email:</strong> ${user.email}</p>
-                <p><strong>${userType === 'shopOwners' ? 'Shop' : 'Join Date'}:</strong> ${user[userType === 'shopOwners' ? 'shop' : 'joinDate']}</p>
+                <p><strong>${userType === 'shopOwners' ? 'Shop' : (userType === 'staff' ? 'Shop' : 'Join Date')}:</strong> ${user[userType === 'shopOwners' ? 'shop' : (userType === 'staff' ? 'shop' : 'joinDate')]}</p>
+                ${userType === 'staff' ? `<p><strong>Role:</strong> ${user.role}</p>` : ''}
                 <p><strong>Status:</strong> ${user.status}</p>
             `;
             

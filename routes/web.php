@@ -28,7 +28,8 @@ use App\Http\Middleware\IsAdmin;
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/petlandingpage', function () {
     return view('groomVetLandingPage.petlandingpage');
-})->name('petlandingpage');Route::get('/book/{shop}', [BookingController::class, 'show'])->name('booking.show');
+})->name('petlandingpage');
+Route::get('/book/{shop}', [BookingController::class, 'show'])->name('booking.show');
 Route::get('/grooming', function () {
     return view('groomVetLandingPage.groominglandingpage');
 })->name('grooming');
@@ -79,7 +80,6 @@ Route::middleware(['auth'])->group(function () {
             // Static routes
             Route::view('/employees', 'shop.employees.index')->name('employees');
             Route::view('/analytics', 'shop.analytics.index')->name('analytics');
-            Route::view('/reviews', 'shop.reviews.index')->name('reviews');
             Route::view('/settings', 'shop.settings.index')->name('settings');
             Route::post('/gallery', [ShopProfileController::class, 'uploadGalleryPhoto'])->name('gallery.upload');
             Route::delete('/gallery/{photo}', [ShopProfileController::class, 'deleteGalleryPhoto'])->name('gallery.delete');
@@ -171,28 +171,3 @@ Route::middleware(['auth', 'has-shop'])->group(function () {
     Route::delete('/shop/services/{service}', [ShopServicesController::class, 'destroy']);
     Route::put('/shop/services/{service}/status', [ShopServicesController::class, 'updateStatus']);
 });
-
-// Receipt Routes
-Route::get('/receipt/{appointment}/download', [App\Http\Controllers\ReceiptController::class, 'download'])
-    ->name('receipt.download')
-    ->middleware('auth');
-
-Route::get('/booking/{shop}/acknowledgement', [App\Http\Controllers\ReceiptController::class, 'downloadAcknowledgement'])
-    ->name('booking.receipt.download')
-    ->middleware('auth');
-
-// Favorite Routes
-Route::middleware('auth')->group(function () {
-    Route::get('/favorites', [App\Http\Controllers\FavoriteController::class, 'index'])->name('favorites.index');
-    Route::post('/favorites/{shop}', [App\Http\Controllers\FavoriteController::class, 'toggle'])->name('favorites.toggle');
-    Route::get('/favorites/{shop}/check', [App\Http\Controllers\FavoriteController::class, 'check'])->name('favorites.check');
-});
-
-// Shop Routes
-Route::get('/veterinary-shops', [App\Http\Controllers\ShopController::class, 'veterinaryShops'])->name('shops.veterinary');
-Route::get('/grooming-shops', [App\Http\Controllers\ShopController::class, 'groomingShops'])->name('shops.grooming');
-
-// Shop Reviews
-Route::post('/shops/{shop}/reviews', [App\Http\Controllers\ShopController::class, 'submitReview'])
-    ->name('shops.reviews.submit')
-    ->middleware('auth');
