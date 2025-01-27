@@ -26,8 +26,6 @@ class ShopServicesController extends Controller
     public function store(Request $request)
     {
         try {
-            \Log::info('Storing service with data:', $request->all());
-            
             $validated = $request->validate([
                 'name' => 'required|string|max:255',
                 'category' => 'required|string',
@@ -39,28 +37,19 @@ class ShopServicesController extends Controller
                 'exotic_pet_service' => 'boolean',
                 'exotic_pet_species' => 'required_if:exotic_pet_service,true|array|nullable',
                 'exotic_pet_species.*' => 'string',
-                'special_requirements' => 'nullable|string',
                 'base_price' => 'required|numeric|min:0',
                 'duration' => 'required|integer|min:15',
-                'variable_pricing' => 'nullable|array',
-                'variable_pricing.*.size' => 'required_with:variable_pricing|string',
-                'variable_pricing.*.price' => 'required_with:variable_pricing|numeric|min:0',
-                'add_ons' => 'nullable|array'
             ]);
 
-            // Filter out empty variable pricing entries
-            if (isset($validated['variable_pricing'])) {
-                $validated['variable_pricing'] = array_filter($validated['variable_pricing'], function($price) {
-                    return !empty($price['size']) && isset($price['price']);
-                });
+            // Ensure Exotic is in pet_types if exotic_pet_service is true
+            if ($validated['exotic_pet_service'] && !in_array('Exotic', $validated['pet_types'])) {
+                $validated['pet_types'][] = 'Exotic';
             }
 
-            \Log::info('Validated data:', $validated);
+            Log::info('Creating service with data:', $validated);
 
             $shop = auth()->user()->shop;
             $service = $shop->services()->create($validated);
-
-            \Log::info('Service created:', $service->toArray());
 
             return response()->json([
                 'success' => true,
@@ -68,8 +57,7 @@ class ShopServicesController extends Controller
                 'service' => $service
             ]);
         } catch (\Exception $e) {
-            \Log::error('Error creating service: ' . $e->getMessage());
-            \Log::error($e->getTraceAsString());
+            Log::error('Error creating service: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to add service: ' . $e->getMessage()

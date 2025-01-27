@@ -16,6 +16,7 @@ use App\Http\Controllers\FavoriteController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\ShopSetupController;
 use App\Http\Controllers\ReceiptController;
+use App\Http\Controllers\PetController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -80,6 +81,7 @@ Route::middleware(['auth'])->group(function () {
             // Static routes
             Route::view('/employees', 'shop.employees.index')->name('employees');
             Route::view('/analytics', 'shop.analytics.index')->name('analytics');
+            Route::view('/reviews', 'shop.reviews.index')->name('reviews');
             Route::view('/settings', 'shop.settings.index')->name('settings');
             Route::post('/gallery', [ShopProfileController::class, 'uploadGalleryPhoto'])->name('gallery.upload');
             Route::delete('/gallery/{photo}', [ShopProfileController::class, 'deleteGalleryPhoto'])->name('gallery.delete');
@@ -96,9 +98,8 @@ Route::middleware(['auth'])->group(function () {
         
         // Pet routes
         Route::prefix('pets')->name('pets.')->group(function () {
-            // Pet CRUD operations
-            Route::post('/', [ProfileController::class, 'storePet'])->name('store');
-            Route::put('/{pet}', [ProfileController::class, 'updatePet'])->name('update');
+            Route::post('/', [PetController::class, 'store'])->name('store');
+            Route::put('/{pet}', [PetController::class, 'update'])->name('update');
             Route::delete('/{pet}', [ProfileController::class, 'deletePet'])->name('delete');
             Route::post('/{pet}/update-photo', [ProfileController::class, 'updatePetPhoto'])->name('update-photo');
             

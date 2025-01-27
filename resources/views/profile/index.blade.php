@@ -293,7 +293,25 @@ use Illuminate\Support\Str;
              x-transition:leave="transition ease-in duration-300"
              x-transition:leave-start="opacity-100 transform scale-y-100"
              x-transition:leave-end="opacity-0 transform scale-y-0"
-             class="mb-6 bg-gray-50 p-4 rounded-lg border border-gray-200">
+             class="mb-6 bg-gray-50 p-4 rounded-lg border border-gray-200"
+             x-data="{ petType: '' }">
+            
+            @if ($errors->any())
+            <div class="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+                <ul class="list-disc list-inside">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+            @endif
+
+            @if (session('success'))
+            <div class="mb-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded">
+                {{ session('success') }}
+            </div>
+            @endif
+
             <form action="{{ route('profile.pets.store') }}" method="POST">
                 @csrf
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -305,13 +323,23 @@ use Illuminate\Support\Str;
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
                         <select name="type" required 
+                                x-model="petType"
                                 class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
                             <option value="">Select Type</option>
                             <option value="Dog">Dog</option>
                             <option value="Cat">Cat</option>
                             <option value="Bird">Bird</option>
-                            <option value="Other">Other</option>
+                            <option value="Exotic">Exotic</option>
                         </select>
+                    </div>
+                    <!-- Add species field for exotic pets -->
+                    <div x-show="petType === 'Exotic'">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Species</label>
+                        <input type="text" 
+                               name="species" 
+                               x-bind:required="petType === 'Exotic'"
+                               placeholder="e.g., Hamster, Snake, Iguana"
+                               class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Breed</label>
@@ -470,7 +498,8 @@ use Illuminate\Support\Str;
                             x-cloak
                             class="border-t">
                             <td colspan="6" class="py-4">
-                                <form action="{{ route('profile.pets.update', $pet) }}" method="POST" class="p-4 bg-gray-50 rounded-lg">
+                                <form action="{{ route('profile.pets.update', $pet) }}" method="POST" class="p-4 bg-gray-50 rounded-lg"
+                                      x-data="{ petType: '{{ $pet->type }}' }">
                                     @csrf
                                     @method('PUT')
                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -482,12 +511,23 @@ use Illuminate\Support\Str;
                                         <div>
                                             <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
                                             <select name="type" required 
+                                                    x-model="petType"
                                                     class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
                                                 <option value="Dog" {{ $pet->type == 'Dog' ? 'selected' : '' }}>Dog</option>
                                                 <option value="Cat" {{ $pet->type == 'Cat' ? 'selected' : '' }}>Cat</option>
                                                 <option value="Bird" {{ $pet->type == 'Bird' ? 'selected' : '' }}>Bird</option>
-                                                <option value="Other" {{ $pet->type == 'Other' ? 'selected' : '' }}>Other</option>
+                                                <option value="Exotic" {{ $pet->type == 'Exotic' ? 'selected' : '' }}>Exotic</option>
                                             </select>
+                                        </div>
+                                        <!-- Add species field for exotic pets -->
+                                        <div x-show="petType === 'Exotic'">
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Species</label>
+                                            <input type="text" 
+                                                   name="species" 
+                                                   value="{{ $pet->species }}"
+                                                   x-bind:required="petType === 'Exotic'"
+                                                   placeholder="e.g., Hamster, Snake, Iguana"
+                                                   class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
                                         </div>
                                         <div>
                                             <label class="block text-sm font-medium text-gray-700 mb-1">Breed</label>

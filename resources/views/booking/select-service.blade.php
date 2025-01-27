@@ -84,49 +84,104 @@ use Illuminate\Support\Facades\Log;
             @endforeach
 
             <!-- Hidden appointment type -->
-            <input type="hidden" name="appointment_type" value="{{ request('appointment_type') }}">
+            <input type="hidden" name="appointment_type" value="{{ $bookingData['appointment_type'] ?? request('appointment_type') }}">
 
             <!-- Service selection for each pet -->
             @foreach($pets as $index => $pet)
                 <div class="mb-6 pb-6 {{ !$loop->last ? 'border-b border-gray-200' : '' }}">
-                    <h3 class="font-medium mb-4">Services for {{ $pet->name }} ({{ $pet->size_category }})</h3>
+                    <h3 class="font-medium mb-4">
+                        Services for {{ $pet->name }} 
+                        ({{ ucfirst($pet->type) }}{{ $pet->type === 'Exotic' ? ' - ' . $pet->species : '' }})
+                    </h3>
                     
+                    @php
+                        $petType = strtolower($pet->type);
+                        
+                        // Debug log for pet and service data
+                        Log::info("Processing services for pet:", [
+                            'pet_name' => $pet->name,
+                            'pet_type' => $petType,
+                            'pet_species' => $pet->species ?? 'N/A'
+                        ]);
+
+                        // Filter available services based on pet type
+                        $availableServices = $services->filter(function($service) use ($pet, $petType) {
+                            // Get service pet types and convert to lowercase
+                            $servicePetTypes = collect($service->pet_types)->map(function($type) {
+                                return strtolower(trim($type));
+                            })->toArray();
+
+                            // Debug log the actual values being compared
+                            Log::info("Checking service availability:", [
+                                'service_name' => $service->name,
+                                'service_pet_types' => $servicePetTypes,
+                                'checking_for_pet_type' => $petType,
+                                'raw_pet_types' => $service->pet_types,
+                                'pet_name' => $pet->name,
+                                'pet_type_raw' => $pet->type
+                            ]);
+                            
+                            // For exotic pets
+                            if ($petType === 'exotic') {
+                                $isAvailable = $service->exotic_pet_service && 
+                                             in_array($pet->species, $service->exotic_pet_species ?? []);
+                                
+                                Log::info("Exotic pet check result:", [
+                                    'is_available' => $isAvailable,
+                                    'service_name' => $service->name,
+                                    'exotic_service' => $service->exotic_pet_service,
+                                    'species_match' => in_array($pet->species, $service->exotic_pet_species ?? [])
+                                ]);
+                                
+                                return $isAvailable;
+                            }
+                            
+                            // For regular pets - check if service supports this pet type
+                            // Check both singular and plural forms of pet type
+                            $singularType = rtrim($petType, 's'); // Remove 's' if present (e.g., "dogs" -> "dog")
+                            $pluralType = $petType . 's'; // Add 's' if not present (e.g., "dog" -> "dogs")
+                            
+                            $isAvailable = in_array($petType, $servicePetTypes) || 
+                                         in_array($singularType, $servicePetTypes) || 
+                                         in_array($pluralType, $servicePetTypes);
+                            
+                            Log::info("Regular pet check result:", [
+                                'is_available' => $isAvailable,
+                                'service_name' => $service->name,
+                                'pet_type' => $petType,
+                                'singular_type' => $singularType,
+                                'plural_type' => $pluralType,
+                                'service_pet_types' => $servicePetTypes
+                            ]);
+                            
+                            return $isAvailable;
+                        });
+
+                        // Log the final available services
+                        Log::info('Final available services for ' . $pet->name . ':', [
+                            'pet_type' => $petType,
+                            'services_found' => $availableServices->count(),
+                            'service_names' => $availableServices->pluck('name')->toArray(),
+                            'service_pet_types' => $availableServices->pluck('pet_types')->toArray()
+                        ]);
+                    @endphp
+
                     <div class="space-y-4">
-                        @php
-                            $petServices = $bookingData['pet_services'] ?? [];
-                            $selectedServiceId = $petServices[$pet->id] ?? null;
-                        @endphp
-
-                        @foreach($services as $service)
-                            @php
-                                // Convert arrays and ensure proper format
-                                $petTypes = is_array($service->pet_types) ? $service->pet_types : json_decode($service->pet_types, true) ?? [];
-                                $sizeRanges = is_array($service->size_ranges) ? $service->size_ranges : json_decode($service->size_ranges, true) ?? [];
-                                
-                                // Convert everything to lowercase and singular form
-                                $petType = strtolower(rtrim($pet->type, 's'));
-                                $petSize = strtolower($pet->size_category);
-                                
-                                // Normalize service data
-                                $normalizedPetTypes = array_map(function($type) {
-                                    return strtolower(rtrim($type, 's'));
-                                }, $petTypes);
-                                
-                                $normalizedSizeRanges = array_map('strtolower', $sizeRanges);
-
-                                // Check if service is available for this pet
-                                $typeMatch = in_array($petType, $normalizedPetTypes);
-                                $sizeMatch = in_array($petSize, $normalizedSizeRanges);
-                            @endphp
-
-                            @if($typeMatch && $sizeMatch)
+                        @if($availableServices->isEmpty())
+                            <div class="bg-yellow-50 p-4 rounded-lg">
+                                <p class="text-yellow-700">
+                                    No services available for {{ ucfirst($petType) }}{{ $petType === 'exotic' ? ' - ' . $pet->species : '' }}. 
+                                    Please contact the shop for more information.
+                                </p>
+                            </div>
+                        @else
+                            @foreach($availableServices as $service)
                                 <div class="bg-gray-50 p-4 rounded-lg hover:bg-gray-100 transition-colors">
                                     <div class="flex items-start">
                                         <input type="radio" 
                                                id="service_{{ $pet->id }}_{{ $service->id }}" 
                                                name="services[{{ $pet->id }}]" 
                                                value="{{ $service->id }}"
-                                               {{ $selectedServiceId == $service->id ? 'checked' : '' }}
                                                required
                                                class="mt-1 mr-3">
                                         <label for="service_{{ $pet->id }}_{{ $service->id }}" class="flex-grow">
@@ -149,8 +204,8 @@ use Illuminate\Support\Facades\Log;
                                         </label>
                                     </div>
                                 </div>
-                            @endif
-                        @endforeach
+                            @endforeach
+                        @endif
                     </div>
                 </div>
             @endforeach
