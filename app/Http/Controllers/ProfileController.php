@@ -132,66 +132,55 @@ class ProfileController extends Controller
 
     public function storePet(Request $request)
     {
-        Log::info('Pet creation attempt with data:', $request->all());
-        $request->validate([
+        $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'type' => 'required|string|max:255',
+            'type' => 'required|string|in:Dog,Cat,Bird,Other',
             'breed' => 'required|string|max:255',
-            'size_category' => 'required|string|max:255',
-            'weight' => 'required|numeric',
+            'size_category' => 'required|string|in:Small,Medium,Large',
+            'weight' => 'required|numeric|min:0.1|max:100',
             'color_markings' => 'required|string|max:255',
-            'coat_type' => 'required|string|max:255',
+            'coat_type' => 'required|string|in:Short,Medium,Long,Curly,Double,Hairless',
             'date_of_birth' => 'required|date|before_or_equal:today',
+        ], [
+            'weight.min' => 'Weight must be greater than 0 kg',
+            'weight.max' => 'Please enter a valid weight (less than 100 kg)',
+            'weight.numeric' => 'Weight must be a valid number',
         ]);
 
         try {
-            $pet = auth()->user()->pets()->create([
-                'name' => $request->name,
-                'type' => $request->type,
-                'breed' => $request->breed,
-                'size_category' => $request->size_category,
-                'weight' => $request->weight,
-                'color_markings' => $request->color_markings,
-                'coat_type' => $request->coat_type,
-                'date_of_birth' => $request->date_of_birth,
-            ]);
-
-            return back()->with('success', 'Pet added successfully');
+            $pet = auth()->user()->pets()->create($validated);
+            return back()->with('success', 'Pet added successfully!');
         } catch (\Exception $e) {
-            Log::error('Error creating pet: ' . $e->getMessage());
             return back()->with('error', 'Failed to add pet. Please try again.');
         }
     }
 
     public function updatePet(Request $request, Pet $pet)
     {
-        $request->validate([
+        if ($pet->user_id !== auth()->id()) {
+            return back()->with('error', 'Unauthorized action.');
+        }
+
+        $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'type' => 'required|string|max:255',
+            'type' => 'required|string|in:Dog,Cat,Bird,Other',
             'breed' => 'required|string|max:255',
-            'size_category' => 'required|string|max:255',
-            'weight' => 'required|numeric',
+            'size_category' => 'required|string|in:Small,Medium,Large',
+            'weight' => 'required|numeric|min:0.1|max:100',
             'color_markings' => 'required|string|max:255',
-            'coat_type' => 'required|string|max:255',
+            'coat_type' => 'required|string|in:Short,Medium,Long,Curly,Double,Hairless',
             'date_of_birth' => 'required|date|before_or_equal:today',
+        ], [
+            'weight.min' => 'Weight must be greater than 0 kg',
+            'weight.max' => 'Please enter a valid weight (less than 100 kg)',
+            'weight.numeric' => 'Weight must be a valid number',
         ]);
 
         try {
-            $pet->update([
-                'name' => $request->name,
-                'type' => $request->type,
-                'breed' => $request->breed,
-                'size_category' => $request->size_category,
-                'weight' => $request->weight,
-                'color_markings' => $request->color_markings,
-                'coat_type' => $request->coat_type,
-                'date_of_birth' => $request->date_of_birth,
-            ]);
-
-            return back()->with('success', 'Pet updated successfully');
+            $pet->update($validated);
+            return back()->with('success', 'Pet information updated successfully!');
         } catch (\Exception $e) {
-            Log::error('Error updating pet: ' . $e->getMessage());
-            return back()->with('error', 'Failed to update pet. Please try again.');
+            return back()->with('error', 'Failed to update pet information. Please try again.');
         }
     }
 
