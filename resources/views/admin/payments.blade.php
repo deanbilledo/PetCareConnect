@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Payment Management - Pet Care Connect Platform Admin Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -225,6 +226,34 @@
 
         // Initialize the page with payment data
         populateTable();
+
+        // Add these new functions to your existing script
+        function viewID(idNumber) {
+            // Show modal with ID details
+            alert(`Viewing ID: ${idNumber}`);
+            // You can implement a proper modal here
+        }
+
+        function verifyID(idNumber) {
+            if (confirm(`Are you sure you want to verify ID: ${idNumber}?`)) {
+                // Implement verification logic
+                alert(`ID ${idNumber} has been verified`);
+            }
+        }
+
+        function rejectID(idNumber) {
+            if (confirm(`Are you sure you want to reject ID: ${idNumber}?`)) {
+                // Implement rejection logic
+                alert(`ID ${idNumber} has been rejected`);
+            }
+        }
+
+        function removeID(idNumber) {
+            if (confirm(`Are you sure you want to remove ID: ${idNumber}? This action cannot be undone.`)) {
+                // Implement removal logic
+                alert(`ID ${idNumber} has been removed`);
+            }
+        }
     </script>
 
     <!-- Commission Processed Modal -->

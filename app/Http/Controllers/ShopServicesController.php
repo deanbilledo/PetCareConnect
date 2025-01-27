@@ -36,7 +36,9 @@ class ShopServicesController extends Controller
                 'pet_types.*' => 'string',
                 'size_ranges' => 'required|array',
                 'size_ranges.*' => 'string',
-                'breed_specific' => 'boolean',
+                'exotic_pet_service' => 'boolean',
+                'exotic_pet_species' => 'required_if:exotic_pet_service,true|array|nullable',
+                'exotic_pet_species.*' => 'string',
                 'special_requirements' => 'nullable|string',
                 'base_price' => 'required|numeric|min:0',
                 'duration' => 'required|integer|min:15',
@@ -78,12 +80,11 @@ class ShopServicesController extends Controller
     public function update(Request $request, Service $service)
     {
         try {
-            \Log::info('Updating service with data:', $request->all());
-            
+            // Authorization check
             if ($service->shop_id !== auth()->user()->shop->id) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Unauthorized'
+                    'message' => 'Unauthorized to update this service'
                 ], 403);
             }
 
@@ -95,33 +96,32 @@ class ShopServicesController extends Controller
                 'pet_types.*' => 'string',
                 'size_ranges' => 'required|array',
                 'size_ranges.*' => 'string',
-                'breed_specific' => 'boolean',
+                'exotic_pet_service' => 'boolean',
+                'exotic_pet_species' => 'required_if:exotic_pet_service,true|array|nullable',
+                'exotic_pet_species.*' => 'string',
                 'special_requirements' => 'nullable|string',
                 'base_price' => 'required|numeric|min:0',
                 'duration' => 'required|integer|min:15',
                 'variable_pricing' => 'nullable|array',
                 'variable_pricing.*.size' => 'required_with:variable_pricing|string',
                 'variable_pricing.*.price' => 'required_with:variable_pricing|numeric|min:0',
-                'add_ons' => 'nullable|array'
+                'add_ons' => 'nullable|array',
+                'add_ons.*.name' => 'required_with:add_ons|string',
+                'add_ons.*.price' => 'required_with:add_ons|numeric|min:0'
             ]);
 
-            \Log::info('Validated data:', $validated);
-
             $service->update($validated);
-
-            \Log::info('Service updated:', $service->fresh()->toArray());
 
             return response()->json([
                 'success' => true,
                 'message' => 'Service updated successfully',
-                'service' => $service
+                'data' => $service->fresh()
             ]);
         } catch (\Exception $e) {
-            \Log::error('Error updating service: ' . $e->getMessage());
-            \Log::error($e->getTraceAsString());
+            Log::error('Error updating service: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to update service: ' . $e->getMessage()
+                'message' => 'Failed to update service'
             ], 500);
         }
     }
@@ -208,7 +208,8 @@ class ShopServicesController extends Controller
                 'description' => $service->description,
                 'pet_types' => $service->pet_types ?? [],
                 'size_ranges' => $service->size_ranges ?? [],
-                'breed_specific' => (bool) $service->breed_specific,
+                'exotic_pet_service' => (bool) $service->exotic_pet_service,
+                'exotic_pet_species' => $service->exotic_pet_species ?? [],
                 'special_requirements' => $service->special_requirements,
                 'base_price' => (float) $service->base_price,
                 'duration' => (int) $service->duration,

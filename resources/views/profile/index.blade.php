@@ -330,8 +330,14 @@ use Illuminate\Support\Str;
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Weight (kg)</label>
-                        <input type="number" name="weight" step="0.1" required 
+                        <input type="number" 
+                               name="weight" 
+                               step="0.1" 
+                               required 
+                               min="0.1"
+                               oninput="validateWeight(this)"
                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
+                        <span class="text-red-500 text-xs hidden" id="weight-error"></span>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Color/Markings</label>
@@ -415,7 +421,7 @@ use Illuminate\Support\Str;
                                             @csrf
                                             @method('DELETE')
                                             <button type="button"
-                                                    @click="deletePet({{ $pet->id }})"
+                                                    @click="$dispatch('open-delete-modal', { id: {{ $pet->id }}, name: '{{ $pet->name }}' })"
                                                     class="inline-flex items-center gap-1 px-2 py-1 bg-white border border-gray-300 rounded text-xs text-gray-700 hover:bg-gray-50">
                                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -618,7 +624,73 @@ use Illuminate\Support\Str;
         </div>
     </div>
 
-    
+    <!-- Delete Pet Modal -->
+    <div x-data="deleteModal()"
+         @open-delete-modal.window="open($event.detail)"
+         x-show="isOpen"
+         x-cloak
+         class="fixed inset-0 z-50 overflow-y-auto"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0">
+         
+         <!-- Modal Backdrop -->
+         <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity"></div>
+         
+         <!-- Modal Content -->
+         <div class="flex items-center justify-center min-h-screen p-4">
+             <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-auto"
+                  @click.away="isOpen = false"
+                  x-transition:enter="transition ease-out duration-300"
+                  x-transition:enter-start="opacity-0 transform scale-95"
+                  x-transition:enter-end="opacity-100 transform scale-100"
+                  x-transition:leave="transition ease-in duration-200"
+                  x-transition:leave-start="opacity-100 transform scale-100"
+                  x-transition:leave-end="opacity-0 transform scale-95">
+                 
+                 <!-- Modal Header -->
+                 <div class="bg-red-50 rounded-t-lg px-6 py-4 flex items-center justify-between">
+                     <h3 class="text-lg font-medium text-red-900">Delete Pet</h3>
+                     <button @click="isOpen = false" class="text-red-900 hover:text-red-700">
+                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                         </svg>
+                     </button>
+                 </div>
+                 
+                 <!-- Modal Body -->
+                 <div class="px-6 py-4">
+                     <div class="flex items-center space-x-4 mb-4">
+                         <div class="bg-red-100 rounded-full p-2">
+                             <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                       d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                             </svg>
+                         </div>
+                         <div>
+                             <h4 class="text-lg font-medium text-gray-900">Confirm Deletion</h4>
+                             <p class="text-sm text-gray-500">Are you sure you want to delete <span x-text="petName" class="font-medium"></span>? This action cannot be undone.</p>
+                         </div>
+                     </div>
+                 </div>
+                 
+                 <!-- Modal Footer -->
+                 <div class="bg-gray-50 px-6 py-4 rounded-b-lg flex justify-end space-x-3">
+                     <button @click="isOpen = false"
+                             class="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-500">
+                         Cancel
+                     </button>
+                     <button @click="deletePet()"
+                             class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                         Delete Pet
+                     </button>
+                 </div>
+             </div>
+         </div>
+     </div>
 </div>
 @endsection 
 
@@ -645,5 +717,60 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+
+function validateWeight(input) {
+    const weightError = input.nextElementSibling;
+    const submitButton = input.closest('form').querySelector('button[type="submit"]');
+    
+    if (input.value <= 0) {
+        weightError.textContent = 'Weight must be greater than 0 kg';
+        weightError.classList.remove('hidden');
+        submitButton.disabled = true;
+        submitButton.classList.add('opacity-50', 'cursor-not-allowed');
+        return false;
+    }
+    
+    if (input.value > 100) {
+        weightError.textContent = 'Please enter a valid weight (less than 100 kg)';
+        weightError.classList.remove('hidden');
+        submitButton.disabled = true;
+        submitButton.classList.add('opacity-50', 'cursor-not-allowed');
+        return false;
+    }
+    
+    weightError.classList.add('hidden');
+    submitButton.disabled = false;
+    submitButton.classList.remove('opacity-50', 'cursor-not-allowed');
+    return true;
+}
+
+// Add form validation
+document.querySelectorAll('form').forEach(form => {
+    if (form.querySelector('input[name="weight"]')) {
+        form.addEventListener('submit', function(e) {
+            const weightInput = this.querySelector('input[name="weight"]');
+            if (!validateWeight(weightInput)) {
+                e.preventDefault();
+                return false;
+            }
+        });
+    }
+});
+
+function deleteModal() {
+    return {
+        isOpen: false,
+        petId: null,
+        petName: '',
+        open(data) {
+            this.petId = data.id;
+            this.petName = data.name;
+            this.isOpen = true;
+        },
+        deletePet() {
+            document.getElementById(`delete-pet-form-${this.petId}`).submit();
+        }
+    }
+}
 </script>
 @endpush

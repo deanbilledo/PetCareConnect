@@ -16,7 +16,8 @@ class Service extends Model
         'description',
         'pet_types',
         'size_ranges',
-        'breed_specific',
+        'exotic_pet_service',
+        'exotic_pet_species',
         'special_requirements',
         'base_price',
         'duration',
@@ -28,7 +29,8 @@ class Service extends Model
     protected $casts = [
         'pet_types' => 'array',
         'size_ranges' => 'array',
-        'breed_specific' => 'boolean',
+        'exotic_pet_service' => 'boolean',
+        'exotic_pet_species' => 'array',
         'base_price' => 'decimal:2',
         'duration' => 'integer',
         'variable_pricing' => 'array',
@@ -73,6 +75,11 @@ class Service extends Model
     }
 
     public function getSizeRangesAttribute($value)
+    {
+        return json_decode($value, true) ?? [];
+    }
+
+    public function getExoticPetSpeciesAttribute($value)
     {
         return json_decode($value, true) ?? [];
     }
