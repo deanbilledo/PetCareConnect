@@ -38,6 +38,9 @@ Route::get('/grooming-shops', [ShopController::class, 'groomingShops'])->name('g
 Route::get('/terms', function () { return view('pages.terms'); })->name('terms');
 Route::get('/privacy', function () { return view('pages.privacy'); })->name('privacy');
 Route::get('/faqs', function () { return view('pages.faqs'); })->name('faqs');
+Route::get('/pet-care-tips', function () {
+    return view('pet-care-tips');
+})->name('pet-care-tips');
 
 // Authentication routes
 Auth::routes();

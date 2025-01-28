@@ -42,6 +42,98 @@
 
     <!-- Grooming Section -->
     @include('partials.groomingshop')
+
+    <!-- Pet Care Tips Section -->
+    <section class="bg-green-50 rounded-lg my-6 p-4 lg:p-8">
+        <div class="text-center mb-8">
+            <h2 class="text-3xl font-bold mb-3">Pet Care Tips & Guidelines</h2>
+            <p class="text-gray-600">Expert advice to keep your furry friends healthy and happy</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Diet Tips Card -->
+            <div class="bg-white rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow">
+                <div class="flex items-center mb-4">
+                    <svg class="w-8 h-8 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h18v18H3z M16 8h.01M8 8h.01M8 16h.01M16 16h.01M12 12h.01"/>
+                    </svg>
+                    <h3 class="text-xl font-semibold">Healthy Diet Guide</h3>
+                </div>
+                <ul class="space-y-2 text-gray-600">
+                    <li class="flex items-start">
+                        <span class="text-green-500 mr-2">•</span>
+                        Feed age-appropriate pet food
+                    </li>
+                    <li class="flex items-start">
+                        <span class="text-green-500 mr-2">•</span>
+                        Maintain regular feeding schedule
+                    </li>
+                    <li class="flex items-start">
+                        <span class="text-green-500 mr-2">•</span>
+                        Provide fresh water daily
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Grooming Tips Card -->
+            <div class="bg-white rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow">
+                <div class="flex items-center mb-4">
+                    <svg class="w-8 h-8 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"/>
+                    </svg>
+                    <h3 class="text-xl font-semibold">Grooming Routines</h3>
+                </div>
+                <ul class="space-y-2 text-gray-600">
+                    <li class="flex items-start">
+                        <span class="text-green-500 mr-2">•</span>
+                        Brush coat regularly
+                    </li>
+                    <li class="flex items-start">
+                        <span class="text-green-500 mr-2">•</span>
+                        Trim nails monthly
+                    </li>
+                    <li class="flex items-start">
+                        <span class="text-green-500 mr-2">•</span>
+                        Regular teeth cleaning
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Health Guidelines Card -->
+            <div class="bg-white rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow">
+                <div class="flex items-center mb-4">
+                    <svg class="w-8 h-8 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                    </svg>
+                    <h3 class="text-xl font-semibold">Health Tips</h3>
+                </div>
+                <ul class="space-y-2 text-gray-600">
+                    <li class="flex items-start">
+                        <span class="text-green-500 mr-2">•</span>
+                        Regular vet check-ups
+                    </li>
+                    <li class="flex items-start">
+                        <span class="text-green-500 mr-2">•</span>
+                        Keep vaccinations updated
+                    </li>
+                    <li class="flex items-start">
+                        <span class="text-green-500 mr-2">•</span>
+                        Daily exercise routine
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="mt-8 text-center">
+            <a href="{{ route('pet-care-tips') }}" class="inline-flex items-center text-green-600 hover:text-green-700">
+                View more pet care tips
+                <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+            </a>
+        </div>
+    </section>
+
     <!-- Join as Partner Section -->
     <section class="bg-blue-50 rounded-lg my-6 p-4 lg:p-8">
         <div class="flex flex-col lg:flex-row items-center justify-between">

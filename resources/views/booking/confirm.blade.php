@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Log;
 @section('content')
 <div class="container mx-auto px-4 py-6">
     <!-- Back Button -->
-    <div class="mb-4">
+    <div class="mb-4 mt-5">
         <form action="{{ route('booking.select-datetime', $shop) }}" method="POST" id="backForm">
             @csrf
             @if(isset($bookingData['pet_ids']))
@@ -209,8 +209,8 @@ use Illuminate\Support\Facades\Log;
 
             <!-- Confirm Button -->
             <div class="mt-6">
-                <button type="submit" 
-                        onclick="event.preventDefault(); document.getElementById('confirmForm').submit();"
+                <button type="button" 
+                        onclick="showConfirmationModal()"
                         class="w-full bg-blue-500 text-white py-3 rounded-lg font-medium hover:bg-blue-600 transition-colors">
                     Confirm Booking
                 </button>
@@ -219,13 +219,172 @@ use Illuminate\Support\Facades\Log;
     </div>
 </div>
 
+<!-- Confirmation Modal -->
+<div id="confirmationModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <!-- Background overlay -->
+    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity backdrop-blur-sm"></div>
+
+    <!-- Modal panel -->
+    <div class="fixed inset-0 z-10 overflow-y-auto">
+        <div class="flex min-h-full items-center justify-center p-4">
+            <div class="relative transform overflow-hidden rounded-xl bg-white shadow-2xl transition-all max-w-lg w-full mx-auto">
+                <!-- Modal Header -->
+                <div class="bg-white px-6 py-4 border-b border-gray-200">
+                    <div class="flex items-center space-x-3">
+                        <div class="flex-shrink-0">
+                            <div class="bg-blue-100 rounded-full p-2">
+                                <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <h3 class="text-xl font-semibold text-gray-900" id="modal-title">
+                            Confirm Your Booking
+                        </h3>
+                    </div>
+                </div>
+
+                <!-- Modal Content -->
+                <div class="px-6 py-4">
+                    <!-- Booking Details Card -->
+                    <div class="bg-gray-50 rounded-lg p-4 mb-4">
+                        <h4 class="font-medium text-gray-900 mb-3">Booking Details</h4>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-600">Date:</span>
+                                <span class="font-medium">{{ $appointmentDateTime->format('l, F j, Y') }}</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-600">Time:</span>
+                                <span class="font-medium">{{ $appointmentDateTime->format('g:i A') }}</span>
+                            </div>
+                            <div class="flex justify-between items-center pt-2 border-t border-gray-200">
+                                <span class="text-gray-900 font-medium">Total Amount:</span>
+                                <span class="text-lg font-semibold text-blue-600">₱{{ number_format($total ?? 0, 2) }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Cancellation Policy Card -->
+                    <div class="bg-yellow-50 rounded-lg p-4 mb-4">
+                        <div class="flex items-start space-x-3">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-yellow-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-medium text-yellow-800 mb-2">Cancellation Policy</h4>
+                                <ul class="text-sm text-yellow-700 space-y-1.5">
+                                    <li class="flex items-start">
+                                        <span class="mr-2">•</span>
+                                        <span>You can cancel your appointment up to 2 hours before the scheduled time</span>
+                                    </li>
+                                    <li class="flex items-start">
+                                        <span class="mr-2">•</span>
+                                        <span>Maximum of 2 cancellations allowed per week</span>
+                                    </li>
+                                    <li class="flex items-start">
+                                        <span class="mr-2">•</span>
+                                        <span>Excessive cancellations may result in booking restrictions</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Terms Agreement -->
+                    <div class="flex items-start space-x-3 bg-gray-50 rounded-lg p-4">
+                        <div class="flex items-center h-5">
+                            <input id="terms" name="terms" type="checkbox" 
+                                   class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                        </div>
+                        <label for="terms" class="text-sm text-gray-700">
+                            <span class="font-medium">I agree to the cancellation policy and terms</span>
+                            <p class="mt-1 text-gray-500">By checking this box, you acknowledge that you have read and agree to our cancellation policy and booking terms.</p>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Modal Footer -->
+                <div class="bg-gray-50 px-6 py-4 flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2">
+                    <button type="button" 
+                            onclick="hideConfirmationModal()"
+                            class="mt-3 sm:mt-0 w-full sm:w-auto inline-flex justify-center items-center px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
+                        Cancel
+                    </button>
+                    <button type="button" 
+                            onclick="submitBooking()"
+                            class="w-full sm:w-auto inline-flex justify-center items-center px-4 py-2.5 rounded-lg text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
+                        Confirm Booking
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 @push('scripts')
 <script>
+function showConfirmationModal() {
+    const modal = document.getElementById('confirmationModal');
+    modal.classList.remove('hidden');
+    // Add animation classes
+    requestAnimationFrame(() => {
+        modal.querySelector('.bg-white').classList.add('animate-modal-content');
+    });
+}
+
+function hideConfirmationModal() {
+    const modal = document.getElementById('confirmationModal');
+    modal.classList.add('hidden');
+}
+
+function submitBooking() {
+    const termsCheckbox = document.getElementById('terms');
+    if (!termsCheckbox.checked) {
+        alert('Please agree to the cancellation policy and terms before proceeding.');
+        return;
+    }
+    document.getElementById('confirmForm').submit();
+}
+
 document.getElementById('confirmForm').addEventListener('submit', function(e) {
     e.preventDefault();
-    this.submit();
+    showConfirmationModal();
+});
+
+// Close modal when clicking outside
+document.getElementById('confirmationModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        hideConfirmationModal();
+    }
+});
+
+// Close modal on escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && !document.getElementById('confirmationModal').classList.contains('hidden')) {
+        hideConfirmationModal();
+    }
 });
 </script>
+
+<style>
+@keyframes modal-content {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.animate-modal-content {
+    animation: modal-content 0.2s ease-out forwards;
+}
+</style>
 @endpush
 
 @endsection 

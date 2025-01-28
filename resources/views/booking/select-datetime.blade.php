@@ -124,7 +124,22 @@ use Illuminate\Support\Facades\Log;
     <!-- Date and Time Selection -->
     <div class="bg-white rounded-lg shadow-md p-6 mb-6" x-data="timeSlotPicker()">
         <h2 class="text-lg font-semibold mb-4">Select Date and Time</h2>
-        <p class="text-sm text-gray-600 mb-4">Total duration of selected services: {{ $totalDuration }} minutes</p>
+        
+        <!-- Service Duration Info -->
+        <div class="mb-6 bg-blue-50 rounded-lg p-4">
+            <div class="flex items-start">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-blue-800">Service Duration Information</h3>
+                    <p class="mt-1 text-sm text-blue-600">Total duration of selected services: {{ $totalDuration }} minutes</p>
+                    <p class="mt-1 text-sm text-blue-600">Time slots are adjusted to ensure all services can be completed within the shop's operating hours.</p>
+                </div>
+            </div>
+        </div>
 
         <form action="{{ route('booking.confirm.show', $shop) }}" method="GET" id="bookingForm" onsubmit="return validateForm()">
             @csrf
@@ -159,6 +174,7 @@ use Illuminate\Support\Facades\Log;
             <!-- Time Selection -->
             <div class="mb-6">
                 <label class="block text-sm font-medium text-gray-700 mb-2">Select Time</label>
+                <p class="text-sm text-gray-500 mb-2">Each time slot ensures {{ $totalDuration }} minutes for your service(s)</p>
                 
                 <!-- Loading State -->
                 <div x-show="loading" class="text-gray-500 text-sm mb-2">
@@ -183,7 +199,7 @@ use Illuminate\Support\Facades\Log;
                         required>
                     <option value="">Select a time</option>
                     <template x-for="slot in timeSlots" :key="slot">
-                        <option x-text="slot" :value="slot"></option>
+                        <option x-text="slot + ' - ' + getEndTime(slot, {{ $totalDuration }})" :value="slot"></option>
                     </template>
                 </select>
                 
@@ -271,6 +287,21 @@ function timeSlotPicker() {
             }
         }
     }
+}
+
+// Function to calculate and format end time
+function getEndTime(startTime, duration) {
+    const [hours, minutes] = startTime.match(/(\d+):(\d+)/).slice(1);
+    const startDate = new Date();
+    startDate.setHours(parseInt(hours));
+    startDate.setMinutes(parseInt(minutes));
+    
+    const endDate = new Date(startDate.getTime() + duration * 60000);
+    return endDate.toLocaleTimeString('en-US', { 
+        hour: 'numeric', 
+        minute: '2-digit', 
+        hour12: true 
+    });
 }
 </script>
 @endpush
