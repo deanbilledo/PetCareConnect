@@ -10,6 +10,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class BookingController extends Controller
 {
@@ -599,5 +600,29 @@ class BookingController extends Controller
             'shop' => $shop,
             'booking_details' => session('booking_details')
         ]);
+    }
+
+    public function downloadAcknowledgement(Request $request, Shop $shop)
+    {
+        try {
+            $booking_details = session('booking_details');
+            
+            if (!$booking_details) {
+                return back()->with('error', 'Booking details not found. Please try again.');
+            }
+
+            // Generate receipt view
+            $pdf = \PDF::loadView('pdfs.acknowledgement-receipt', [
+                'booking_details' => $booking_details
+            ]);
+
+            // Generate filename
+            $filename = 'booking_acknowledgement_' . time() . '_' . Str::slug($booking_details['shop_name']) . '.pdf';
+
+            return $pdf->download($filename);
+        } catch (\Exception $e) {
+            Log::error('Error generating acknowledgement receipt: ' . $e->getMessage());
+            return back()->with('error', 'Failed to generate acknowledgement receipt. Please try again.');
+        }
     }
 } 

@@ -128,6 +128,7 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/store', [BookingController::class, 'store'])->name('store');
             Route::get('/thank-you', [BookingController::class, 'thankYou'])->name('thank-you');
             Route::get('/receipt', [ReceiptController::class, 'download'])->name('receipt.download');
+            Route::get('/acknowledgement', [BookingController::class, 'downloadAcknowledgement'])->name('acknowledgement.download');
         });
     });
 
@@ -140,6 +141,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/{appointment}/mark-as-paid', [AppointmentController::class, 'markAsPaid'])->name('mark-as-paid');
         Route::post('/{appointment}/shop-cancel', [AppointmentController::class, 'shopCancel'])->name('shop-cancel');
         Route::post('/{appointment}/accept', [AppointmentController::class, 'accept'])->name('accept');
+        Route::get('/{appointment}/receipt', [AppointmentController::class, 'downloadReceipt'])->name('official-receipt.download');
     });
     Route::resource('appointments', AppointmentController::class)->except(['show']);
 

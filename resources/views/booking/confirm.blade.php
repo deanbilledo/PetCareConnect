@@ -162,6 +162,54 @@ use Illuminate\Support\Facades\Log;
                 @endif
             </div>
 
+            <!-- Coupon Discount -->
+            <div class="mb-6 pb-6 border-b border-gray-200">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-medium">Discount</h3>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-sm text-gray-600">Use code:</span>
+                        <span class="bg-blue-100 text-blue-800 font-medium px-3 py-1 rounded-full text-sm">WELCOME10</span>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <input type="text" 
+                           name="coupon_code" 
+                           id="couponCode"
+                           class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                           placeholder="Enter coupon code">
+                    <button type="button" 
+                            onclick="applyCoupon()"
+                            class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors">
+                        Apply
+                    </button>
+                </div>
+                <!-- Discount Amount Display (initially hidden) -->
+                <div id="discountDisplay" class="mt-3 hidden">
+                    <div class="flex justify-between items-center text-green-600">
+                        <span>Discount Applied</span>
+                        <span id="discountAmount">-₱0.00</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Total -->
+            <div class="mb-6 pb-6 border-b border-gray-200">
+                <div class="flex flex-col space-y-2">
+                    <div class="flex justify-between items-center text-gray-600">
+                        <span>Subtotal</span>
+                        <span>₱{{ number_format($total, 2) }}</span>
+                    </div>
+                    <div id="discountLine" class="flex justify-between items-center text-green-600 hidden">
+                        <span>Discount (WELCOME10)</span>
+                        <span id="discountLineAmount">-₱0.00</span>
+                    </div>
+                    <div class="flex justify-between items-center font-semibold text-lg">
+                        <span>Total Amount</span>
+                        <span id="finalTotal">₱{{ number_format($total, 2) }}</span>
+                    </div>
+                </div>
+            </div>
+
             <!-- Hidden appointment fields -->
             <input type="hidden" name="appointment_date" value="{{ $bookingData['appointment_date'] }}">
             <input type="hidden" name="appointment_time" value="{{ $bookingData['appointment_time'] }}">
@@ -176,14 +224,6 @@ use Illuminate\Support\Facades\Log;
                             {{ $appointmentDateTime->format('g:i A') }}
                         </p>
                     </div>
-                </div>
-            </div>
-
-            <!-- Total -->
-            <div class="mb-6 pb-6 border-b border-gray-200">
-                <div class="flex justify-between items-center">
-                    <span class="font-semibold">Total Amount</span>
-                    <span class="font-semibold">₱{{ number_format($total, 2) }}</span>
                 </div>
             </div>
 
@@ -340,12 +380,55 @@ function hideConfirmationModal() {
     modal.classList.add('hidden');
 }
 
+function applyCoupon() {
+    const couponCode = document.getElementById('couponCode').value.toUpperCase();
+    const subtotal = {{ $total }}; // Get the original total from PHP
+    
+    if (couponCode === 'WELCOME10') {
+        // Calculate 10% discount
+        const discountAmount = subtotal * 0.10;
+        const newTotal = subtotal - discountAmount;
+        
+        // Update discount display
+        document.getElementById('discountDisplay').classList.remove('hidden');
+        document.getElementById('discountAmount').textContent = `-₱${discountAmount.toFixed(2)}`;
+        
+        // Update total section
+        document.getElementById('discountLine').classList.remove('hidden');
+        document.getElementById('discountLineAmount').textContent = `-₱${discountAmount.toFixed(2)}`;
+        document.getElementById('finalTotal').textContent = `₱${newTotal.toFixed(2)}`;
+        
+        // Add success message
+        alert('Coupon WELCOME10 applied successfully!');
+    } else {
+        // Hide discount displays
+        document.getElementById('discountDisplay').classList.add('hidden');
+        document.getElementById('discountLine').classList.add('hidden');
+        document.getElementById('finalTotal').textContent = `₱${subtotal.toFixed(2)}`;
+        
+        // Show error message
+        alert('Invalid coupon code. Please try again.');
+    }
+}
+
 function submitBooking() {
     const termsCheckbox = document.getElementById('terms');
     if (!termsCheckbox.checked) {
         alert('Please agree to the cancellation policy and terms before proceeding.');
         return;
     }
+    
+    // Add the coupon code to the form if it's applied
+    const couponCode = document.getElementById('couponCode').value.toUpperCase();
+    if (couponCode === 'WELCOME10') {
+        const form = document.getElementById('confirmForm');
+        const couponInput = document.createElement('input');
+        couponInput.type = 'hidden';
+        couponInput.name = 'applied_coupon';
+        couponInput.value = couponCode;
+        form.appendChild(couponInput);
+    }
+    
     document.getElementById('confirmForm').submit();
 }
 
