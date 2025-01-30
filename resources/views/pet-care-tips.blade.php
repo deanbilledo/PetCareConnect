@@ -4,7 +4,7 @@
 <div class="container mx-auto px-4 py-8">
     <!-- Header Section -->
     <div class="relative text-center mb-16">
-        <div class="absolute inset-0 bg-cover bg-center opacity-10" style="background-image: url('/images/pets/hero-bg.jpg')"></div>
+        <div class="absolute inset-0 bg-cover bg-center opacity-10" style="background-image: url('/images/pets/hero-bg.png')"></div>
         <h1 class="text-5xl font-bold mb-4 mt-10 relative">Comprehensive Pet Care Guide</h1>
         <p class="text-gray-600 text-xl relative">Everything you need to know about keeping your pets healthy and happy</p>
     </div>
@@ -153,9 +153,9 @@
 
     <!-- Call to Action -->
     <div class="text-center bg-white rounded-lg shadow-lg p-8 max-w-2xl mx-auto">
-        <img src="/images/pets/cta-icon.png" alt="Pet Care Services" class="w-20 h-20 mx-auto mb-4">
+        <img src="/images/logo.png" alt="Pet Care Connect" class="h-16 mx-auto mb-8">
         <p class="text-gray-600 text-xl mb-6">Need professional help with your pet's care?</p>
-        <a href="{{ route('home') }}" class="inline-block bg-blue-500 text-white px-8 py-4 rounded-full hover:bg-blue-600 transition-colors text-lg font-semibold shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300">
+        <a href="{{ route('home') }}" class="inline-block bg-[#4086F4] text-white px-8 py-4 rounded-full hover:bg-blue-600 transition-colors text-lg font-semibold shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300">
             Find Pet Care Services Near You
         </a>
     </div>
