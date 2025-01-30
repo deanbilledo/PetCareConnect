@@ -13,8 +13,16 @@
         <a href="{{ route('booking.show', $shop->id) }}" class="block transition duration-300 ease-in-out transform hover:-translate-y-1">
             <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl">
                 <div class="relative">
+                    @php
+                        \Log::info('Shop image debug:', [
+                            'image_path' => $shop->image,
+                            'image_url' => $shop->image_url,
+                            'storage_path' => storage_path('app/public/' . $shop->image),
+                            'exists' => $shop->image ? Storage::disk('public')->exists($shop->image) : false
+                        ]);
+                    @endphp
                     <img 
-                        src="{{ $shop->image ? asset('storage/' . $shop->image) : asset('images/default-shop.png') }}" 
+                        src="{{ $shop->image_url }}" 
                         alt="{{ $shop->name }}" 
                         class="w-full h-40 object-cover"
                         onerror="this.src='{{ asset('images/default-shop.png') }}'"

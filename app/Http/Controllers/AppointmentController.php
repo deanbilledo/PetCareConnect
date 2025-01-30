@@ -269,4 +269,36 @@ class AppointmentController extends Controller
             ], 500);
         }
     }
+
+    public function downloadReceipt(Appointment $appointment)
+    {
+        try {
+            // Check if user is authorized (either shop owner or appointment owner)
+            if ($appointment->user_id !== auth()->id() && 
+                (!auth()->user()->shop || $appointment->shop_id !== auth()->user()->shop->id)) {
+                abort(403, 'Unauthorized to download this receipt');
+            }
+
+            // Check if appointment is either accepted or completed
+            if (!in_array($appointment->status, ['accepted', 'completed'])) {
+                abort(400, 'Receipt is only available for accepted or completed appointments');
+            }
+
+            // Load the appointment with its relationships
+            $appointment->load(['user', 'shop', 'pet']);
+
+            // Generate receipt view with appropriate template
+            $pdf = \PDF::loadView('pdfs.official-receipt', [
+                'appointment' => $appointment
+            ]);
+
+            // Generate filename
+            $filename = 'official_receipt_' . $appointment->id . '_' . Str::slug($appointment->shop->name) . '.pdf';
+
+            return $pdf->download($filename);
+        } catch (\Exception $e) {
+            Log::error('Error downloading receipt: ' . $e->getMessage());
+            return back()->with('error', 'Failed to download receipt. Please try again.');
+        }
+    }
 }

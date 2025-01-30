@@ -92,7 +92,7 @@ class Shop extends Model
             }
 
             if (Storage::disk('public')->exists($this->image)) {
-                return Storage::disk('public')->url($this->image);
+                return asset('storage/' . $this->image);
             }
 
             return asset('images/default-shop.png');
