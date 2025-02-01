@@ -59,7 +59,63 @@
                         <svg class="w-5 h-5 mr-2 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                         </svg>
-                        MON-SAT 8:30 AM - 5:00 PM
+                        @php
+                            $days = [
+                                0 => 'SUN',
+                                1 => 'MON',
+                                2 => 'TUE',
+                                3 => 'WED',
+                                4 => 'THU',
+                                5 => 'FRI',
+                                6 => 'SAT'
+                            ];
+                            
+                            $operatingHours = $shop->operatingHours()
+                                ->orderBy('day')
+                                ->get()
+                                ->groupBy(function($hour) {
+                                    return $hour->is_open ? 
+                                        ($hour->open_time . ' - ' . $hour->close_time) : 
+                                        'closed';
+                                });
+
+                            $output = [];
+                            
+                            foreach ($operatingHours as $schedule => $hours) {
+                                if ($schedule === 'closed') continue;
+                                
+                                $dayNumbers = $hours->pluck('day')->toArray();
+                                $dayRanges = [];
+                                $start = $prev = $dayNumbers[0];
+                                
+                                for ($i = 1; $i < count($dayNumbers); $i++) {
+                                    if ($dayNumbers[$i] !== $prev + 1) {
+                                        $dayRanges[] = $start === $prev ? 
+                                            $days[$start] : 
+                                            $days[$start] . '-' . $days[$prev];
+                                        $start = $dayNumbers[$i];
+                                    }
+                                    $prev = $dayNumbers[$i];
+                                }
+                                
+                                $dayRanges[] = $start === $prev ? 
+                                    $days[$start] : 
+                                    $days[$start] . '-' . $days[$prev];
+                                
+                                foreach ($dayRanges as $range) {
+                                    $times = explode(' - ', $schedule);
+                                    $output[] = $range . ' ' . 
+                                        date('g:i A', strtotime($times[0])) . ' - ' . 
+                                        date('g:i A', strtotime($times[1]));
+                                }
+                            }
+                            
+                            if (!empty($output)) {
+                                echo implode('<br>', $output);
+                            } else {
+                                echo 'Hours not available';
+                            }
+                        @endphp
                     </div>
                     <div class="flex items-center">
                         <svg class="w-5 h-5 mr-2 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -187,7 +243,63 @@
                         <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                         </svg>
-                        MON-SAT 8:30 AM - 5:00 PM
+                        @php
+                            $days = [
+                                0 => 'SUN',
+                                1 => 'MON',
+                                2 => 'TUE',
+                                3 => 'WED',
+                                4 => 'THU',
+                                5 => 'FRI',
+                                6 => 'SAT'
+                            ];
+                            
+                            $operatingHours = $shop->operatingHours()
+                                ->orderBy('day')
+                                ->get()
+                                ->groupBy(function($hour) {
+                                    return $hour->is_open ? 
+                                        ($hour->open_time . ' - ' . $hour->close_time) : 
+                                        'closed';
+                                });
+
+                            $output = [];
+                            
+                            foreach ($operatingHours as $schedule => $hours) {
+                                if ($schedule === 'closed') continue;
+                                
+                                $dayNumbers = $hours->pluck('day')->toArray();
+                                $dayRanges = [];
+                                $start = $prev = $dayNumbers[0];
+                                
+                                for ($i = 1; $i < count($dayNumbers); $i++) {
+                                    if ($dayNumbers[$i] !== $prev + 1) {
+                                        $dayRanges[] = $start === $prev ? 
+                                            $days[$start] : 
+                                            $days[$start] . '-' . $days[$prev];
+                                        $start = $dayNumbers[$i];
+                                    }
+                                    $prev = $dayNumbers[$i];
+                                }
+                                
+                                $dayRanges[] = $start === $prev ? 
+                                    $days[$start] : 
+                                    $days[$start] . '-' . $days[$prev];
+                                
+                                foreach ($dayRanges as $range) {
+                                    $times = explode(' - ', $schedule);
+                                    $output[] = $range . ' ' . 
+                                        date('g:i A', strtotime($times[0])) . ' - ' . 
+                                        date('g:i A', strtotime($times[1]));
+                                }
+                            }
+                            
+                            if (!empty($output)) {
+                                echo implode('<br>', $output);
+                            } else {
+                                echo 'Hours not available';
+                            }
+                        @endphp
                     </span>
                 </div>
             </div>
@@ -238,45 +350,98 @@
             @if($shop->type === 'grooming')
                 <!-- Pet Type Toggle -->
                 <div class="flex gap-4 mb-8">
-                    <button class="flex-1 py-3 px-6 rounded-xl bg-white border-2 border-blue-500 text-blue-500 font-medium hover:bg-blue-50 transition-colors">
+                    <button onclick="filterServices('dog')" 
+                            id="dogButton"
+                            class="flex-1 py-3 px-6 rounded-xl bg-blue-500 text-white font-medium hover:bg-blue-600 transition-colors">
                         Dog Services
                     </button>
-                    <button class="flex-1 py-3 px-6 rounded-xl bg-blue-500 text-white font-medium hover:bg-blue-600 transition-colors">
+                    <button onclick="filterServices('cat')"
+                            id="catButton"
+                            class="flex-1 py-3 px-6 rounded-xl bg-white border-2 border-blue-500 text-blue-500 font-medium hover:bg-blue-50 transition-colors">
                         Cat Services
                     </button>
                 </div>
+            @endif
 
                 <!-- Services Grid -->
                 <div class="grid gap-4 sm:grid-cols-2">
-                    @foreach(['Full Grooming Service' => 1499, 'Basic Bath Package' => 749, 'Nail Trimming' => 199, 'Ear Cleaning' => 499] as $service => $price)
-                    <div class="p-6 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors group cursor-pointer">
+                @forelse($shop->services()->where('status', 'active')->get() as $service)
+                    <div class="p-6 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors group cursor-pointer service-card"
+                         data-pet-types="{{ json_encode($service->pet_types) }}">
                         <div class="flex justify-between items-start mb-3">
-                            <h3 class="font-semibold text-lg group-hover:text-blue-600 transition-colors">{{ $service }}</h3>
-                            <span class="text-lg font-bold text-blue-600">₱{{ number_format($price) }}</span>
+                            <div>
+                                <h3 class="font-semibold text-lg group-hover:text-blue-600 transition-colors">{{ $service->name }}</h3>
+                                <p class="text-sm text-gray-500">{{ $service->duration }} minutes</p>
+                            </div>
+                            <span class="text-lg font-bold text-blue-600">₱{{ number_format($service->base_price, 2) }}</span>
                         </div>
-                        <p class="text-gray-600">Professional pet care service</p>
+                        <p class="text-gray-600">{{ $service->description ?: 'Professional pet care service' }}</p>
+                        
+                        @if($service->variable_pricing)
+                            <div class="mt-3 text-sm">
+                                <p class="font-medium text-gray-700">Price varies by size:</p>
+                                <ul class="list-disc list-inside text-gray-600 mt-1">
+                                    @foreach($service->variable_pricing as $pricing)
+                                        <li>{{ ucfirst($pricing['size']) }}: ₱{{ number_format($pricing['price'], 2) }}</li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @endif
+
+                        @if($service->add_ons && count($service->add_ons) > 0)
+                            <div class="mt-3 text-sm">
+                                <p class="font-medium text-gray-700">Available Add-ons:</p>
+                                <ul class="list-disc list-inside text-gray-600 mt-1">
+                                    @foreach($service->add_ons as $addon)
+                                        <li>{{ $addon['name'] }}: ₱{{ number_format($addon['price'], 2) }}</li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @endif
                     </div>
-                    @endforeach
-                </div>
-            @else
-                <!-- Veterinary Services Grid -->
-                <div class="grid gap-4 sm:grid-cols-2">
-                    @foreach([
-                        'General Check-up' => ['price' => 800, 'desc' => 'Complete Physical Examination'],
-                        'Vaccination' => ['price' => 1500, 'desc' => 'Core Vaccines Available'],
-                        'Deworming' => ['price' => 500, 'desc' => 'Internal Parasite Treatment'],
-                        'Laboratory Tests' => ['price' => 2000, 'desc' => 'Blood Work, Urinalysis, etc.']
-                    ] as $service => $details)
-                    <div class="p-6 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors group cursor-pointer">
-                        <div class="flex justify-between items-start mb-3">
-                            <h3 class="font-semibold text-lg group-hover:text-blue-600 transition-colors">{{ $service }}</h3>
-                            <span class="text-lg font-bold text-blue-600">₱{{ number_format($details['price']) }}</span>
-                        </div>
-                        <p class="text-gray-600">{{ $details['desc'] }}</p>
+                @empty
+                    <div class="col-span-2 text-center py-8 text-gray-500">
+                        <p class="text-lg">No services available at the moment</p>
                     </div>
-                    @endforeach
+                @endforelse
                 </div>
+
+            <script>
+                function filterServices(petType) {
+                    // Update button styles
+                    const dogButton = document.getElementById('dogButton');
+                    const catButton = document.getElementById('catButton');
+                    
+                    if (petType === 'dog') {
+                        dogButton.classList.remove('bg-white', 'border-2', 'border-blue-500', 'text-blue-500');
+                        dogButton.classList.add('bg-blue-500', 'text-white');
+                        catButton.classList.remove('bg-blue-500', 'text-white');
+                        catButton.classList.add('bg-white', 'border-2', 'border-blue-500', 'text-blue-500');
+                    } else {
+                        catButton.classList.remove('bg-white', 'border-2', 'border-blue-500', 'text-blue-500');
+                        catButton.classList.add('bg-blue-500', 'text-white');
+                        dogButton.classList.remove('bg-blue-500', 'text-white');
+                        dogButton.classList.add('bg-white', 'border-2', 'border-blue-500', 'text-blue-500');
+                    }
+
+                    // Filter services
+                    const services = document.querySelectorAll('.service-card');
+                    services.forEach(service => {
+                        const petTypes = JSON.parse(service.dataset.petTypes);
+                        const showService = petTypes.some(type => 
+                            type.toLowerCase().includes(petType.toLowerCase())
+                        );
+                        service.style.display = showService ? 'block' : 'none';
+                    });
+                }
+
+                // Initialize with dog services selected for grooming shops
+                @if($shop->type === 'grooming')
+                    document.addEventListener('DOMContentLoaded', () => {
+                        filterServices('dog');
+                    });
             @endif
+            </script>
         </div>
 
         <!-- Reviews Tab -->
@@ -303,15 +468,18 @@
                             @csrf
                             <div class="mb-4">
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Rating</label>
-                                <div class="flex space-x-2">
-                                    @for($i = 1; $i <= 5; $i++)
+                                <div class="flex flex-row-reverse justify-end space-x-2 space-x-reverse">
+                                    @for($i = 5; $i >= 1; $i--)
                                         <input type="radio" id="rating{{ $i }}" name="rating" value="{{ $i }}" class="hidden peer" required>
                                         <label for="rating{{ $i }}" 
-                                               class="cursor-pointer text-2xl text-gray-300 peer-checked:text-yellow-400 hover:text-yellow-400">
+                                               class="cursor-pointer text-2xl text-gray-300 hover:text-yellow-400 peer-checked:text-yellow-400 peer-hover:text-yellow-400 hover:peer-hover:text-yellow-400">
                                             ★
                                         </label>
                                     @endfor
                                 </div>
+                                @error('rating')
+                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                @enderror
                             </div>
                             <div class="mb-4">
                                 <label for="comment" class="block text-sm font-medium text-gray-700 mb-2">Your Review</label>
@@ -319,13 +487,30 @@
                                           name="comment" 
                                           rows="4" 
                                           required
-                                          class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"></textarea>
+                                          minlength="10"
+                                          placeholder="Tell us about your experience (minimum 10 characters)"
+                                          class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 @error('comment') border-red-500 @enderror">{{ old('comment') }}</textarea>
+                                @error('comment')
+                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                @enderror
                             </div>
                             <button type="submit" 
                                     class="w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600 transition-colors">
                                 Submit Review
                             </button>
                         </form>
+
+                        @if(session('success'))
+                            <div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-6">
+                                {{ session('success') }}
+                            </div>
+                        @endif
+
+                        @if(session('error'))
+                            <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+                                {{ session('error') }}
+                            </div>
+                        @endif
                     @else
                         <div class="bg-gray-50 rounded-lg p-4 mb-6 text-center">
                             <p class="text-gray-600">You can only leave a review after completing an appointment with this shop.</p>
@@ -351,7 +536,11 @@
                                         <div class="flex items-center">
                                             <div class="text-yellow-400">
                                                 @for($i = 1; $i <= 5; $i++)
-                                                    <span>{{ $i <= $rating->rating ? '★' : '☆' }}</span>
+                                                    @if($i <= $rating->rating)
+                                                        <span class="text-2xl">★</span>
+                                                    @else
+                                                        <span class="text-2xl text-gray-300">★</span>
+                                                    @endif
                                                 @endfor
                                             </div>
                                             <span class="text-gray-500 text-sm ml-2">{{ $rating->created_at->diffForHumans() }}</span>
