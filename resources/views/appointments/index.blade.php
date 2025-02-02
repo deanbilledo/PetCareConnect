@@ -11,6 +11,11 @@ use Illuminate\Support\Str;
     currentFilter: 'all',
     dateFilter: '',
     showFilters: false,
+    showNoteModal: false,
+    currentNote: '',
+    noteType: '',
+    noteImage: null,
+    currentAppointment: null,
     
     viewAppointmentDetails(id, event) {
         if (event.target.tagName === 'BUTTON' || event.target.closest('button')) {
@@ -58,6 +63,25 @@ use Illuminate\Support\Str;
         }
         
         this.showCancelModal = false;
+    },
+
+    async viewNote(appointmentId, shopType) {
+        try {
+            const response = await fetch(`/appointments/${appointmentId}/note`);
+            const data = await response.json();
+            
+            if (data.success) {
+                this.noteType = shopType === 'grooming' ? 'Groomer\'s Note' : 'Doctor\'s Note';
+                this.currentNote = data.note;
+                this.noteImage = data.image_url;
+                this.currentAppointment = data.appointment;
+                this.showNoteModal = true;
+            } else {
+                console.error('Failed to fetch note:', data.error);
+            }
+        } catch (error) {
+            console.error('Error fetching note:', error);
+        }
     },
 
     isAppointmentVisible(status, date) {
@@ -325,6 +349,14 @@ use Illuminate\Support\Str;
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
                                                     </svg>
                                                 </button>
+                                                <button type="button"
+                                                        onclick="event.stopPropagation(); window.location.href='{{ route('appointments.reschedule', $appointment) }}'"
+                                                        class="text-blue-600 hover:text-blue-800 transition-colors"
+                                                        title="Reschedule appointment">
+                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                    </svg>
+                                                </button>
                                             @endif
                                             @if($appointment->status === 'completed' && $appointment->payment_status === 'paid')
                                                 <button type="button"
@@ -337,6 +369,18 @@ use Illuminate\Support\Str;
                                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
                                                     </svg>
+                                                </button>
+                                            @endif
+                                            @if($appointment->notes)
+                                                <button type="button"
+                                                        onclick="event.stopPropagation();"
+                                                        @click="viewNote({{ $appointment->id }}, '{{ $appointment->shop->type }}')"
+                                                        class="text-indigo-600 hover:text-indigo-800 transition-colors inline-flex items-center gap-1"
+                                                        title="{{ $appointment->shop->type === 'grooming' ? 'View Groomer\'s Note' : 'View Doctor\'s Note' }}">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                                    </svg>
+                                                    <span class="sr-only">{{ $appointment->shop->type === 'grooming' ? 'View Groomer\'s Note' : 'View Doctor\'s Note' }}</span>
                                                 </button>
                                             @endif
                                         </div>
@@ -399,6 +443,91 @@ use Illuminate\Support\Str;
                         No, go back
                     </button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Note View Modal -->
+    <div x-show="showNoteModal" 
+         class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center"
+         x-cloak
+         @keydown.escape.window="showNoteModal = false">
+        <div class="relative mx-auto p-6 border w-full max-w-2xl shadow-xl rounded-lg bg-white"
+             @click.away="showNoteModal = false">
+            <!-- Modal Header -->
+            <div class="absolute top-0 right-0 pt-4 pr-4">
+                <button @click="showNoteModal = false" 
+                        class="bg-white rounded-md p-2 hover:bg-gray-100 focus:outline-none">
+                    <svg class="h-6 w-6 text-gray-400 hover:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Modal Content -->
+            <div class="mt-3">
+                <template x-if="currentAppointment">
+                    <div>
+                        <!-- Staff/User Info Section -->
+                        <div class="flex items-start space-x-4 mb-6 pb-6 border-b border-gray-200">
+                            <div class="flex-shrink-0">
+                                <img class="h-16 w-16 rounded-full object-cover shadow-sm"
+                                     :src="currentAppointment.user.profile_photo_url"
+                                     :alt="currentAppointment.user.name">
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center justify-between">
+                                    <p class="text-lg font-semibold text-gray-900" x-text="currentAppointment.user.name"></p>
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium"
+                                          :class="noteType.includes('Doctor') ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'">
+                                        <span x-text="noteType"></span>
+                                    </span>
+                                </div>
+                                <p class="text-sm text-gray-500" x-text="currentAppointment.user.email"></p>
+                                <div class="mt-2 flex items-center text-sm text-gray-500">
+                                    <svg class="flex-shrink-0 mr-1.5 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                    </svg>
+                                    <span x-text="new Date(currentAppointment.appointment_date).toLocaleString()"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Note Content -->
+                        <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                            <h4 class="text-sm font-medium text-gray-700 mb-3">Notes</h4>
+                            <div class="flex items-start">
+                                <svg class="h-5 w-5 text-gray-400 mt-1 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                </svg>
+                                <p class="text-gray-700 whitespace-pre-wrap" x-text="currentNote || 'No additional notes provided.'"></p>
+                            </div>
+                        </div>
+
+                        <!-- Image Section -->
+                        <template x-if="noteImage">
+                            <div class="border rounded-lg overflow-hidden">
+                                <div class="bg-gray-50 px-4 py-2 border-b">
+                                    <h4 class="text-sm font-medium text-gray-700">Attached Image</h4>
+                                </div>
+                                <div class="p-4">
+                                    <img :src="noteImage" 
+                                         alt="Note Image" 
+                                         class="w-full rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 cursor-zoom-in"
+                                         @click="window.open(noteImage, '_blank')">
+                                    <p class="text-sm text-gray-500 mt-2 text-center">Click image to view full size</p>
+                                </div>
+                            </div>
+                        </template>
+
+                        <!-- No Image Message -->
+                        <template x-if="!noteImage">
+                            <div class="text-center text-gray-500 text-sm mt-4">
+                                No images attached to this note
+                            </div>
+                        </template>
+                    </div>
+                </template>
             </div>
         </div>
     </div>
