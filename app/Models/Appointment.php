@@ -19,7 +19,14 @@ class Appointment extends Model
         'status',
         'notes',
         'cancellation_reason',
-        'accepted_at'
+        'cancelled_by',
+        'reschedule_reason',
+        'last_reschedule_at',
+        'reschedule_count',
+        'payment_status',
+        'paid_at',
+        'accepted_at',
+        'note_image'
     ];
 
     protected $casts = [

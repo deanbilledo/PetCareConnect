@@ -301,4 +301,89 @@ class AppointmentController extends Controller
             return back()->with('error', 'Failed to download receipt. Please try again.');
         }
     }
+
+    public function addNote(Request $request, Appointment $appointment)
+    {
+        try {
+            // Check if user is authorized (must be shop owner)
+            if (!auth()->user()->shop || $appointment->shop_id !== auth()->user()->shop->id) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Unauthorized to add notes to this appointment'
+                ], 403);
+            }
+
+            // Validate the request
+            $validated = $request->validate([
+                'note' => 'required|string|max:1000',
+                'image' => 'nullable|image|max:5120' // Max 5MB image
+            ]);
+
+            $data = ['notes' => $validated['note']];
+
+            // Handle image upload if present
+            if ($request->hasFile('image')) {
+                $image = $request->file('image');
+                $imagePath = $image->store('appointment-notes', 'public');
+                $data['note_image'] = $imagePath;
+            }
+
+            // Update the appointment with the note and image
+            $appointment->update($data);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Note added successfully',
+                'image_url' => $request->hasFile('image') ? asset('storage/' . $imagePath) : null
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error adding note to appointment: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to add note'
+            ], 500);
+        }
+    }
+
+    public function getNote(Appointment $appointment)
+    {
+        try {
+            // Check if user is authorized (must be shop owner)
+            if (!auth()->user()->shop || $appointment->shop_id !== auth()->user()->shop->id) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Unauthorized to view notes for this appointment'
+                ], 403);
+            }
+
+            // Load the appointment with necessary relationships
+            $appointment->load(['user', 'pet', 'shop']);
+
+            // Get the profile photo URL
+            $profilePhotoUrl = $appointment->user->profile_photo_url ?? asset('images/default-profile.png');
+
+            return response()->json([
+                'success' => true,
+                'note' => $appointment->notes,
+                'image_url' => $appointment->note_image ? asset('storage/' . $appointment->note_image) : null,
+                'appointment' => [
+                    'id' => $appointment->id,
+                    'user' => [
+                        'name' => $appointment->user->name,
+                        'email' => $appointment->user->email,
+                        'profile_photo_url' => $profilePhotoUrl
+                    ],
+                    'appointment_date' => $appointment->appointment_date,
+                    'service_type' => $appointment->service_type,
+                    'status' => $appointment->status
+                ]
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error retrieving note for appointment: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to retrieve note'
+            ], 500);
+        }
+    }
 }

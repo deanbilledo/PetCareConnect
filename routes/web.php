@@ -142,6 +142,8 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/{appointment}/shop-cancel', [AppointmentController::class, 'shopCancel'])->name('shop-cancel');
         Route::post('/{appointment}/accept', [AppointmentController::class, 'accept'])->name('accept');
         Route::get('/{appointment}/receipt', [AppointmentController::class, 'downloadReceipt'])->name('official-receipt.download');
+        Route::post('/{appointment}/add-note', [AppointmentController::class, 'addNote'])->name('appointments.add-note');
+        Route::get('/{appointment}/note', [AppointmentController::class, 'getNote'])->name('appointments.get-note');
     });
     Route::resource('appointments', AppointmentController::class)->except(['show']);
 
