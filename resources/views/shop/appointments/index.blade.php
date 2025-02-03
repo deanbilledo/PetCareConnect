@@ -272,7 +272,7 @@
                                             @elseif($appointment->status === 'completed')
                                                 <div class="flex space-x-2">
                                                     @if($appointment->payment_status === 'paid')
-                                                        <a href="{{ route('appointments.receipt.download', $appointment) }}"
+                                                        <a href="{{ route('appointments.official-receipt.download', $appointment) }}"
                                                            class="text-blue-600 hover:text-blue-800 inline-flex items-center">
                                                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"/>
