@@ -735,6 +735,208 @@ document.addEventListener('DOMContentLoaded', function() {
             price: parseFloat(row.querySelector('input[type="number"]').value)
         })).filter(item => item.name && !isNaN(item.price));
     }
+
+    // Add deactivate modal functions
+    window.openDeactivateModal = function(serviceId) {
+        const modal = document.getElementById('deactivateModal');
+        if (modal) {
+            document.getElementById('serviceIdToDeactivate').value = serviceId;
+            modal.classList.remove('hidden');
+        }
+    };
+
+    window.closeDeactivateModal = function() {
+        const modal = document.getElementById('deactivateModal');
+        if (modal) {
+            modal.classList.add('hidden');
+            document.getElementById('serviceIdToDeactivate').value = '';
+        }
+    };
+
+    window.confirmToggleStatus = function() {
+        const serviceId = document.getElementById('serviceIdToDeactivate').value;
+        if (!serviceId) return;
+
+        fetch(`/shop/services/${serviceId}/status`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.reload();
+            } else {
+                throw new Error(data.message || 'Failed to update service status');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to update service status. Please try again.');
+        })
+        .finally(() => {
+            closeDeactivateModal();
+        });
+    };
+
+    // Add delete modal functions
+    window.openDeleteModal = function(serviceId) {
+        const modal = document.getElementById('deleteModal');
+        if (modal) {
+            document.getElementById('serviceIdToDelete').value = serviceId;
+            modal.classList.remove('hidden');
+        }
+    };
+
+    window.closeDeleteModal = function() {
+        const modal = document.getElementById('deleteModal');
+        if (modal) {
+            modal.classList.add('hidden');
+            document.getElementById('serviceIdToDelete').value = '';
+        }
+    };
+
+    window.confirmDelete = function() {
+        const serviceId = document.getElementById('serviceIdToDelete').value;
+        if (!serviceId) return;
+
+        fetch(`/shop/services/${serviceId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.reload();
+            } else {
+                throw new Error(data.message || 'Failed to delete service');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to delete service. Please try again.');
+        })
+        .finally(() => {
+            closeDeleteModal();
+        });
+    };
+
+    // Add discount modal functions
+    window.openDiscountModal = function(serviceId) {
+        const modal = document.getElementById('discountModal');
+        if (modal) {
+            document.getElementById('serviceIdForDiscount').value = serviceId;
+            
+            // Reset form
+            const form = document.getElementById('discountForm');
+            if (form) form.reset();
+            
+            // Set default dates
+            const now = new Date();
+            document.getElementById('validFrom').value = now.toISOString().slice(0, 16);
+            const nextMonth = new Date(now.setMonth(now.getMonth() + 1));
+            document.getElementById('validUntil').value = nextMonth.toISOString().slice(0, 16);
+            
+            modal.classList.remove('hidden');
+        }
+    };
+
+    window.closeDiscountModal = function() {
+        const modal = document.getElementById('discountModal');
+        if (modal) {
+            modal.classList.add('hidden');
+            document.getElementById('serviceIdForDiscount').value = '';
+            const form = document.getElementById('discountForm');
+            if (form) form.reset();
+        }
+    };
+
+    window.generateVoucherCode = function() {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        let code = '';
+        for (let i = 0; i < 8; i++) {
+            code += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        document.getElementById('voucherCode').value = code;
+    };
+
+    // Add discount form submission handler
+    const discountForm = document.getElementById('discountForm');
+    if (discountForm) {
+        discountForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const serviceId = document.getElementById('serviceIdForDiscount').value;
+            const formData = {
+                discount_type: document.getElementById('discountType').value,
+                discount_value: parseFloat(document.getElementById('discountValue').value),
+                voucher_code: document.getElementById('voucherCode').value,
+                valid_from: document.getElementById('validFrom').value,
+                valid_until: document.getElementById('validUntil').value,
+                description: document.getElementById('discountDescription').value
+            };
+
+            // Validate discount value
+            if (isNaN(formData.discount_value) || formData.discount_value <= 0) {
+                alert('Please enter a valid discount value');
+                return;
+            }
+
+            // Validate dates
+            if (new Date(formData.valid_until) <= new Date(formData.valid_from)) {
+                alert('Valid until date must be after valid from date');
+                return;
+            }
+
+            // Validate percentage discount
+            if (formData.discount_type === 'percentage' && formData.discount_value > 100) {
+                alert('Percentage discount cannot be more than 100%');
+                return;
+            }
+
+            fetch(`/shop/services/${serviceId}/discounts`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.reload();
+                } else {
+                    throw new Error(data.message || 'Failed to add discount');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert(error.message || 'Failed to add discount. Please try again.');
+            });
+        });
+    }
+
+    // Update discount help text based on type
+    const discountType = document.getElementById('discountType');
+    if (discountType) {
+        discountType.addEventListener('change', function() {
+            const helpText = document.getElementById('discountHelp');
+            if (helpText) {
+                helpText.textContent = this.value === 'percentage' 
+                    ? 'Enter percentage (0-100)' 
+                    : 'Enter fixed amount';
+            }
+        });
+    }
 });
 </script>
 @endpush 

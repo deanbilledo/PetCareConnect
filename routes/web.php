@@ -17,6 +17,7 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\ShopSetupController;
 use App\Http\Controllers\ReceiptController;
 use App\Http\Controllers\PetController;
+use App\Http\Controllers\ShopEmployeeController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -73,6 +74,16 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/appointments', [ShopAppointmentController::class, 'index'])->name('appointments');
             Route::post('/mode/customer', [ShopDashboardController::class, 'switchToCustomerMode'])->name('mode.customer');
             
+            // Employee routes with proper prefix and naming
+            Route::prefix('employees')->name('employees.')->group(function () {
+                Route::get('/', [ShopEmployeeController::class, 'index'])->name('index');
+                Route::post('/', [ShopEmployeeController::class, 'store'])->name('store');
+                Route::get('/{employee}', [ShopEmployeeController::class, 'show'])->name('show');
+                Route::put('/{employee}', [ShopEmployeeController::class, 'update'])->name('update');
+                Route::delete('/{employee}', [ShopEmployeeController::class, 'destroy'])->name('destroy');
+                Route::post('/{employee}/restore', [ShopEmployeeController::class, 'restore'])->name('restore');
+            });
+            
             // Services management routes
             Route::get('/services', [ShopServicesController::class, 'index'])->name('services');
             Route::get('/services/{service}', [ShopServicesController::class, 'show'])->name('services.show');
@@ -82,7 +93,6 @@ Route::middleware(['auth'])->group(function () {
             Route::put('/services/{service}/status', [ShopServicesController::class, 'updateStatus'])->name('services.update-status');
             
             // Static routes
-            Route::view('/employees', 'shop.employees.index')->name('employees');
             Route::view('/analytics', 'shop.analytics.index')->name('analytics');
             Route::view('/reviews', 'shop.reviews.index')->name('reviews');
             Route::view('/settings', 'shop.settings.index')->name('settings');
