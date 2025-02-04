@@ -133,6 +133,7 @@
                                     <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Duration</th>
                                     <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Pet Types</th>
                                     <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Exotic Pets</th>
+                                    <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Assigned Employees</th>
                                     <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Status</th>
                                     <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-6">
                                         <span class="sr-only">Actions</span>
@@ -180,6 +181,18 @@
                                         @else
                                             <span class="text-gray-500">Not Available</span>
                                         @endif
+                                    </td>
+                                    <td class="px-3 py-4 text-sm text-gray-500">
+                                        <div class="flex flex-wrap gap-1 max-w-xs">
+                                            @foreach($service->employees as $employee)
+                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                                                    {{ $employee->name }}
+                                                </span>
+                                            @endforeach
+                                            @if($service->employees->isEmpty())
+                                                <span class="text-gray-500">No employees assigned</span>
+                                            @endif
+                                        </div>
                                     </td>
                                     <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $service->status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
@@ -341,6 +354,47 @@
                         </div>
                     </div>
 
+                    <!-- Employee Assignment Section -->
+                    <div class="mb-6">
+                        <h4 class="text-md font-medium text-gray-800 mb-4">Assign Employees</h4>
+                        <p class="text-sm text-gray-600 mb-4">Select employees who can perform this service</p>
+                        
+                        <div class="space-y-3">
+                            @foreach($employees as $employee)
+                            <label class="flex items-center space-x-3">
+                                <input type="checkbox" 
+                                       name="employee_ids[]" 
+                                       value="{{ $employee->id }}"
+                                       class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+                                <div>
+                                    <span class="text-gray-700">{{ $employee->name }}</span>
+                                    <span class="text-sm text-gray-500 ml-2">({{ $employee->position }})</span>
+                                </div>
+                            </label>
+                            @endforeach
+
+                            @if(count($employees) === 0)
+                            <div class="text-yellow-600 bg-yellow-50 p-4 rounded-md">
+                                <div class="flex">
+                                    <div class="flex-shrink-0">
+                                        <svg class="h-5 w-5 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                        </svg>
+                                    </div>
+                                    <div class="ml-3">
+                                        <p class="text-sm">
+                                            No employees found. 
+                                            <a href="{{ route('shop.employees.index') }}" class="font-medium underline text-yellow-600 hover:text-yellow-500">
+                                                Add employees first
+                                            </a>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            @endif
+                        </div>
+                    </div>
+
                     <div class="mt-6 flex justify-end space-x-3">
                         <button type="button" 
                                 onclick="closeServiceModal()" 
@@ -441,9 +495,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 selectedPetTypes.push('Exotic');
             }
 
+            // Get selected employee IDs
+            const selectedEmployeeIds = Array.from(document.querySelectorAll('input[name="employee_ids[]"]:checked')).map(cb => cb.value);
+
             // Validate that at least one pet type is selected
             if (selectedPetTypes.length === 0) {
                 alert('Please select at least one pet type');
+                return;
+            }
+
+            // Validate that at least one employee is selected
+            if (selectedEmployeeIds.length === 0) {
+                alert('Please assign at least one employee to this service');
                 return;
             }
             
@@ -461,7 +524,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     .filter(value => value !== '') : [],
                 special_requirements: document.getElementById('special_requirements')?.value || '',
                 variable_pricing: getVariablePricing(),
-                add_ons: getAddOns()
+                add_ons: getAddOns(),
+                employee_ids: selectedEmployeeIds
             };
 
             // Validate required fields
@@ -649,6 +713,12 @@ document.addEventListener('DOMContentLoaded', function() {
                             }
                         }
                     }
+
+                    // Set employee assignments
+                    const employeeCheckboxes = document.querySelectorAll('input[name="employee_ids[]"]');
+                    employeeCheckboxes.forEach(cb => {
+                        cb.checked = service.employee_ids.includes(parseInt(cb.value));
+                    });
 
                     modal.classList.remove('hidden');
                 }
