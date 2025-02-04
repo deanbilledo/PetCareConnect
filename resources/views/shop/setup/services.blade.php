@@ -11,7 +11,7 @@
             </div>
 
             <!-- Services Form -->
-            <form method="POST" action="{{ route('shop.setup.services.store') }}" id="servicesForm">
+            <form method="POST" action="{{ route('shop.setup.services') }}" id="servicesForm">
                 @csrf
                 <div class="px-8 py-6">
                     <div id="servicesContainer">
@@ -133,7 +133,48 @@
                                                class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
                                     </div>
                                 </div>
+                            </div>
+
+                            <!-- Employee Assignment Section -->
+                            <div class="mb-6">
+                                <h4 class="text-md font-medium text-gray-800 mb-4">Assign Employees</h4>
+                                <p class="text-sm text-gray-600 mb-4">Select employees who can perform this service</p>
+                                
+                                <div class="space-y-3">
+                                    @foreach($employees as $employee)
+                                    <label class="flex items-center space-x-3">
+                                        <input type="checkbox" 
+                                               name="services[0][employee_ids][]" 
+                                               value="{{ $employee->id }}"
+                                               class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+                                        <div>
+                                            <span class="text-gray-700">{{ $employee->name }}</span>
+                                            <span class="text-sm text-gray-500 ml-2">({{ $employee->position }})</span>
+                                        </div>
+                                    </label>
+                                    @endforeach
+
+                                    @if(count($employees) === 0)
+                                    <div class="text-yellow-600 bg-yellow-50 p-4 rounded-md">
+                                        <div class="flex">
+                                            <div class="flex-shrink-0">
+                                                <svg class="h-5 w-5 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                                </svg>
+                                            </div>
+                                            <div class="ml-3">
+                                                <p class="text-sm">
+                                                    No employees found. 
+                                                    <a href="{{ route('shop.setup.employees') }}" class="font-medium underline text-yellow-600 hover:text-yellow-500">
+                                                        Add employees first
+                                                    </a>
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    @endif
                                 </div>
+                            </div>
 
                             <!-- Remove Service Button -->
                             <div class="flex justify-end">

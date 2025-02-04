@@ -6,7 +6,10 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    public function up()
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
     {
         Schema::create('services', function (Blueprint $table) {
             $table->id();
@@ -16,7 +19,8 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->json('pet_types');
             $table->json('size_ranges');
-            $table->boolean('breed_specific')->default(false);
+            $table->boolean('exotic_pet_service')->default(false);
+            $table->json('exotic_pet_species')->nullable();
             $table->text('special_requirements')->nullable();
             $table->decimal('base_price', 10, 2);
             $table->integer('duration');
@@ -24,10 +28,14 @@ return new class extends Migration
             $table->json('add_ons')->nullable();
             $table->string('status')->default('active');
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 
-    public function down()
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
     {
         Schema::dropIfExists('services');
     }

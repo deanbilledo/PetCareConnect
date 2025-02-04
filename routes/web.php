@@ -18,6 +18,7 @@ use App\Http\Controllers\ShopSetupController;
 use App\Http\Controllers\ReceiptController;
 use App\Http\Controllers\PetController;
 use App\Http\Controllers\ShopEmployeeController;
+use App\Http\Controllers\ShopEmployeeSetupController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -139,6 +140,8 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/thank-you', [BookingController::class, 'thankYou'])->name('thank-you');
             Route::get('/receipt', [ReceiptController::class, 'download'])->name('receipt.download');
             Route::get('/acknowledgement', [BookingController::class, 'downloadAcknowledgement'])->name('acknowledgement.download');
+            Route::post('/available-employees', [BookingController::class, 'getAvailableEmployees'])
+                ->name('available-employees');
         });
     });
 
@@ -188,4 +191,24 @@ Route::middleware(['auth', 'has-shop'])->group(function () {
     Route::get('/shop/services/{service}', [ShopServicesController::class, 'show']);
     Route::delete('/shop/services/{service}', [ShopServicesController::class, 'destroy']);
     Route::put('/shop/services/{service}/status', [ShopServicesController::class, 'updateStatus']);
+});
+
+// Shop Setup Routes
+Route::prefix('shop/setup')->name('shop.setup.')->middleware(['auth', 'has-shop'])->group(function () {
+    Route::get('/welcome', [ShopSetupController::class, 'welcome'])->name('welcome');
+    
+    // Employee setup routes
+    Route::get('/employees', [ShopEmployeeSetupController::class, 'index'])->name('employees');
+    Route::post('/employees', [ShopEmployeeSetupController::class, 'store'])->name('employees.store');
+    Route::get('/employees/{employee}', [ShopEmployeeSetupController::class, 'show'])->name('employees.show');
+    Route::put('/employees/{employee}', [ShopEmployeeSetupController::class, 'update'])->name('employees.update');
+    Route::delete('/employees/{employee}', [ShopEmployeeSetupController::class, 'destroy'])->name('employees.destroy');
+    
+    // Services setup routes
+    Route::get('/services', [ShopSetupController::class, 'services'])->name('services');
+    Route::post('/services', [ShopSetupController::class, 'storeServices'])->name('services.store');
+    
+    // Hours setup routes
+    Route::get('/hours', [ShopSetupController::class, 'hours'])->name('hours');
+    Route::post('/hours', [ShopSetupController::class, 'storeHours'])->name('hours.store');
 });

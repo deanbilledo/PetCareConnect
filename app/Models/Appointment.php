@@ -13,6 +13,7 @@ class Appointment extends Model
         'user_id',
         'shop_id',
         'pet_id',
+        'employee_id',
         'service_type',
         'service_price',
         'appointment_date',
@@ -48,5 +49,10 @@ class Appointment extends Model
     public function pet()
     {
         return $this->belongsTo(Pet::class);
+    }
+
+    public function employee()
+    {
+        return $this->belongsTo(Employee::class);
     }
 } 

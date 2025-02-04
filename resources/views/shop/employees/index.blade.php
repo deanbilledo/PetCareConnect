@@ -222,15 +222,23 @@ function employeeManager() {
                     ? `/shop/employees/${this.editingEmployee}` 
                     : '/shop/employees';
                 
-                const method = this.editingEmployee ? 'PUT' : 'POST';
+                if (this.editingEmployee) {
+                    formData.append('_method', 'PUT');
+                }
 
                 const response = await fetch(url, {
-                    method: method,
+                    method: 'POST', // Always use POST, let Laravel handle method spoofing
                     headers: {
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                        'Accept': 'application/json'
                     },
                     body: formData
                 });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Failed to save employee');
+                }
 
                 const data = await response.json();
                 
@@ -251,13 +259,22 @@ function employeeManager() {
             }
 
             try {
+                const formData = new FormData();
+                formData.append('_method', 'DELETE');
+
                 const response = await fetch(`/shop/employees/${id}`, {
-                    method: 'DELETE',
+                    method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                    }
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                        'Accept': 'application/json'
+                    },
+                    body: formData
                 });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Failed to delete employee');
+                }
 
                 const data = await response.json();
                 

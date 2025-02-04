@@ -41,7 +41,8 @@ class ShopSetupController extends Controller
         }
         
         $shop = $user->shop;
-        return view('shop.setup.services', compact('shop'));
+        $employees = $shop->employees()->get();
+        return view('shop.setup.services', compact('shop', 'employees'));
     }
 
     public function storeServices(Request $request)
@@ -74,7 +75,9 @@ class ShopSetupController extends Controller
             'services.*.variable_pricing.*.price' => 'required_with:services.*.variable_pricing|numeric|min:0',
             'services.*.add_ons' => 'nullable|array',
             'services.*.add_ons.*.name' => 'required_with:services.*.add_ons|string',
-            'services.*.add_ons.*.price' => 'required_with:services.*.add_ons|numeric|min:0'
+            'services.*.add_ons.*.price' => 'required_with:services.*.add_ons|numeric|min:0',
+            'services.*.employee_ids' => 'nullable|array',
+            'services.*.employee_ids.*' => 'exists:employees,id'
         ]);
 
         $shop = $user->shop;
@@ -85,22 +88,32 @@ class ShopSetupController extends Controller
                 $shop->services()->delete();
 
                 // Add new services
-                foreach ($validated['services'] as $service) {
-                    $shop->services()->create([
-                        'name' => $service['name'],
-                        'category' => $service['category'],
-                        'description' => $service['description'] ?? null,
-                        'pet_types' => $service['pet_types'],
-                        'size_ranges' => $service['size_ranges'],
-                        'exotic_pet_service' => $service['exotic_pet_service'] ?? false,
-                        'exotic_pet_species' => $service['exotic_pet_species'] ?? null,
-                        'special_requirements' => $service['special_requirements'] ?? null,
-                        'base_price' => $service['base_price'],
-                        'duration' => $service['duration'],
-                        'variable_pricing' => $service['variable_pricing'] ?? null,
-                        'add_ons' => $service['add_ons'] ?? null,
+                foreach ($validated['services'] as $serviceData) {
+                    // Extract employee IDs before creating service
+                    $employeeIds = $serviceData['employee_ids'] ?? [];
+                    unset($serviceData['employee_ids']);
+
+                    // Create service
+                    $service = $shop->services()->create([
+                        'name' => $serviceData['name'],
+                        'category' => $serviceData['category'],
+                        'description' => $serviceData['description'] ?? null,
+                        'pet_types' => $serviceData['pet_types'],
+                        'size_ranges' => $serviceData['size_ranges'],
+                        'exotic_pet_service' => $serviceData['exotic_pet_service'] ?? false,
+                        'exotic_pet_species' => $serviceData['exotic_pet_species'] ?? null,
+                        'special_requirements' => $serviceData['special_requirements'] ?? null,
+                        'base_price' => $serviceData['base_price'],
+                        'duration' => $serviceData['duration'],
+                        'variable_pricing' => $serviceData['variable_pricing'] ?? null,
+                        'add_ons' => $serviceData['add_ons'] ?? null,
                         'status' => 'active'
                     ]);
+
+                    // Attach employees to the service
+                    if (!empty($employeeIds)) {
+                        $service->employees()->attach($employeeIds);
+                    }
                 }
             });
 

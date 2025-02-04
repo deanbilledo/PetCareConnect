@@ -235,11 +235,14 @@ class BookingController extends Controller
                 'services' => 'required|array',
                 'services.*' => 'exists:services,id',
                 'appointment_date' => 'required|date|after:today',
-                'appointment_time' => 'required|string'
+                'appointment_time' => 'required',
+                'employee_id' => 'required|exists:employees,id'
             ]);
 
-            // Parse the appointment date and time
-            $appointmentDateTime = Carbon::parse($validated['appointment_date'] . ' ' . $validated['appointment_time']);
+            $appointmentDateTime = Carbon::parse($request->appointment_date . ' ' . $request->appointment_time);
+            
+            // Load employee information
+            $employee = $shop->employees()->findOrFail($request->employee_id);
             
             // Load pets with their services
             $pets = Pet::whereIn('id', $validated['pet_ids'])
@@ -307,7 +310,13 @@ class BookingController extends Controller
                 'appointment_time' => $validated['appointment_time'],
                 'total_amount' => $totalAmount,
                 'services' => $servicesBreakdown,
-                'appointment_type' => $existingBookingData['appointment_type'] ?? 'single' // Default to single if not set
+                'appointment_type' => $existingBookingData['appointment_type'] ?? 'single',
+                'employee_id' => $employee->id,
+                'employee' => [
+                    'name' => $employee->name,
+                    'position' => $employee->position,
+                    'profile_photo_url' => $employee->profile_photo_url
+                ]
             ];
 
             // Debug log the booking data
@@ -435,6 +444,9 @@ class BookingController extends Controller
                 $total = 0;
                 $currentDateTime = clone $appointmentDateTime;
 
+                // Get the employee data from the booking session
+                $employee = $shop->employees()->findOrFail($bookingData['employee_id']);
+
                 // Create appointments for each pet
                 foreach ($bookingData['pet_ids'] as $petId) {
                     $serviceId = $bookingData['pet_services'][$petId] ?? null;
@@ -470,6 +482,7 @@ class BookingController extends Controller
                         'user_id' => auth()->id(),
                         'shop_id' => $shop->id,
                         'pet_id' => $petId,
+                        'employee_id' => $employee->id,
                         'service_type' => $service->name,
                         'service_price' => $price,
                         'appointment_date' => $currentDateTime,
@@ -500,7 +513,12 @@ class BookingController extends Controller
                     'time' => $appointmentDateTime->format('g:i A'),
                     'services' => $servicesBreakdown,
                     'total_amount' => $total,
-                    'appointment_type' => $bookingData['appointment_type']
+                    'appointment_type' => $bookingData['appointment_type'] ?? 'single',
+                    'employee' => [
+                        'name' => $employee->name,
+                        'position' => $employee->position,
+                        'profile_photo_url' => $employee->profile_photo_url
+                    ]
                 ]]);
 
                 // Clear booking session data
@@ -623,6 +641,68 @@ class BookingController extends Controller
         } catch (\Exception $e) {
             Log::error('Error generating acknowledgement receipt: ' . $e->getMessage());
             return back()->with('error', 'Failed to generate acknowledgement receipt. Please try again.');
+        }
+    }
+
+    public function getAvailableEmployees(Request $request, Shop $shop)
+    {
+        $validated = $request->validate([
+            'date' => 'required|date',
+            'time' => 'required',
+            'duration' => 'required|integer|min:15',
+            'service_ids' => 'required|array',
+            'service_ids.*' => 'exists:services,id'
+        ]);
+
+        try {
+            // Get all employees who can perform these services
+            $employees = $shop->employees()
+                ->whereHas('services', function($query) use ($validated) {
+                    $query->whereIn('services.id', $validated['service_ids']);
+                })
+                ->with(['appointments' => function($query) use ($validated) {
+                    // Get appointments for the selected date
+                    $query->whereDate('appointment_date', $validated['date']);
+                }])
+                ->get();
+
+            // Filter out employees who are not available during the selected time slot
+            $selectedTime = Carbon::parse($validated['date'] . ' ' . $validated['time']);
+            $endTime = $selectedTime->copy()->addMinutes($validated['duration']);
+
+            $availableEmployees = $employees->filter(function($employee) use ($selectedTime, $endTime) {
+                // Check if employee has any overlapping appointments
+                foreach ($employee->appointments as $appointment) {
+                    $appointmentStart = Carbon::parse($appointment->appointment_date);
+                    $appointmentEnd = $appointmentStart->copy()->addMinutes($appointment->duration);
+
+                    // Check for time slot overlap
+                    if ($selectedTime->between($appointmentStart, $appointmentEnd) ||
+                        $endTime->between($appointmentStart, $appointmentEnd) ||
+                        ($selectedTime->lte($appointmentStart) && $endTime->gte($appointmentEnd))) {
+                        return false;
+                    }
+                }
+                return true;
+            });
+
+            return response()->json([
+                'success' => true,
+                'employees' => $availableEmployees->map(function($employee) {
+                    return [
+                        'id' => $employee->id,
+                        'name' => $employee->name,
+                        'position' => $employee->position,
+                        'profile_photo_url' => $employee->profile_photo_url
+                    ];
+                })
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to get available employees: ' . $e->getMessage()
+            ], 500);
         }
     }
 } 

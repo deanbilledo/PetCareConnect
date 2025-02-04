@@ -20,7 +20,7 @@ class AppointmentController extends Controller
     {
         $user = auth()->user();
         $appointments = $user->appointments()
-            ->with(['shop', 'pet'])
+            ->with(['shop', 'pet', 'employee'])
             ->orderBy('appointment_date', 'desc')
             ->get();
         

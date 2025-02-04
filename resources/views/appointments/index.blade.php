@@ -239,13 +239,14 @@ use Illuminate\Support\Str;
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
                             <tr>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Shop</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pet</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Shop</th>
+                                <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">Time</th>
+                                <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">Pet</th>
+                                <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">Service</th>
+                                <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-28">Price</th>
+                                <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-40">Employee</th>
+                                <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-28">Status</th>
+                                <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
@@ -253,24 +254,24 @@ use Illuminate\Support\Str;
                                 <tr x-show="isAppointmentVisible('{{ $appointment->status }}', '{{ $date }}')"
                                     @click="viewAppointmentDetails({{ $appointment->id }}, $event)"
                                     class="hover:bg-gray-50 cursor-pointer transition-colors">
-                                    <td class="px-6 py-4 whitespace-nowrap">
+                                    <td class="px-4 py-4 whitespace-nowrap">
                                         <div class="flex items-center">
-                                            <div class="flex-shrink-0 h-12 w-12">
-                                                <img class="h-12 w-12 rounded-lg object-cover shadow-sm"
+                                            <div class="flex-shrink-0 h-10 w-10">
+                                                <img class="h-10 w-10 rounded-lg object-cover shadow-sm"
                                                      src="{{ $appointment->shop->image ? asset('storage/' . $appointment->shop->image) : asset('images/default-shop.png') }}"
                                                      alt="{{ $appointment->shop->name }}">
                                             </div>
-                                            <div class="ml-4">
+                                            <div class="ml-3">
                                                 <div class="text-sm font-semibold text-gray-900">
                                                     {{ $appointment->shop->name }}
                                                 </div>
-                                                <div class="text-xs text-gray-500">
-                                                    {{ Str::limit($appointment->shop->address, 30) }}
+                                                <div class="text-xs text-gray-500 max-w-[150px] truncate">
+                                                    {{ $appointment->shop->address }}
                                                 </div>
                                             </div>
                                         </div>
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
+                                    <td class="px-4 py-4 whitespace-nowrap">
                                         <div class="text-sm text-gray-900 font-medium">
                                             {{ $appointment->appointment_date->format('g:i A') }}
                                         </div>
@@ -278,21 +279,42 @@ use Illuminate\Support\Str;
                                             {{ $appointment->appointment_date->format('l') }}
                                         </div>
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
+                                    <td class="px-4 py-4 whitespace-nowrap">
                                         <div class="text-sm text-gray-900">{{ $appointment->pet->name }}</div>
                                         <div class="text-xs text-gray-500">{{ $appointment->pet->breed }}</div>
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
+                                    <td class="px-4 py-4 whitespace-nowrap">
                                         <div class="text-sm text-gray-900">{{ $appointment->service_type }}</div>
                                         <div class="text-xs text-gray-500">Duration: 1 hour</div>
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
+                                    <td class="px-4 py-4 whitespace-nowrap">
                                         <div class="text-sm font-medium text-gray-900">
                                             PHP {{ number_format($appointment->service_price, 2) }}
                                         </div>
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="px-3 py-1 inline-flex items-center rounded-full text-xs font-medium
+                                    <td class="px-4 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            @if($appointment->employee)
+                                                <div class="flex-shrink-0 h-8 w-8">
+                                                    <img class="h-8 w-8 rounded-full object-cover"
+                                                         src="{{ $appointment->employee->profile_photo_url }}"
+                                                         alt="{{ $appointment->employee->name }}">
+                                                </div>
+                                                <div class="ml-3">
+                                                    <div class="text-sm font-medium text-gray-900">
+                                                        {{ $appointment->employee->name }}
+                                                    </div>
+                                                    <div class="text-xs text-gray-500">
+                                                        {{ $appointment->employee->position }}
+                                                    </div>
+                                                </div>
+                                            @else
+                                                <span class="text-sm text-gray-500">Not assigned</span>
+                                            @endif
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-4 whitespace-nowrap">
+                                        <span class="px-2 py-1 inline-flex items-center rounded-full text-xs font-medium
                                             @if($appointment->status === 'completed') bg-green-100 text-green-800
                                             @elseif($appointment->status === 'cancelled') bg-red-100 text-red-800
                                             @else bg-blue-100 text-blue-800
@@ -306,8 +328,8 @@ use Illuminate\Support\Str;
                                             {{ ucfirst($appointment->status) }}
                                         </span>
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        <div class="flex items-center space-x-3">
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        <div class="flex items-center space-x-2">
                                             <button type="button"
                                                     onclick="event.stopPropagation(); window.location.href='{{ route('appointments.show', $appointment->id) }}'"
                                                     class="text-gray-600 hover:text-gray-800 transition-colors">
