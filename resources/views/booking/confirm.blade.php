@@ -227,6 +227,21 @@ use Illuminate\Support\Facades\Log;
                 </div>
             </div>
 
+            <!-- Selected Employee -->
+            <div class="mb-6 pb-6 border-b border-gray-200">
+                <h3 class="font-medium mb-4">Your Groomer</h3>
+                <div class="flex items-center bg-gray-50 p-4 rounded-lg">
+                    <img src="{{ $bookingData['employee']['profile_photo_url'] }}" 
+                         alt="{{ $bookingData['employee']['name'] }}"
+                         class="w-16 h-16 rounded-full object-cover">
+                    <div class="ml-4">
+                        <h4 class="font-medium text-gray-900">{{ $bookingData['employee']['name'] }}</h4>
+                        <p class="text-sm text-gray-600">{{ $bookingData['employee']['position'] }}</p>
+                    </div>
+                </div>
+                <input type="hidden" name="employee_id" value="{{ $bookingData['employee_id'] }}">
+            </div>
+
             <!-- Additional Notes -->
             <div class="mb-6">
                 <label class="block text-sm font-medium text-gray-700 mb-2">Additional Notes</label>
@@ -297,6 +312,10 @@ use Illuminate\Support\Facades\Log;
                             <div class="flex justify-between items-center">
                                 <span class="text-gray-600">Time:</span>
                                 <span class="font-medium">{{ $appointmentDateTime->format('g:i A') }}</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-600">Groomer:</span>
+                                <span class="font-medium">{{ $bookingData['employee']['name'] }}</span>
                             </div>
                             <div class="flex justify-between items-center pt-2 border-t border-gray-200">
                                 <span class="text-gray-900 font-medium">Total Amount:</span>

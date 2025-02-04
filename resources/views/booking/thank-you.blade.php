@@ -38,6 +38,24 @@ use Illuminate\Support\Facades\Log;
                     <span class="font-medium">{{ $booking_details['time'] }}</span>
                 </div>
                 
+                <!-- Employee Information -->
+                @if(isset($booking_details['employee']))
+                <div class="border-t border-gray-200 pt-3 mt-3">
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="font-medium">Your Groomer</h3>
+                    </div>
+                    <div class="flex items-center bg-gray-50 p-4 rounded-lg">
+                        <img src="{{ $booking_details['employee']['profile_photo_url'] }}" 
+                             alt="{{ $booking_details['employee']['name'] }}"
+                             class="w-14 h-14 rounded-full object-cover border-2 border-white shadow-sm">
+                        <div class="ml-4">
+                            <p class="font-medium text-gray-900">{{ $booking_details['employee']['name'] }}</p>
+                            <p class="text-sm text-gray-600">{{ $booking_details['employee']['position'] }}</p>
+                        </div>
+                    </div>
+                </div>
+                @endif
+                
                 <!-- Services Breakdown -->
                 <div class="border-t border-gray-200 pt-3 mt-3">
                     <h3 class="font-medium mb-2">Services Breakdown</h3>
