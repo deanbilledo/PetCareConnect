@@ -19,8 +19,9 @@ class ShopServicesController extends Controller
     {
         $shop = auth()->user()->shop;
         $services = $shop->services()->orderBy('name')->get();
+        $employees = $shop->employees()->orderBy('name')->get();
 
-        return view('shop.services.index', compact('services', 'shop'));
+        return view('shop.services.index', compact('services', 'shop', 'employees'));
     }
 
     public function store(Request $request)
@@ -39,6 +40,8 @@ class ShopServicesController extends Controller
                 'exotic_pet_species.*' => 'string',
                 'base_price' => 'required|numeric|min:0',
                 'duration' => 'required|integer|min:15',
+                'employee_ids' => 'required|array',
+                'employee_ids.*' => 'exists:employees,id'
             ]);
 
             // Ensure Exotic is in pet_types if exotic_pet_service is true
@@ -48,14 +51,30 @@ class ShopServicesController extends Controller
 
             Log::info('Creating service with data:', $validated);
 
-            $shop = auth()->user()->shop;
-            $service = $shop->services()->create($validated);
+            DB::beginTransaction();
+            try {
+                $shop = auth()->user()->shop;
+                
+                // Remove employee_ids from validated data before creating service
+                $employeeIds = $validated['employee_ids'];
+                unset($validated['employee_ids']);
+                
+                $service = $shop->services()->create($validated);
+                
+                // Attach employees to the service
+                $service->employees()->attach($employeeIds);
+                
+                DB::commit();
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Service added successfully',
-                'service' => $service
-            ]);
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Service added successfully',
+                    'service' => $service
+                ]);
+            } catch (\Exception $e) {
+                DB::rollBack();
+                throw $e;
+            }
         } catch (\Exception $e) {
             Log::error('Error creating service: ' . $e->getMessage());
             return response()->json([
@@ -95,16 +114,36 @@ class ShopServicesController extends Controller
                 'variable_pricing.*.price' => 'required_with:variable_pricing|numeric|min:0',
                 'add_ons' => 'nullable|array',
                 'add_ons.*.name' => 'required_with:add_ons|string',
-                'add_ons.*.price' => 'required_with:add_ons|numeric|min:0'
+                'add_ons.*.price' => 'required_with:add_ons|numeric|min:0',
+                'employee_ids' => 'required|array',
+                'employee_ids.*' => 'exists:employees,id'
             ]);
 
-            $service->update($validated);
+            DB::beginTransaction();
+            try {
+                // Remove employee_ids from validated data before updating service
+                $employeeIds = $validated['employee_ids'];
+                unset($validated['employee_ids']);
+                
+                $service->update($validated);
+                
+                // Sync employees with the service
+                $service->employees()->sync($employeeIds);
+                
+                DB::commit();
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Service updated successfully',
-                'data' => $service->fresh()
-            ]);
+                // Load the updated service with its employees
+                $service->load('employees');
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Service updated successfully',
+                    'data' => $service->fresh()
+                ]);
+            } catch (\Exception $e) {
+                DB::rollBack();
+                throw $e;
+            }
         } catch (\Exception $e) {
             Log::error('Error updating service: ' . $e->getMessage());
             return response()->json([
@@ -179,13 +218,17 @@ class ShopServicesController extends Controller
                 ], 403);
             }
 
+            // Load the service with its employees
+            $service->load('employees');
+
             // Log the raw service data for debugging
             Log::info('Raw service data:', [
                 'service' => $service->toArray(),
                 'pet_types' => $service->pet_types,
                 'size_ranges' => $service->size_ranges,
                 'variable_pricing' => $service->variable_pricing,
-                'add_ons' => $service->add_ons
+                'add_ons' => $service->add_ons,
+                'employees' => $service->employees
             ]);
 
             // Clean and prepare the data
@@ -203,7 +246,8 @@ class ShopServicesController extends Controller
                 'duration' => (int) $service->duration,
                 'variable_pricing' => $service->variable_pricing ?? [],
                 'add_ons' => $service->add_ons ?? [],
-                'status' => $service->status
+                'status' => $service->status,
+                'employee_ids' => $service->employees->pluck('id')->toArray()
             ];
 
             return response()->json([

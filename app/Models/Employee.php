@@ -19,7 +19,8 @@ class Employee extends Model
         'employment_type',
         'profile_photo',
         'bio',
-        'is_active'
+        'is_active',
+        'status'
     ];
 
     protected $casts = [
@@ -37,5 +38,16 @@ class Employee extends Model
             return asset('storage/' . $this->profile_photo);
         }
         return 'https://ui-avatars.com/api/?name=' . urlencode($this->name);
+    }
+
+    public function appointments()
+    {
+        return $this->hasMany(Appointment::class);
+    }
+
+    public function services()
+    {
+        return $this->belongsToMany(Service::class, 'employee_service')
+            ->withTimestamps();
     }
 }

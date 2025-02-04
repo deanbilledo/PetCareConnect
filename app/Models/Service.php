@@ -6,10 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Service extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'shop_id',
@@ -41,6 +42,12 @@ class Service extends Model
     public function shop()
     {
         return $this->belongsTo(Shop::class);
+    }
+
+    public function employees()
+    {
+        return $this->belongsToMany(Employee::class, 'employee_service')
+                    ->withTimestamps();
     }
 
     public function appointments()
