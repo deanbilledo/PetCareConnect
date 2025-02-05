@@ -538,6 +538,75 @@ class BookingController extends Controller
         }
     }
 
+    private function getAvailableTimeSlots(Shop $shop, Carbon $date, int $totalDuration)
+    {
+        $dayOfWeek = $date->dayOfWeek;
+        
+        // Get operating hours for the selected day
+        $operatingHours = $shop->operatingHours()
+            ->where('day', $dayOfWeek)
+            ->where('is_open', true)
+            ->first();
+            
+        if (!$operatingHours) {
+            return [];
+        }
+
+        // Get all employees who can perform services
+        $employees = $shop->employees()->get();
+        $totalEmployees = $employees->count();
+
+        if ($totalEmployees === 0) {
+            return [];
+        }
+
+        // Get all appointments for the day
+        $appointments = $shop->appointments()
+            ->whereDate('appointment_date', $date)
+            ->whereIn('status', ['pending', 'accepted'])
+            ->get();
+
+        $slots = [];
+        $start = Carbon::parse($date->format('Y-m-d') . ' ' . $operatingHours->open_time);
+        $end = Carbon::parse($date->format('Y-m-d') . ' ' . $operatingHours->close_time);
+
+        // Subtract total duration from end time to ensure service can be completed
+        $end->subMinutes($totalDuration);
+
+        while ($start <= $end) {
+            $slotEnd = (clone $start)->addMinutes($totalDuration);
+            
+            // Count how many employees are available in this time slot
+            $busyEmployees = 0;
+            foreach ($appointments as $appointment) {
+                $appointmentStart = Carbon::parse($appointment->appointment_date);
+                $appointmentEnd = $appointmentStart->copy()->addMinutes(60); // Assuming 1-hour duration
+
+                // Check if appointment overlaps with current slot
+                if (($start >= $appointmentStart && $start < $appointmentEnd) ||
+                    ($slotEnd > $appointmentStart && $slotEnd <= $appointmentEnd) ||
+                    ($start <= $appointmentStart && $slotEnd >= $appointmentEnd)) {
+                    $busyEmployees++;
+                }
+            }
+
+            $availableEmployees = $totalEmployees - $busyEmployees;
+
+            // Only add slot if there are available employees
+            if ($availableEmployees > 0) {
+                $slots[] = [
+                    'time' => $start->format('g:i A'),
+                    'available_employees' => $availableEmployees,
+                    'total_employees' => $totalEmployees
+                ];
+            }
+            
+            $start->addMinutes(30);
+        }
+
+        return $slots;
+    }
+
     public function getTimeSlots(Request $request, Shop $shop)
     {
         try {
@@ -564,47 +633,6 @@ class BookingController extends Controller
                 'error' => 'Failed to get time slots: ' . $e->getMessage()
             ], 500);
         }
-    }
-
-    private function getAvailableTimeSlots(Shop $shop, Carbon $date, int $totalDuration)
-    {
-        $dayOfWeek = $date->dayOfWeek;
-        
-        // Get operating hours for the selected day
-        $operatingHours = $shop->operatingHours()
-            ->where('day', $dayOfWeek)
-            ->where('is_open', true)
-            ->first();
-            
-        if (!$operatingHours) {
-            return [];
-        }
-
-        $slots = [];
-        $start = Carbon::parse($date->format('Y-m-d') . ' ' . $operatingHours->open_time);
-        $end = Carbon::parse($date->format('Y-m-d') . ' ' . $operatingHours->close_time);
-
-        // Subtract total duration from end time to ensure service can be completed
-        $end->subMinutes($totalDuration);
-
-        while ($start <= $end) {
-            // Check if this time slot is available (not booked)
-            $slotEnd = (clone $start)->addMinutes($totalDuration);
-            
-            $conflictingAppointments = Appointment::where('shop_id', $shop->id)
-                ->where('appointment_date', '>=', $start)
-                ->where('appointment_date', '<', $slotEnd)
-                ->where('status', '!=', 'cancelled')
-                ->count();
-
-            if ($conflictingAppointments === 0) {
-                $slots[] = $start->format('g:i A'); // Changed to 12-hour format with AM/PM
-            }
-            
-            $start->addMinutes(30);
-        }
-
-        return $slots;
     }
 
     public function thankYou(Shop $shop)
@@ -655,50 +683,141 @@ class BookingController extends Controller
         ]);
 
         try {
-            // Get all employees who can perform these services
-            $employees = $shop->employees()
+            // Log the initial request
+            Log::info('Getting available employees for request:', [
+                'shop_id' => $shop->id,
+                'date' => $validated['date'],
+                'time' => $validated['time'],
+                'service_ids' => $validated['service_ids']
+            ]);
+
+            // First, get all employees for the shop
+            $allEmployees = $shop->employees()->get();
+
+            Log::info('All shop employees:', [
+                'count' => $allEmployees->count(),
+                'employees' => $allEmployees->map(function($employee) {
+                    return ['id' => $employee->id, 'name' => $employee->name];
+                })
+            ]);
+
+            // Then, check which employees can perform the requested services
+            $employeesWithServices = $shop->employees()
                 ->whereHas('services', function($query) use ($validated) {
                     $query->whereIn('services.id', $validated['service_ids']);
                 })
-                ->with(['appointments' => function($query) use ($validated) {
-                    // Get appointments for the selected date
-                    $query->whereDate('appointment_date', $validated['date']);
+                ->with(['services' => function($query) use ($validated) {
+                    $query->whereIn('services.id', $validated['service_ids']);
                 }])
                 ->get();
 
-            // Filter out employees who are not available during the selected time slot
+            Log::info('Employees with required services:', [
+                'count' => $employeesWithServices->count(),
+                'employees' => $employeesWithServices->map(function($employee) {
+                    return [
+                        'id' => $employee->id,
+                        'name' => $employee->name,
+                        'services' => $employee->services->pluck('name')
+                    ];
+                })
+            ]);
+
+            // Get appointments for all employees on the selected date
+            $selectedDate = Carbon::parse($validated['date']);
+            $appointments = $shop->appointments()
+                ->whereDate('appointment_date', $selectedDate)
+                ->whereIn('status', ['pending', 'accepted'])
+                ->with('employee')
+                ->get();
+
+            Log::info('Existing appointments for date:', [
+                'date' => $selectedDate->format('Y-m-d'),
+                'appointments' => $appointments->map(function($apt) {
+                    return [
+                        'employee_id' => $apt->employee_id,
+                        'time' => $apt->appointment_date->format('H:i'),
+                        'status' => $apt->status
+                    ];
+                })
+            ]);
+
+            // Parse the requested time slot
             $selectedTime = Carbon::parse($validated['date'] . ' ' . $validated['time']);
             $endTime = $selectedTime->copy()->addMinutes($validated['duration']);
 
-            $availableEmployees = $employees->filter(function($employee) use ($selectedTime, $endTime) {
-                // Check if employee has any overlapping appointments
-                foreach ($employee->appointments as $appointment) {
-                    $appointmentStart = Carbon::parse($appointment->appointment_date);
-                    $appointmentEnd = $appointmentStart->copy()->addMinutes($appointment->duration);
+            // Filter available employees
+            $availableEmployees = $employeesWithServices->filter(function($employee) use ($appointments, $selectedTime, $endTime) {
+                // Get this employee's appointments
+                $employeeAppointments = $appointments->where('employee_id', $employee->id);
+                
+                if ($employeeAppointments->isEmpty()) {
+                    Log::info("Employee {$employee->name} has no appointments - available");
+                    return true;
+                }
 
-                    // Check for time slot overlap
-                    if ($selectedTime->between($appointmentStart, $appointmentEnd) ||
-                        $endTime->between($appointmentStart, $appointmentEnd) ||
-                        ($selectedTime->lte($appointmentStart) && $endTime->gte($appointmentEnd))) {
+                // Check each appointment for conflicts
+                foreach ($employeeAppointments as $appointment) {
+                    $appointmentStart = Carbon::parse($appointment->appointment_date);
+                    $appointmentEnd = $appointmentStart->copy()->addMinutes(60);
+
+                    // Check for overlap
+                    $hasOverlap = ($selectedTime >= $appointmentStart && $selectedTime < $appointmentEnd) ||
+                                 ($endTime > $appointmentStart && $endTime <= $appointmentEnd) ||
+                                 ($selectedTime <= $appointmentStart && $endTime >= $appointmentEnd);
+
+                    if ($hasOverlap) {
+                        Log::info("Employee {$employee->name} has conflicting appointment", [
+                            'appointment_time' => $appointmentStart->format('H:i'),
+                            'requested_time' => $selectedTime->format('H:i')
+                        ]);
                         return false;
                     }
                 }
+
+                Log::info("Employee {$employee->name} is available");
                 return true;
             });
 
+            // Convert to array and reindex
+            $availableEmployeesArray = $availableEmployees->values()->all();
+
+            // Log final results with actual array data
+            Log::info('Final available employees array:', [
+                'count' => count($availableEmployeesArray),
+                'employees' => array_map(function($employee) {
+                    return [
+                        'id' => $employee->id,
+                        'name' => $employee->name
+                    ];
+                }, $availableEmployeesArray)
+            ]);
+
+            if (empty($availableEmployeesArray)) {
+                Log::warning('No available employees found', [
+                    'total_employees' => $allEmployees->count(),
+                    'employees_with_services' => $employeesWithServices->count(),
+                    'date' => $validated['date'],
+                    'time' => $validated['time']
+                ]);
+            }
+
             return response()->json([
                 'success' => true,
-                'employees' => $availableEmployees->map(function($employee) {
+                'employees' => array_map(function($employee) {
                     return [
                         'id' => $employee->id,
                         'name' => $employee->name,
                         'position' => $employee->position,
                         'profile_photo_url' => $employee->profile_photo_url
                     ];
-                })
+                }, $availableEmployeesArray)
             ]);
 
         } catch (\Exception $e) {
+            Log::error('Error getting available employees: ' . $e->getMessage(), [
+                'exception' => $e,
+                'trace' => $e->getTraceAsString()
+            ]);
             return response()->json([
                 'success' => false,
                 'error' => 'Failed to get available employees: ' . $e->getMessage()
