@@ -357,7 +357,7 @@ class AppointmentController extends Controller
             }
 
             // Load the appointment with necessary relationships
-            $appointment->load(['user', 'pet', 'shop']);
+            $appointment->load(['user', 'pet', 'shop', 'employee']);
 
             // Get the profile photo URL
             $profilePhotoUrl = $appointment->user->profile_photo_url ?? asset('images/default-profile.png');
@@ -373,13 +373,22 @@ class AppointmentController extends Controller
                         'email' => $appointment->user->email,
                         'profile_photo_url' => $profilePhotoUrl
                     ],
+                    'employee' => $appointment->employee ? [
+                        'id' => $appointment->employee->id,
+                        'name' => $appointment->employee->name,
+                        'position' => $appointment->employee->position,
+                        'profile_photo_url' => $appointment->employee->profile_photo_url ?? asset('images/default-avatar.png')
+                    ] : null,
                     'appointment_date' => $appointment->appointment_date,
                     'service_type' => $appointment->service_type,
-                    'status' => $appointment->status
+                    'status' => $appointment->status,
+                    'notes' => $appointment->notes,
+                    'note_image' => $appointment->note_image ? asset('storage/' . $appointment->note_image) : null,
+                    'updated_at' => $appointment->updated_at
                 ]
             ]);
         } catch (\Exception $e) {
-            Log::error('Error retrieving note for appointment: ' . $e->getMessage());
+            \Log::error('Error retrieving note for appointment: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'error' => 'Failed to retrieve note'

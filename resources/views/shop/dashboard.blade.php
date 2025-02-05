@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Storage;
     currentShopType: null,
     currentNote: '',
     noteImage: null,
+    appointment: null,
     
     openNoteModal(appointmentId, shopType) {
         this.currentAppointmentId = appointmentId;
@@ -20,8 +21,23 @@ use Illuminate\Support\Facades\Storage;
     },
 
     async loadExistingNote() {
-        const note = await getNoteForAppointment(this.currentAppointmentId);
-        this.currentNote = note || '';
+        try {
+            console.log('Loading note for appointment:', this.currentAppointmentId);
+            const response = await fetch(`/appointments/${this.currentAppointmentId}/note`);
+            const data = await response.json();
+            console.log('Received note data:', data);
+            
+            if (data.success) {
+                this.currentNote = data.note || '';
+                this.appointment = data.appointment;
+                
+               
+            } else {
+                console.error('Failed to load note:', data.error);
+            }
+        } catch (error) {
+            console.error('Error loading note:', error);
+        }
     },
 
     closeNoteModal() {
@@ -30,6 +46,7 @@ use Illuminate\Support\Facades\Storage;
         this.noteImage = null;
         this.currentAppointmentId = null;
         this.currentShopType = null;
+        this.appointment = null;
     },
 
     handleImageUpload(event) {
@@ -281,6 +298,26 @@ use Illuminate\Support\Facades\Storage;
                 
                 <!-- Modal Content -->
                 <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <!-- Employee Information -->
+                    <div class="mb-4 p-4 bg-gray-50 rounded-lg" x-show="appointment">
+                        <template x-if="appointment?.employee">
+                            <div class="flex items-center">
+                                <img :src="appointment.employee.profile_photo_url || '/images/default-avatar.png'" 
+                                     :alt="appointment.employee.name"
+                                     class="w-12 h-12 rounded-full object-cover border-2 border-white shadow-sm">
+                                <div class="ml-4">
+                                    <h4 class="text-sm font-medium text-gray-900" x-text="appointment.employee.name"></h4>
+                                    <p class="text-sm text-gray-500" x-text="appointment.employee.position"></p>
+                                </div>
+                            </div>
+                        </template>
+                        <template x-if="!appointment?.employee">
+                            <div class="text-sm text-gray-500">
+                                No employee assigned to this appointment
+                            </div>
+                        </template>
+                    </div>
+
                     <!-- Note Text Area -->
                     <div class="mb-4">
                         <label for="note" class="block text-sm font-medium text-gray-700 mb-2">Notes</label>
@@ -312,6 +349,27 @@ use Illuminate\Support\Facades\Storage;
                             <span x-show="noteImage" 
                                   x-text="noteImage?.name"
                                   class="ml-3 text-sm text-gray-500"></span>
+                        </div>
+                    </div>
+
+                    <!-- Existing Note Information -->
+                    <div x-show="appointment?.notes" class="mt-6 p-4 bg-gray-50 rounded-lg">
+                        <h4 class="text-sm font-medium text-gray-900 mb-2">Previous Note</h4>
+                        <div class="text-sm text-gray-600" x-text="appointment?.notes"></div>
+                        <div x-show="appointment?.note_image" class="mt-2">
+                            <img :src="appointment?.note_image" 
+                                 alt="Note Image" 
+                                 class="max-w-full h-auto rounded-lg">
+                        </div>
+                        <div class="mt-2 text-xs text-gray-500">
+                            <template x-if="appointment?.employee">
+                                <div>
+                                    <span>Added by: </span>
+                                    <span x-text="appointment.employee.name"></span>
+                                    <span> on </span>
+                                    <span x-text="new Date(appointment.updated_at).toLocaleDateString()"></span>
+                                </div>
+                            </template>
                         </div>
                     </div>
                 </div>
@@ -532,10 +590,16 @@ async function getNoteForAppointment(id) {
     try {
         const response = await fetch(`/appointments/${id}/note`);
         const data = await response.json();
-        return data.note;
+        if (data.success) {
+            return {
+                note: data.note,
+                appointment: data.appointment
+            };
+        }
+        throw new Error(data.error || 'Failed to fetch note');
     } catch (error) {
         console.error('Error:', error);
-        return '';
+        return { note: '', appointment: null };
     }
 }
 
@@ -558,7 +622,6 @@ function addNote(id, shopType, note, image) {
 
             const data = await response.json();
             if (data.success) {
-                // Show success notification
                 const noteType = shopType === 'grooming' ? "Groomer's" : "Doctor's";
                 showNotification(`${noteType} note saved successfully!`, 'success');
                 resolve(data);
