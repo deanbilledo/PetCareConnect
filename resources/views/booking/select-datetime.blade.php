@@ -199,11 +199,38 @@ use Illuminate\Support\Facades\Log;
                         x-show="!loading && timeSlots.length > 0"
                         required>
                     <option value="">Select a time</option>
-                    <template x-for="slot in timeSlots" :key="slot">
-                        <option x-text="slot + ' - ' + getEndTime(slot, {{ $totalDuration }})" :value="slot"></option>
+                    <template x-for="slot in timeSlots" :key="slot.time">
+                        <option :value="slot.time">
+                            <span x-text="slot.time"></span>
+                            <span x-text="' - ' + slot.available_employees + ' of ' + slot.total_employees + ' groomers available'"></span>
+                        </option>
                     </template>
                 </select>
-                
+
+                <!-- Time Slots Grid (Alternative View) -->
+                <div class="grid grid-cols-3 sm:grid-cols-4 gap-2 mt-4" x-show="!loading && timeSlots.length > 0">
+                    <template x-for="slot in timeSlots" :key="slot.time">
+                        <button type="button"
+                                @click="selectedTime = slot.time; getAvailableEmployees()"
+                                :class="{
+                                    'border rounded-lg p-3 text-center transition-colors': true,
+                                    'bg-blue-50 border-blue-200 text-blue-700': selectedTime === slot.time,
+                                    'border-gray-200 hover:bg-gray-50': selectedTime !== slot.time
+                                }">
+                            <div class="font-medium" x-text="slot.time"></div>
+                            <div class="text-xs mt-1" :class="{
+                                'text-blue-600': selectedTime === slot.time,
+                                'text-gray-500': selectedTime !== slot.time
+                            }">
+                                <span x-text="slot.available_employees"></span>
+                                <span>of</span>
+                                <span x-text="slot.total_employees"></span>
+                                <span>available</span>
+                            </div>
+                        </button>
+                    </template>
+                </div>
+
                 <!-- No Slots Available Message -->
                 <p x-show="!loading && !errorMessage && selectedDate && timeSlots.length === 0" 
                    class="text-yellow-600 text-sm mt-1">
@@ -256,6 +283,7 @@ use Illuminate\Support\Facades\Log;
                     </template>
                 </div>
 
+                
                 <!-- No Available Employees Message -->
                 <p x-show="!loadingEmployees && availableEmployees.length === 0" 
                    class="text-yellow-600 text-sm mt-1 p-4 bg-yellow-50 rounded-md">
