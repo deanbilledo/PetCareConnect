@@ -19,6 +19,7 @@ use App\Http\Controllers\ReceiptController;
 use App\Http\Controllers\PetController;
 use App\Http\Controllers\ShopEmployeeController;
 use App\Http\Controllers\ShopEmployeeSetupController;
+use App\Http\Controllers\ShopAnalyticsController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -191,6 +192,18 @@ Route::middleware(['auth', 'has-shop'])->group(function () {
     Route::get('/shop/services/{service}', [ShopServicesController::class, 'show']);
     Route::delete('/shop/services/{service}', [ShopServicesController::class, 'destroy']);
     Route::put('/shop/services/{service}/status', [ShopServicesController::class, 'updateStatus']);
+    
+    // Add analytics route
+    Route::get('/shop/analytics', [ShopAnalyticsController::class, 'index'])->name('shop.analytics');
+    
+    // Add schedule routes
+    Route::prefix('shop/schedule')->name('shop.schedule.')->group(function () {
+        Route::get('/events', [ShopEmployeeController::class, 'getEvents'])->name('events');
+        Route::post('/events', [ShopEmployeeController::class, 'storeEvent'])->name('events.store');
+        Route::put('/events/{event}', [ShopEmployeeController::class, 'updateEvent'])->name('events.update');
+        Route::delete('/events/{event}', [ShopEmployeeController::class, 'deleteEvent'])->name('events.delete');
+        Route::post('/time-off', [ShopEmployeeController::class, 'storeTimeOff'])->name('time-off.store');
+    });
 });
 
 // Shop Setup Routes
