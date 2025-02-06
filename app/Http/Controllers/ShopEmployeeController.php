@@ -21,7 +21,7 @@ class ShopEmployeeController extends Controller
     public function index()
     {
         $shop = auth()->user()->shop;
-        $employees = $shop->employees()->latest()->get();
+        $employees = $shop->employees()->with('services')->latest()->get();
         return view('shop.employees.index', compact('employees'));
     }
 
@@ -170,5 +170,193 @@ class ShopEmployeeController extends Controller
             'success' => true,
             'message' => 'Employee restored successfully'
         ]);
+    }
+
+    public function getEvents(Request $request)
+    {
+        try {
+            $shop = auth()->user()->shop;
+            
+            // Parse and validate dates
+            $start = $request->query('start');
+            $end = $request->query('end');
+            $employeeId = $request->query('employee_id');
+
+            if (!$start || !$end) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Start and end dates are required',
+                    'events' => []
+                ]);
+            }
+
+            \Log::info('Fetching events with params:', [
+                'start' => $start,
+                'end' => $end,
+                'employee_id' => $employeeId,
+                'shop_id' => $shop->id
+            ]);
+
+            $query = $shop->employeeSchedules();
+
+            // Filter by date range
+            $query->whereBetween('start', [$start, $end]);
+
+            // Filter by employee if provided and valid
+            if (!empty($employeeId) && $employeeId !== 'null' && $employeeId !== 'undefined') {
+                // Verify the employee belongs to this shop
+                $employee = $shop->employees()->find($employeeId);
+                if ($employee) {
+                    $query->where('employee_id', $employeeId);
+                } else {
+                    return response()->json([
+                        'success' => false,
+                        'error' => 'Invalid employee ID',
+                        'events' => []
+                    ]);
+                }
+            }
+
+            $events = $query->with('employee')->get();
+
+            \Log::info('Found events:', ['count' => $events->count()]);
+
+            $formattedEvents = $events->map(function ($schedule) {
+                return [
+                    'id' => $schedule->id,
+                    'title' => $schedule->employee 
+                        ? $schedule->title . ' - ' . $schedule->employee->name
+                        : $schedule->title,
+                    'start' => $schedule->start->format('Y-m-d\TH:i:s'),
+                    'end' => $schedule->end->format('Y-m-d\TH:i:s'),
+                    'employee_id' => $schedule->employee_id,
+                    'type' => $schedule->type,
+                    'status' => $schedule->status,
+                    'notes' => $schedule->notes,
+                    'color' => $schedule->type === 'time_off' ? '#ff4d4d' : '#4299e1'
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'events' => $formattedEvents
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Error in getEvents:', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'request' => $request->all()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to load events: ' . $e->getMessage(),
+                'events' => []
+            ], 500);
+        }
+    }
+
+    public function storeEvent(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'title' => 'required|string',
+                'start' => 'required|date',
+                'end' => 'required|date|after:start',
+                'employee_id' => 'required|exists:employees,id',
+                'type' => 'sometimes|string|in:shift,time_off',
+                'status' => 'sometimes|string|in:active,cancelled'
+            ]);
+
+            $shop = auth()->user()->shop;
+            
+            // Verify the employee belongs to this shop
+            $employee = $shop->employees()->findOrFail($validated['employee_id']);
+            
+            // Add shop_id to the validated data
+            $validated['shop_id'] = $shop->id;
+            
+            $schedule = $shop->employeeSchedules()->create($validated);
+
+            return response()->json([
+                'success' => true,
+                'event' => $schedule
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error creating event: ' . $e->getMessage(), [
+                'exception' => $e,
+                'request' => $request->all()
+            ]);
+            return response()->json(['error' => 'Failed to create event: ' . $e->getMessage()], 500);
+        }
+    }
+
+    public function updateEvent(Request $request, $eventId)
+    {
+        try {
+            $validated = $request->validate([
+                'start' => 'required|date',
+                'end' => 'required|date|after:start'
+            ]);
+
+            $shop = auth()->user()->shop;
+            $schedule = $shop->employeeSchedules()->findOrFail($eventId);
+            $schedule->update($validated);
+
+            return response()->json([
+                'success' => true,
+                'event' => $schedule
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Failed to update event'], 500);
+        }
+    }
+
+    public function deleteEvent($eventId)
+    {
+        try {
+            $shop = auth()->user()->shop;
+            $schedule = $shop->employeeSchedules()->findOrFail($eventId);
+            $schedule->delete();
+
+            return response()->json([
+                'success' => true
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Failed to delete event'], 500);
+        }
+    }
+
+    public function storeTimeOff(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'employee_id' => 'required|exists:employees,id',
+                'start_date' => 'required|date',
+                'end_date' => 'required|date|after_or_equal:start_date',
+                'reason' => 'required|string'
+            ]);
+
+            $shop = auth()->user()->shop;
+            
+            // Verify the employee belongs to this shop
+            $employee = $shop->employees()->findOrFail($validated['employee_id']);
+            
+            $timeOff = $shop->timeOffRequests()->create([
+                'employee_id' => $validated['employee_id'],
+                'start_date' => $validated['start_date'],
+                'end_date' => $validated['end_date'],
+                'reason' => $validated['reason'],
+                'status' => 'pending'
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'timeOff' => $timeOff
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Failed to create time off request'], 500);
+        }
     }
 }

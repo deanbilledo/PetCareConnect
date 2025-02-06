@@ -15,7 +15,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-600">Total Appointments</p>
-                    <h3 class="text-2xl font-bold text-gray-900">1,234</h3>
+                    <h3 class="text-2xl font-bold text-gray-900">{{ number_format($totalAppointments) }}</h3>
                 </div>
                 <div class="p-3 bg-blue-100 rounded-full">
                     <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -23,7 +23,9 @@
                     </svg>
                 </div>
             </div>
-            <p class="text-sm text-green-600 mt-2">↑ 12% from last month</p>
+            <p class="text-sm {{ $appointmentGrowth >= 0 ? 'text-green-600' : 'text-red-600' }} mt-2">
+                {{ $appointmentGrowth >= 0 ? '↑' : '↓' }} {{ abs(round($appointmentGrowth)) }}% from last month
+            </p>
         </div>
 
         <!-- Revenue -->
@@ -31,7 +33,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-600">Total Revenue</p>
-                    <h3 class="text-2xl font-bold text-gray-900">₱123,456</h3>
+                    <h3 class="text-2xl font-bold text-gray-900">₱{{ number_format($totalRevenue, 2) }}</h3>
                 </div>
                 <div class="p-3 bg-green-100 rounded-full">
                     <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -39,7 +41,9 @@
                     </svg>
                 </div>
             </div>
-            <p class="text-sm text-green-600 mt-2">↑ 8% from last month</p>
+            <p class="text-sm {{ $revenueGrowth >= 0 ? 'text-green-600' : 'text-red-600' }} mt-2">
+                {{ $revenueGrowth >= 0 ? '↑' : '↓' }} {{ abs(round($revenueGrowth)) }}% from last month
+            </p>
         </div>
 
         <!-- Customers -->
@@ -47,7 +51,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-600">Total Customers</p>
-                    <h3 class="text-2xl font-bold text-gray-900">890</h3>
+                    <h3 class="text-2xl font-bold text-gray-900">{{ number_format($totalCustomers) }}</h3>
                 </div>
                 <div class="p-3 bg-purple-100 rounded-full">
                     <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -55,7 +59,9 @@
                     </svg>
                 </div>
             </div>
-            <p class="text-sm text-green-600 mt-2">↑ 5% from last month</p>
+            <p class="text-sm {{ $customerGrowth >= 0 ? 'text-green-600' : 'text-red-600' }} mt-2">
+                {{ $customerGrowth >= 0 ? '↑' : '↓' }} {{ abs(round($customerGrowth)) }}% from last month
+            </p>
         </div>
 
         <!-- Services -->
@@ -63,7 +69,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-600">Active Services</p>
-                    <h3 class="text-2xl font-bold text-gray-900">12</h3>
+                    <h3 class="text-2xl font-bold text-gray-900">{{ $activeServices }}</h3>
                 </div>
                 <div class="p-3 bg-yellow-100 rounded-full">
                     <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -71,7 +77,15 @@
                     </svg>
                 </div>
             </div>
-            <p class="text-sm text-yellow-600 mt-2">No change from last month</p>
+            <p class="text-sm {{ $servicesGrowth >= 0 ? 'text-green-600' : 'text-yellow-600' }} mt-2">
+                @if($servicesGrowth > 0)
+                    ↑ {{ abs(round($servicesGrowth)) }}% from last month
+                @elseif($servicesGrowth < 0)
+                    ↓ {{ abs(round($servicesGrowth)) }}% from last month
+                @else
+                    No change from last month
+                @endif
+            </p>
         </div>
     </div>
 
@@ -98,35 +112,35 @@
     <div class="bg-white rounded-lg shadow-md p-6">
         <h3 class="text-lg font-semibold mb-4">Recent Activity</h3>
         <div class="space-y-4">
-            <div class="flex items-center justify-between py-3 border-b">
-                <div class="flex items-center">
-                    <div class="p-2 bg-blue-100 rounded-full mr-4">
-                        <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
+            @forelse($recentActivity as $activity)
+                <div class="flex items-center justify-between py-3 border-b">
+                    <div class="flex items-center">
+                        <div class="p-2 {{ $activity->status === 'completed' ? 'bg-green-100' : 'bg-blue-100' }} rounded-full mr-4">
+                            <svg class="w-4 h-4 {{ $activity->status === 'completed' ? 'text-green-600' : 'text-blue-600' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                @if($activity->status === 'completed')
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                @else
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                @endif
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="font-medium">
+                                {{ $activity->status === 'completed' ? 'Service Completed' : 'New Appointment' }}
+                            </p>
+                            <p class="text-sm text-gray-600">
+                                {{ $activity->user->name }} - {{ $activity->service_type }}
+                                @if($activity->employee)
+                                    ({{ $activity->employee->name }})
+                                @endif
+                            </p>
+                        </div>
                     </div>
-                    <div>
-                        <p class="font-medium">New Appointment Booked</p>
-                        <p class="text-sm text-gray-600">John Doe booked a Premium Grooming service</p>
-                    </div>
+                    <span class="text-sm text-gray-500">{{ $activity->created_at->diffForHumans() }}</span>
                 </div>
-                <span class="text-sm text-gray-500">2 hours ago</span>
-            </div>
-            
-            <div class="flex items-center justify-between py-3 border-b">
-                <div class="flex items-center">
-                    <div class="p-2 bg-green-100 rounded-full mr-4">
-                        <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                    </div>
-                    <div>
-                        <p class="font-medium">Service Completed</p>
-                        <p class="text-sm text-gray-600">Basic Grooming service for Jane Smith completed</p>
-                    </div>
-                </div>
-                <span class="text-sm text-gray-500">5 hours ago</span>
-            </div>
+            @empty
+                <div class="text-center text-gray-500">No recent activity</div>
+            @endforelse
         </div>
     </div>
 </div>
@@ -136,19 +150,21 @@
 <script>
 // Revenue Chart
 const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+const revenueData = {
+    labels: {!! json_encode($monthlyRevenue->pluck('month')) !!},
+    datasets: [{
+        label: 'Revenue (PHP)',
+        data: {!! json_encode($monthlyRevenue->pluck('total')) !!},
+        borderColor: 'rgb(59, 130, 246)',
+        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+        tension: 0.4,
+        fill: true
+    }]
+};
+
 new Chart(revenueCtx, {
     type: 'line',
-    data: {
-        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-        datasets: [{
-            label: 'Revenue (PHP)',
-            data: [15000, 25000, 20000, 30000, 28000, 35000],
-            borderColor: 'rgb(59, 130, 246)',
-            backgroundColor: 'rgba(59, 130, 246, 0.1)',
-            tension: 0.4,
-            fill: true
-        }]
-    },
+    data: revenueData,
     options: {
         responsive: true,
         maintainAspectRatio: false,
@@ -172,24 +188,26 @@ new Chart(revenueCtx, {
 
 // Appointments Chart
 const appointmentsCtx = document.getElementById('appointmentsChart').getContext('2d');
+const appointmentData = {
+    labels: {!! json_encode($monthlyAppointments->pluck('month')) !!},
+    datasets: [{
+        label: 'Completed',
+        data: {!! json_encode($monthlyAppointments->pluck('completed')) !!},
+        backgroundColor: 'rgba(34, 197, 94, 0.5)',
+        borderColor: 'rgb(34, 197, 94)',
+        borderWidth: 1
+    }, {
+        label: 'Pending',
+        data: {!! json_encode($monthlyAppointments->pluck('pending')) !!},
+        backgroundColor: 'rgba(59, 130, 246, 0.5)',
+        borderColor: 'rgb(59, 130, 246)',
+        borderWidth: 1
+    }]
+};
+
 new Chart(appointmentsCtx, {
     type: 'bar',
-    data: {
-        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-        datasets: [{
-            label: 'Completed',
-            data: [12, 15, 10, 8, 14, 20, 15],
-            backgroundColor: 'rgba(34, 197, 94, 0.5)',
-            borderColor: 'rgb(34, 197, 94)',
-            borderWidth: 1
-        }, {
-            label: 'Pending',
-            data: [5, 8, 6, 4, 7, 10, 8],
-            backgroundColor: 'rgba(59, 130, 246, 0.5)',
-            borderColor: 'rgb(59, 130, 246)',
-            borderWidth: 1
-        }]
-    },
+    data: appointmentData,
     options: {
         responsive: true,
         maintainAspectRatio: false,
