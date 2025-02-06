@@ -416,7 +416,7 @@ function timeSlotPicker() {
                     const appointmentStart = new Date(`${this.selectedDate} ${this.selectedTime}`);
                     const appointmentEnd = new Date(appointmentStart.getTime() + ({{ $totalDuration }} * 60000));
                     
-                    // Check if employee has any time_off schedule for this time period
+                    // Only check for time off - if employee has time off during this period, they're not available
                     const hasTimeOff = employee.schedules?.some(schedule => {
                         if (schedule.type !== 'time_off') return false;
                         
@@ -430,21 +430,8 @@ function timeSlotPicker() {
                         );
                     });
 
-                    // Check if employee has a work shift during this time
-                    const hasWorkShift = employee.schedules?.some(schedule => {
-                        if (schedule.type !== 'shift') return false;
-                        
-                        const scheduleStart = new Date(schedule.start);
-                        const scheduleEnd = new Date(schedule.end);
-                        
-                        return (
-                            appointmentStart >= scheduleStart &&
-                            appointmentEnd <= scheduleEnd
-                        );
-                    });
-
-                    // Employee is available if they don't have time off and have a work shift
-                    return !hasTimeOff && hasWorkShift;
+                    // Employee is available if they don't have time off
+                    return !hasTimeOff;
                 });
 
             } catch (error) {
