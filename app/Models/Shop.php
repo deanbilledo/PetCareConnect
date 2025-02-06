@@ -124,4 +124,14 @@ class Shop extends Model
     {
         return $this->hasMany(Employee::class);
     }
+
+    public function employeeSchedules()
+    {
+        return $this->hasMany(EmployeeSchedule::class);
+    }
+
+    public function timeOffRequests()
+    {
+        return $this->hasMany(TimeOffRequest::class);
+    }
 } 

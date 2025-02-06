@@ -362,10 +362,11 @@ function timeSlotPicker() {
                     throw new Error(data.error);
                 }
                 
-                this.timeSlots = data.slots || [];
+                // Keep all time slots that have at least one available employee
+                this.timeSlots = data.slots;
                 
                 if (data.message && this.timeSlots.length === 0) {
-                    this.errorMessage = data.message;
+                    this.errorMessage = 'No available time slots for the selected date';
                 }
             } catch (error) {
                 this.errorMessage = error.message || 'Failed to load time slots';
@@ -410,7 +411,28 @@ function timeSlotPicker() {
                     throw new Error(data.error);
                 }
 
-                this.availableEmployees = data.employees || [];
+                // Filter employees based on their schedules
+                this.availableEmployees = data.employees.filter(employee => {
+                    const appointmentStart = new Date(`${this.selectedDate} ${this.selectedTime}`);
+                    const appointmentEnd = new Date(appointmentStart.getTime() + ({{ $totalDuration }} * 60000));
+                    
+                    // Only check for time off - if employee has time off during this period, they're not available
+                    const hasTimeOff = employee.schedules?.some(schedule => {
+                        if (schedule.type !== 'time_off') return false;
+                        
+                        const scheduleStart = new Date(schedule.start);
+                        const scheduleEnd = new Date(schedule.end);
+                        
+                        return (
+                            (appointmentStart >= scheduleStart && appointmentStart < scheduleEnd) ||
+                            (appointmentEnd > scheduleStart && appointmentEnd <= scheduleEnd) ||
+                            (appointmentStart <= scheduleStart && appointmentEnd >= scheduleEnd)
+                        );
+                    });
+
+                    // Employee is available if they don't have time off
+                    return !hasTimeOff;
+                });
 
             } catch (error) {
                 this.employeeErrorMessage = error.message || 'Failed to load available employees';
