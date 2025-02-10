@@ -175,32 +175,27 @@
                         </button>
                     </div>
 
-                    <!-- Time Off Requests Section -->
+                    <!-- Time Off Section -->
                     <div>
-                        <h3 class="text-lg font-semibold mb-4">Time Off Requests</h3>
+                        <h3 class="text-lg font-semibold mb-4">Employee Time Off</h3>
                         <button @click="showTimeOffModal = true" 
                                 class="w-full flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-                            Request Time Off
+                            Set Employee Time Off
                         </button>
                         <div class="mt-4 space-y-3">
-                            <template x-for="request in timeOffRequests" :key="request.id">
+                            <template x-for="timeOff in timeOffList" :key="timeOff.id">
                                 <div class="flex items-center justify-between p-3 bg-gray-50 rounded-md">
                                     <div>
-                                        <p class="text-sm font-medium" x-text="request.dates"></p>
-                                        <p class="text-xs text-gray-500" x-text="request.status"></p>
+                                        <p class="text-sm font-medium">
+                                            <span x-text="timeOff.employee_name"></span>
+                                        </p>
+                                        <p class="text-xs text-gray-600" x-text="timeOff.dates"></p>
+                                        <p class="text-xs text-gray-500" x-text="timeOff.reason"></p>
                                     </div>
-                                    <div class="flex space-x-2">
-                                        <template x-if="request.status === 'pending'">
-                                            <button @click="approveTimeOff(request.id)" 
-                                                    class="text-xs text-green-600 hover:text-green-800">
-                                                Approve
-                                            </button>
-                                        </template>
-                                        <button @click="deleteTimeOff(request.id)" 
-                                                class="text-xs text-red-600 hover:text-red-800">
-                                            Delete
-                                        </button>
-                                    </div>
+                                    <button @click="deleteTimeOff(timeOff.id)" 
+                                            class="text-xs text-red-600 hover:text-red-800">
+                                        Delete
+                                    </button>
                                 </div>
                             </template>
                         </div>
@@ -300,12 +295,12 @@
         </div>
     </div>
 
-    <!-- Time Off Request Modal -->
+    <!-- Time Off Modal -->
     <div x-show="showTimeOffModal" class="fixed inset-0 flex items-center justify-center z-50">
         <div class="fixed inset-0 bg-black opacity-50"></div>
         <div class="relative bg-white rounded-lg p-8 max-w-md w-full">
-            <h3 class="text-lg font-semibold mb-4">Request Time Off</h3>
-            <form @submit.prevent="submitTimeOffRequest">
+            <h3 class="text-lg font-semibold mb-4">Set Employee Time Off</h3>
+            <form @submit.prevent="submitTimeOff">
                 <div class="space-y-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Employee</label>
@@ -330,7 +325,8 @@
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Reason</label>
                         <textarea x-model="timeOffForm.reason" rows="3" required
-                                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"></textarea>
+                                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                  placeholder="Enter reason for time off"></textarea>
                     </div>
                 </div>
                 <div class="mt-6 flex justify-end space-x-3">
@@ -340,7 +336,7 @@
                     </button>
                     <button type="submit" 
                             class="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700">
-                        Submit Request
+                        Save Time Off
                     </button>
                 </div>
             </form>
@@ -425,7 +421,7 @@ function employeeManager() {
         editingEmployee: null,
         selectedEmployee: '',
         calendarView: 'timeGridWeek',
-        timeOffRequests: [],
+        timeOffList: [],
         timeOffForm: {
             employee_id: '',
             start_date: '',
@@ -478,6 +474,8 @@ function employeeManager() {
                     this.calendar.changeView(value);
                 }
             });
+
+            this.loadTimeOffList();
         },
 
         initializeCalendar() {
@@ -715,7 +713,7 @@ function employeeManager() {
             };
         },
 
-        async submitTimeOffRequest() {
+        async submitTimeOff() {
             try {
                 const response = await fetch('/shop/schedule/time-off', {
                     method: 'POST',
@@ -727,55 +725,67 @@ function employeeManager() {
                 });
 
                 if (!response.ok) {
-                    throw new Error('Failed to submit time off request');
+                    throw new Error('Failed to set employee time off');
                 }
 
-                this.showTimeOffModal = false;
-                this.timeOffForm = {
-                    employee_id: '',
-                    start_date: '',
-                    end_date: '',
-                    reason: ''
-                };
-                this.loadEvents();
+                const data = await response.json();
+                if (data.success) {
+                    this.showTimeOffModal = false;
+                    this.timeOffForm = {
+                        employee_id: '',
+                        start_date: '',
+                        end_date: '',
+                        reason: ''
+                    };
+                    this.loadTimeOffList();
+                    this.calendar.refetchEvents();
+                }
             } catch (error) {
-                console.error('Error submitting time off request:', error);
-                alert('Failed to submit time off request');
+                console.error('Error setting time off:', error);
+                alert('Failed to set employee time off');
             }
         },
 
-        async saveAvailability() {
-            const availability = {};
-            ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].forEach(day => {
-                const available = document.querySelector(`input[type="checkbox"][data-day="${day}"]`).checked;
-                const start = document.querySelector(`select[data-day="${day}"][data-type="start"]`).value;
-                const end = document.querySelector(`select[data-day="${day}"][data-type="end"]`).value;
-                
-                availability[day] = {
-                    available,
-                    start,
-                    end
-                };
-            });
+        async loadTimeOffList() {
+            try {
+                const response = await fetch('/shop/schedule/time-off');
+                if (!response.ok) {
+                    throw new Error('Failed to load time off list');
+                }
+                const data = await response.json();
+                this.timeOffList = data.timeOff.map(item => ({
+                    id: item.id,
+                    employee_name: item.employee.name,
+                    dates: `${new Date(item.start_date).toLocaleDateString()} - ${new Date(item.end_date).toLocaleDateString()}`,
+                    reason: item.reason
+                }));
+            } catch (error) {
+                console.error('Error loading time off list:', error);
+            }
+        },
+
+        async deleteTimeOff(id) {
+            if (!confirm('Are you sure you want to delete this time off period?')) {
+                return;
+            }
 
             try {
-                const response = await fetch(`/shop/employees/${this.selectedEmployee}/availability`, {
-                    method: 'PUT',
+                const response = await fetch(`/shop/schedule/time-off/${id}`, {
+                    method: 'DELETE',
                     headers: {
-                        'Content-Type': 'application/json',
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                    },
-                    body: JSON.stringify({ availability })
+                    }
                 });
 
                 if (!response.ok) {
-                    throw new Error('Failed to save availability');
+                    throw new Error('Failed to delete time off');
                 }
 
-                alert('Availability saved successfully');
+                this.loadTimeOffList();
+                this.calendar.refetchEvents();
             } catch (error) {
-                console.error('Error saving availability:', error);
-                alert('Failed to save availability');
+                console.error('Error deleting time off:', error);
+                alert('Failed to delete time off');
             }
         },
 
