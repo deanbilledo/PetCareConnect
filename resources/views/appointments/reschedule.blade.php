@@ -117,19 +117,126 @@
                             </span>
                         </label>
                         <div class="relative">
-                            <select name="new_time" 
-                                    class="w-full px-4 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                                    required
-                                    x-show="timeSlots.length > 0"
-                                    x-model="selectedTime">
+                            <!-- Loading State -->
+                            <div x-show="loading" class="text-gray-500 text-sm mb-2">
+                                <svg class="animate-spin h-5 w-5 mr-2 inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Loading available time slots...
+                            </div>
+
+                            <!-- Error Message -->
+                            <div x-show="errorMessage" 
+                                 x-text="errorMessage"
+                                 class="text-red-500 text-sm mb-2">
+                            </div>
+
+                            <!-- Time Slots Grid -->
+                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-3" x-show="!loading && timeSlots.length > 0">
                                 <template x-for="slot in timeSlots" :key="slot.start">
-                                    <option :value="slot.start" x-text="slot.display"></option>
+                                    <button type="button"
+                                            @click="selectedTime = slot.start; getAvailableEmployees()"
+                                            :class="{
+                                                'w-full p-3 rounded-lg border text-center transition-colors': true,
+                                                'bg-blue-50 border-blue-300 text-blue-700': selectedTime === slot.start,
+                                                'border-gray-200 hover:bg-gray-50': selectedTime !== slot.start
+                                            }">
+                                        <div class="text-sm font-medium" x-text="formatTimeRange(slot.start, {{ $appointment->service->duration ?? 30 }})"></div>
+                                        <div class="text-xs mt-1" :class="{
+                                            'text-blue-600': selectedTime === slot.start,
+                                            'text-gray-500': selectedTime !== slot.start
+                                        }">
+                                            <span x-text="slot.available_employees"></span>
+                                            <span>of</span>
+                                            <span x-text="slot.total_employees"></span>
+                                            <span>available</span>
+                                        </div>
+                                    </button>
                                 </template>
-                            </select>
-                            <p x-show="selectedDate && timeSlots.length === 0" 
-                               class="text-red-500 text-sm mt-1">
+                            </div>
+
+                            <!-- Hidden input for form submission -->
+                            <input type="hidden" 
+                                   name="new_time" 
+                                   :value="selectedTime" 
+                                   required>
+
+                            <!-- No Slots Message -->
+                            <p x-show="!loading && selectedDate && timeSlots.length === 0" 
+                               class="text-yellow-600 text-sm mt-1">
                                 No available time slots for the selected date. Please choose another date.
                             </p>
+                        </div>
+                    </div>
+
+                    <!-- Employee Selection -->
+                    <div class="md:col-span-2" x-show="selectedTime && !loading">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Select Employee
+                            <span class="text-red-500">*</span>
+                        </label>
+
+                        <!-- Employee Loading State -->
+                        <div x-show="loadingEmployees" class="flex items-center justify-center p-6 border rounded-lg">
+                            <svg class="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span class="text-gray-500">Loading available employees...</span>
+                        </div>
+
+                        <!-- Employee Error Message -->
+                        <div x-show="employeeErrorMessage" 
+                             class="p-4 bg-red-50 border border-red-200 rounded-lg">
+                            <div class="flex">
+                                <svg class="h-5 w-5 text-red-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                </svg>
+                                <span class="text-red-700" x-text="employeeErrorMessage"></span>
+                            </div>
+                        </div>
+
+                        <!-- Employee Selection Cards -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-3" x-show="!loadingEmployees && availableEmployees.length > 0">
+                            <template x-for="employee in availableEmployees" :key="employee.id">
+                                <label :class="{
+                                    'relative flex items-center p-4 cursor-pointer border rounded-lg transition-all duration-200': true,
+                                    'bg-blue-50 border-blue-300 ring-2 ring-blue-500': selectedEmployee == employee.id,
+                                    'bg-white border-gray-200 hover:bg-gray-50': selectedEmployee != employee.id
+                                }">
+                                    <input type="radio" 
+                                           name="employee_id" 
+                                           :value="employee.id"
+                                           x-model="selectedEmployee"
+                                           class="sr-only"
+                                           required>
+                                    <div class="flex items-center space-x-4">
+                                        <img :src="employee.profile_photo ? '/storage/' + employee.profile_photo : '/images/default-avatar.png'" 
+                                             :alt="employee.name"
+                                             class="w-12 h-12 rounded-full object-cover">
+                                        <div>
+                                            <p class="text-sm font-medium" 
+                                               :class="{ 'text-blue-700': selectedEmployee == employee.id, 'text-gray-900': selectedEmployee != employee.id }"
+                                               x-text="employee.name"></p>
+                                            <p class="text-sm" 
+                                               :class="{ 'text-blue-600': selectedEmployee == employee.id, 'text-gray-500': selectedEmployee != employee.id }"
+                                               x-text="employee.position"></p>
+                                        </div>
+                                    </div>
+                                </label>
+                            </template>
+                        </div>
+
+                        <!-- No Available Employees Message -->
+                        <div x-show="!loadingEmployees && availableEmployees.length === 0" 
+                             class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg mt-3">
+                            <div class="flex">
+                                <svg class="h-5 w-5 text-yellow-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                </svg>
+                                <span class="text-yellow-700">No employees available for the selected time slot. Please choose another time.</span>
+                            </div>
                         </div>
                     </div>
 
@@ -175,10 +282,78 @@
                        class="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
                         Cancel
                     </a>
-                    <button type="submit" 
+                    <button type="button" 
+                            @click="showConfirmModal = true"
                             class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                         Confirm Reschedule
                     </button>
+                </div>
+
+                <!-- Confirmation Modal -->
+                <div x-show="showConfirmModal" 
+                     class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity z-50"
+                     x-transition:enter="ease-out duration-300"
+                     x-transition:enter-start="opacity-0"
+                     x-transition:enter-end="opacity-100"
+                     x-transition:leave="ease-in duration-200"
+                     x-transition:leave-start="opacity-100"
+                     x-transition:leave-end="opacity-0">
+                    <div class="fixed inset-0 z-50 overflow-y-auto">
+                        <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                            <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg"
+                                 x-transition:enter="ease-out duration-300"
+                                 x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                                 x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                                 x-transition:leave="ease-in duration-200"
+                                 x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                                 x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95">
+                                <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+                                    <div class="sm:flex sm:items-start">
+                                        <div class="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
+                                            <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                            </svg>
+                                        </div>
+                                        <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
+                                            <h3 class="text-lg font-semibold leading-6 text-gray-900">
+                                                Confirm Appointment Reschedule
+                                            </h3>
+                                            <div class="mt-4 space-y-3">
+                                                <p class="text-sm text-gray-500">
+                                                    Are you sure you want to reschedule this appointment?
+                                                </p>
+                                                <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+                                                    <div class="flex">
+                                                        <div class="flex-shrink-0">
+                                                            <svg class="h-5 w-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                                            </svg>
+                                                        </div>
+                                                        <div class="ml-3">
+                                                            <p class="text-sm text-yellow-700">
+                                                                Please note that you can only reschedule appointments up to 2 times per week.
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+                                    <button type="submit" 
+                                            class="inline-flex w-full justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 sm:ml-3 sm:w-auto">
+                                        Confirm Reschedule
+                                    </button>
+                                    <button type="button" 
+                                            @click="showConfirmModal = false"
+                                            class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </form>
 
@@ -188,68 +363,232 @@
                         selectedDate: '',
                         selectedTime: '',
                         timeSlots: [],
-                        operatingHours: @json($operatingHours),
-                        serviceDuration: {{ $appointment->service->duration ?? 30 }},
+                        loading: false,
+                        errorMessage: '',
+                        availableEmployees: [],
+                        selectedEmployee: null,
+                        loadingEmployees: false,
+                        employeeErrorMessage: '',
+                        showConfirmModal: false,
 
                         init() {
                             // Initialize any needed data
                             this.selectedDate = '';
                             this.selectedTime = '';
                             this.timeSlots = [];
+                            this.availableEmployees = [];
+                            this.selectedEmployee = null;
+                            this.showConfirmModal = false;
                         },
 
-                        updateTimeSlots() {
+                        formatTimeRange(startTime, duration) {
+                            const [hours, minutes] = startTime.split(':');
+                            const start = new Date();
+                            start.setHours(parseInt(hours));
+                            start.setMinutes(parseInt(minutes));
+                            
+                            const end = new Date(start.getTime() + duration * 60000);
+                            
+                            const formattedStart = start.toLocaleTimeString('en-US', { 
+                                hour: 'numeric', 
+                                minute: '2-digit',
+                                hour12: true 
+                            });
+                            const formattedEnd = end.toLocaleTimeString('en-US', { 
+                                hour: 'numeric', 
+                                minute: '2-digit',
+                                hour12: true 
+                            });
+                            
+                            return `${formattedStart}\n- ${formattedEnd}\n(${duration} mins)`;
+                        },
+
+                        async updateTimeSlots() {
                             if (!this.selectedDate) {
                                 this.timeSlots = [];
                                 return;
                             }
 
-                            const date = new Date(this.selectedDate);
-                            const dayOfWeek = date.getDay();
-                            const hours = this.operatingHours[dayOfWeek];
+                            this.loading = true;
+                            this.timeSlots = [];
+                            this.errorMessage = '';
+                            this.availableEmployees = [];
+                            this.selectedEmployee = null;
 
-                            if (!hours || !hours.is_open) {
-                                this.timeSlots = [];
-                                return;
-                            }
+                            try {
+                                // First, get the time slots
+                                const timeSlotsResponse = await fetch(`/time-slots/shop/{{ $appointment->shop_id }}?date=${this.selectedDate}&duration={{ $appointment->service->duration ?? 30 }}`, {
+                                    method: 'GET',
+                                    headers: {
+                                        'Accept': 'application/json',
+                                        'X-Requested-With': 'XMLHttpRequest',
+                                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                                    },
+                                    credentials: 'same-origin'
+                                });
 
-                            const openTime = new Date(`2000-01-01 ${hours.open_time}`);
-                            const closeTime = new Date(`2000-01-01 ${hours.close_time}`);
+                                if (!timeSlotsResponse.ok) {
+                                    const errorData = await timeSlotsResponse.json().catch(() => ({}));
+                                    throw new Error(errorData.error || `Server error: ${timeSlotsResponse.status}`);
+                                }
+
+                                const timeSlotsData = await timeSlotsResponse.json();
+                                
+                                if (timeSlotsData.error) {
+                                    throw new Error(timeSlotsData.error);
+                                }
+
+                                // For each time slot, check employee availability
                             const slots = [];
+                                const serviceIds = [{{ App\Models\Service::where('name', $appointment->service_type)->where('shop_id', $appointment->shop_id)->value('id') ?? 1 }}];
 
-                            // Subtract service duration from closing time
-                            closeTime.setMinutes(closeTime.getMinutes() - this.serviceDuration);
+                                for (const slot of timeSlotsData.slots) {
+                                    const employeesResponse = await fetch(`{{ route('booking.available-employees', $appointment->shop_id) }}`, {
+                                        method: 'POST',
+                                        headers: {
+                                            'Content-Type': 'application/json',
+                                            'Accept': 'application/json',
+                                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                                        },
+                                        body: JSON.stringify({
+                                            date: this.selectedDate,
+                                            time: slot.time,
+                                            duration: {{ $appointment->service->duration ?? 30 }},
+                                            service_ids: serviceIds
+                                        })
+                                    });
 
-                            let currentTime = openTime;
-                            while (currentTime <= closeTime) {
-                                // Format the time slot
-                                const timeSlot = currentTime.toLocaleTimeString('en-US', { 
-                                    hour: '2-digit', 
-                                    minute: '2-digit', 
-                                    hour12: true 
-                                });
+                                    if (!employeesResponse.ok) {
+                                        continue;
+                                    }
 
-                                // Calculate end time for display
-                                const endTime = new Date(currentTime);
-                                endTime.setMinutes(endTime.getMinutes() + this.serviceDuration);
-                                const endTimeString = endTime.toLocaleTimeString('en-US', {
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                    hour12: true
-                                });
+                                    const employeesData = await employeesResponse.json();
+                                    
+                                    if (employeesData.success) {
+                                        // Filter out employees with time off
+                                        const availableEmployees = employeesData.employees.filter(employee => {
+                                            // Check for time off requests
+                                            const hasTimeOff = employee.time_off_requests?.some(timeOff => {
+                                                const timeOffStart = new Date(timeOff.start_date);
+                                                const timeOffEnd = new Date(timeOff.end_date);
+                                                const appointmentDate = new Date(this.selectedDate);
+                                                
+                                                timeOffStart.setHours(0, 0, 0, 0);
+                                                timeOffEnd.setHours(23, 59, 59, 999);
+                                                appointmentDate.setHours(0, 0, 0, 0);
+                                                
+                                                return (
+                                                    appointmentDate >= timeOffStart && 
+                                                    appointmentDate <= timeOffEnd &&
+                                                    timeOff.status !== 'rejected'
+                                                );
+                                            });
 
-                                // Add the time slot with duration
-                                slots.push({
-                                    start: timeSlot,
-                                    end: endTimeString,
-                                    display: `${timeSlot} - ${endTimeString} (${this.serviceDuration} mins)`
-                                });
+                                            return !hasTimeOff;
+                                        });
 
-                                // Increment by 30-minute intervals
-                                currentTime.setMinutes(currentTime.getMinutes() + 30);
+                                        if (availableEmployees.length > 0) {
+                                            slots.push({
+                                                start: slot.time,
+                                                display: this.formatTimeRange(slot.time, {{ $appointment->service->duration ?? 30 }}),
+                                                available_employees: availableEmployees.length,
+                                                total_employees: employeesData.employees.length
+                                            });
+                                        }
+                                    }
+                                }
+
+                                this.timeSlots = slots;
+
+                                if (this.timeSlots.length === 0) {
+                                    this.errorMessage = 'No available time slots with available employees for the selected date';
+                                }
+
+                            } catch (error) {
+                                this.errorMessage = error.message || 'Failed to load time slots';
+                                console.error('Error loading time slots:', error);
+                            } finally {
+                                this.loading = false;
                             }
+                        },
 
-                            this.timeSlots = slots;
+                        async getAvailableEmployees() {
+                            if (!this.selectedTime || !this.selectedDate) return;
+
+                            this.loadingEmployees = true;
+                            this.availableEmployees = [];
+                            this.selectedEmployee = null;
+                            this.employeeErrorMessage = '';
+
+                            try {
+                                const token = document.querySelector('meta[name="csrf-token"]').content;
+
+                                const response = await fetch(`{{ route('booking.available-employees', $appointment->shop_id) }}`, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'Accept': 'application/json',
+                                        'X-CSRF-TOKEN': token
+                                    },
+                                    body: JSON.stringify({
+                                        date: this.selectedDate,
+                                        time: this.selectedTime,
+                                        duration: {{ $appointment->service->duration ?? 30 }},
+                                        service_ids: [{{ App\Models\Service::where('name', $appointment->service_type)->where('shop_id', $appointment->shop_id)->value('id') ?? 1 }}]
+                                    })
+                                });
+
+                                if (!response.ok) {
+                                    const errorData = await response.json().catch(() => ({}));
+                                    throw new Error(errorData.message || 'Failed to get available employees');
+                                }
+
+                                const data = await response.json();
+                                
+                                if (!data.success) {
+                                    throw new Error(data.message || 'Failed to get available employees');
+                                }
+
+                                if (!data.employees || !Array.isArray(data.employees)) {
+                                    throw new Error('Invalid response format from server');
+                                }
+
+                                // Filter employees based on their schedules and time off requests
+                                this.availableEmployees = data.employees.filter(employee => {
+                                    const hasTimeOff = employee.time_off_requests?.some(timeOff => {
+                                        const timeOffStart = new Date(timeOff.start_date);
+                                        const timeOffEnd = new Date(timeOff.end_date);
+                                        const appointmentDate = new Date(this.selectedDate);
+                                        
+                                        timeOffStart.setHours(0, 0, 0, 0);
+                                        timeOffEnd.setHours(23, 59, 59, 999);
+                                        appointmentDate.setHours(0, 0, 0, 0);
+                                        
+                                        return (
+                                            appointmentDate >= timeOffStart && 
+                                            appointmentDate <= timeOffEnd &&
+                                            timeOff.status !== 'rejected'
+                                        );
+                                    }) || false;
+
+                                    return !hasTimeOff;
+                                });
+
+                                // Set default employee if only one is available
+                                if (this.availableEmployees.length === 1) {
+                                    this.selectedEmployee = this.availableEmployees[0].id;
+                                }
+
+                                if (this.availableEmployees.length === 0) {
+                                    this.employeeErrorMessage = 'No employees are available for the selected time slot. Please choose another time.';
+                                }
+
+                            } catch (error) {
+                                this.employeeErrorMessage = error.message || 'Failed to load available employees';
+                                console.error('Error loading employees:', error);
+                            } finally {
+                                this.loadingEmployees = false;
+                            }
                         }
                     }
                 }
