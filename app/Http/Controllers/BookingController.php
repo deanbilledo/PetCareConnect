@@ -674,6 +674,7 @@ class BookingController extends Controller
 
     public function getAvailableEmployees(Request $request, Shop $shop)
     {
+        try {
         $validated = $request->validate([
             'date' => 'required|date',
             'time' => 'required',
@@ -682,145 +683,35 @@ class BookingController extends Controller
             'service_ids.*' => 'exists:services,id'
         ]);
 
-        try {
-            // Log the initial request
-            Log::info('Getting available employees for request:', [
-                'shop_id' => $shop->id,
-                'date' => $validated['date'],
-                'time' => $validated['time'],
-                'service_ids' => $validated['service_ids']
-            ]);
-
-            // First, get all employees for the shop
-            $allEmployees = $shop->employees()->get();
-
-            Log::info('All shop employees:', [
-                'count' => $allEmployees->count(),
-                'employees' => $allEmployees->map(function($employee) {
-                    return ['id' => $employee->id, 'name' => $employee->name];
-                })
-            ]);
-
-            // Then, check which employees can perform the requested services
-            $employeesWithServices = $shop->employees()
-                ->whereHas('services', function($query) use ($validated) {
+            // Get all employees who can perform the requested services
+            $employees = $shop->employees()
+                ->whereHas('services', function ($query) use ($validated) {
                     $query->whereIn('services.id', $validated['service_ids']);
                 })
-                ->with(['services' => function($query) use ($validated) {
-                    $query->whereIn('services.id', $validated['service_ids']);
+                ->with(['schedules' => function ($query) use ($validated) {
+                    $query->whereDate('start', $validated['date']);
                 }])
-                ->get();
-
-            Log::info('Employees with required services:', [
-                'count' => $employeesWithServices->count(),
-                'employees' => $employeesWithServices->map(function($employee) {
-                    return [
-                        'id' => $employee->id,
-                        'name' => $employee->name,
-                        'services' => $employee->services->pluck('name')
-                    ];
-                })
-            ]);
-
-            // Get appointments for all employees on the selected date
-            $selectedDate = Carbon::parse($validated['date']);
-            $appointments = $shop->appointments()
-                ->whereDate('appointment_date', $selectedDate)
-                ->whereIn('status', ['pending', 'accepted'])
-                ->with('employee')
-                ->get();
-
-            Log::info('Existing appointments for date:', [
-                'date' => $selectedDate->format('Y-m-d'),
-                'appointments' => $appointments->map(function($apt) {
-                    return [
-                        'employee_id' => $apt->employee_id,
-                        'time' => $apt->appointment_date->format('H:i'),
-                        'status' => $apt->status
-                    ];
-                })
-            ]);
-
-            // Parse the requested time slot
-            $selectedTime = Carbon::parse($validated['date'] . ' ' . $validated['time']);
-            $endTime = $selectedTime->copy()->addMinutes($validated['duration']);
-
-            // Filter available employees
-            $availableEmployees = $employeesWithServices->filter(function($employee) use ($appointments, $selectedTime, $endTime) {
-                // Get this employee's appointments
-                $employeeAppointments = $appointments->where('employee_id', $employee->id);
-                
-                if ($employeeAppointments->isEmpty()) {
-                    Log::info("Employee {$employee->name} has no appointments - available");
-                    return true;
-                }
-
-                // Check each appointment for conflicts
-                foreach ($employeeAppointments as $appointment) {
-                    $appointmentStart = Carbon::parse($appointment->appointment_date);
-                    $appointmentEnd = $appointmentStart->copy()->addMinutes(60);
-
-                    // Check for overlap
-                    $hasOverlap = ($selectedTime >= $appointmentStart && $selectedTime < $appointmentEnd) ||
-                                 ($endTime > $appointmentStart && $endTime <= $appointmentEnd) ||
-                                 ($selectedTime <= $appointmentStart && $endTime >= $appointmentEnd);
-
-                    if ($hasOverlap) {
-                        Log::info("Employee {$employee->name} has conflicting appointment", [
-                            'appointment_time' => $appointmentStart->format('H:i'),
-                            'requested_time' => $selectedTime->format('H:i')
-                        ]);
-                        return false;
-                    }
-                }
-
-                Log::info("Employee {$employee->name} is available");
-                return true;
-            });
-
-            // Convert to array and reindex
-            $availableEmployeesArray = $availableEmployees->values()->all();
-
-            // Log final results with actual array data
-            Log::info('Final available employees array:', [
-                'count' => count($availableEmployeesArray),
-                'employees' => array_map(function($employee) {
-                    return [
-                        'id' => $employee->id,
-                        'name' => $employee->name
-                    ];
-                }, $availableEmployeesArray)
-            ]);
-
-            if (empty($availableEmployeesArray)) {
-                Log::warning('No available employees found', [
-                    'total_employees' => $allEmployees->count(),
-                    'employees_with_services' => $employeesWithServices->count(),
-                    'date' => $validated['date'],
-                    'time' => $validated['time']
-                ]);
-            }
+                ->with(['timeOffRequests' => function ($query) use ($validated) {
+                    $query->whereDate('start_date', '<=', $validated['date'])
+                          ->whereDate('end_date', '>=', $validated['date'])
+                          ->whereIn('status', ['pending', 'approved']);
+                }])
+                ->get()
+                ->each(function ($employee) {
+                    // Append the profile_photo_url attribute
+                    $employee->append('profile_photo_url');
+                });
 
             return response()->json([
                 'success' => true,
-                'employees' => array_map(function($employee) {
-                    return [
-                        'id' => $employee->id,
-                        'name' => $employee->name,
-                        'position' => $employee->position,
-                        'profile_photo_url' => $employee->profile_photo_url
-                    ];
-                }, $availableEmployeesArray)
+                'employees' => $employees
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Error getting available employees: ' . $e->getMessage(), [
-                'exception' => $e,
-                'trace' => $e->getTraceAsString()
-            ]);
+            \Log::error('Error getting available employees: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'error' => 'Failed to get available employees: ' . $e->getMessage()
+                'error' => 'Failed to get available employees'
             ], 500);
         }
     }

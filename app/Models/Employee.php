@@ -50,4 +50,14 @@ class Employee extends Model
         return $this->belongsToMany(Service::class, 'employee_service')
             ->withTimestamps();
     }
+
+    public function schedules()
+    {
+        return $this->hasMany(EmployeeSchedule::class);
+    }
+
+    public function timeOffRequests()
+    {
+        return $this->hasMany(TimeOffRequest::class);
+    }
 }

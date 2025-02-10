@@ -27,6 +27,8 @@ use Illuminate\Support\Facades\Log;
 use App\Http\Middleware\HasShop;
 use App\Http\Middleware\IsAdmin;
 
+// Include shop routes
+require __DIR__.'/shop.php';
 
 // Public routes
 Route::get('/', [HomeController::class, 'index'])->name('home');
@@ -158,6 +160,12 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/{appointment}/receipt', [AppointmentController::class, 'downloadReceipt'])->name('official-receipt.download');
         Route::post('/{appointment}/add-note', [AppointmentController::class, 'addNote'])->name('appointments.add-note');
         Route::get('/{appointment}/note', [AppointmentController::class, 'getNote'])->name('appointments.get-note');
+        
+        // Reschedule routes
+        Route::post('/reschedule/{appointment}/approve', [AppointmentController::class, 'approveReschedule'])
+            ->name('reschedule.approve');
+        Route::post('/reschedule/{appointment}/decline', [AppointmentController::class, 'declineReschedule'])
+            ->name('reschedule.decline');
     });
     Route::resource('appointments', AppointmentController::class)->except(['show']);
 
@@ -195,15 +203,6 @@ Route::middleware(['auth', 'has-shop'])->group(function () {
     
     // Add analytics route
     Route::get('/shop/analytics', [ShopAnalyticsController::class, 'index'])->name('shop.analytics');
-    
-    // Add schedule routes
-    Route::prefix('shop/schedule')->name('shop.schedule.')->group(function () {
-        Route::get('/events', [ShopEmployeeController::class, 'getEvents'])->name('events');
-        Route::post('/events', [ShopEmployeeController::class, 'storeEvent'])->name('events.store');
-        Route::put('/events/{event}', [ShopEmployeeController::class, 'updateEvent'])->name('events.update');
-        Route::delete('/events/{event}', [ShopEmployeeController::class, 'deleteEvent'])->name('events.delete');
-        Route::post('/time-off', [ShopEmployeeController::class, 'storeTimeOff'])->name('time-off.store');
-    });
 });
 
 // Shop Setup Routes

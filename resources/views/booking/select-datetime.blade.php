@@ -341,7 +341,8 @@ function timeSlotPicker() {
             this.selectedEmployee = null;
             
             try {
-                const response = await fetch(`/time-slots/shop/{{ $shop->id }}?date=${this.selectedDate}&duration={{ $totalDuration }}`, {
+                // First, get the time slots
+                const timeSlotsResponse = await fetch(`/time-slots/shop/{{ $shop->id }}?date=${this.selectedDate}&duration={{ $totalDuration }}`, {
                     method: 'GET',
                     headers: {
                         'Accept': 'application/json',
@@ -351,21 +352,77 @@ function timeSlotPicker() {
                     credentials: 'same-origin'
                 });
                 
-                if (!response.ok) {
-                    const errorData = await response.json().catch(() => ({}));
-                    throw new Error(errorData.error || `Server error: ${response.status}`);
+                if (!timeSlotsResponse.ok) {
+                    const errorData = await timeSlotsResponse.json().catch(() => ({}));
+                    throw new Error(errorData.error || `Server error: ${timeSlotsResponse.status}`);
                 }
                 
-                const data = await response.json();
+                const timeSlotsData = await timeSlotsResponse.json();
                 
-                if (data.error) {
-                    throw new Error(data.error);
+                if (timeSlotsData.error) {
+                    throw new Error(timeSlotsData.error);
+                }
+
+                // For each time slot, check employee availability
+                const serviceIds = @json($bookingData['pet_services'] ?? []);
+                const slots = [];
+
+                for (const slot of timeSlotsData.slots) {
+                    const employeesResponse = await fetch(`{{ route('booking.available-employees', $shop) }}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                        },
+                        body: JSON.stringify({
+                            date: this.selectedDate,
+                            time: slot.time,
+                            duration: {{ $totalDuration }},
+                            service_ids: Object.values(serviceIds)
+                        })
+                    });
+
+                    if (!employeesResponse.ok) {
+                        continue;
+                    }
+
+                    const employeesData = await employeesResponse.json();
+                    
+                    if (employeesData.success) {
+                        // Filter out employees with time off
+                        const availableEmployees = employeesData.employees.filter(employee => {
+                            // Check for time off requests
+                            const hasTimeOff = employee.time_off_requests?.some(timeOff => {
+                                const timeOffStart = new Date(timeOff.start_date);
+                                const timeOffEnd = new Date(timeOff.end_date);
+                                timeOffStart.setHours(0, 0, 0, 0);
+                                timeOffEnd.setHours(23, 59, 59, 999);
+                                const appointmentDate = new Date(this.selectedDate);
+                                appointmentDate.setHours(0, 0, 0, 0);
+                                
+                                return (
+                                    appointmentDate >= timeOffStart && 
+                                    appointmentDate <= timeOffEnd &&
+                                    timeOff.status !== 'rejected'
+                                );
+                            });
+
+                            return !hasTimeOff;
+                        });
+
+                        slots.push({
+                            ...slot,
+                            available_employees: availableEmployees.length,
+                            total_employees: employeesData.employees.length
+                        });
+                    }
                 }
                 
-                // Keep all time slots that have at least one available employee
-                this.timeSlots = data.slots;
+                // Keep only slots that have available employees
+                this.timeSlots = slots.filter(slot => slot.available_employees > 0);
                 
-                if (data.message && this.timeSlots.length === 0) {
+                if (this.timeSlots.length === 0) {
                     this.errorMessage = 'No available time slots for the selected date';
                 }
             } catch (error) {
@@ -411,13 +468,33 @@ function timeSlotPicker() {
                     throw new Error(data.error);
                 }
 
-                // Filter employees based on their schedules
+                // Filter employees based on their schedules and time off requests
                 this.availableEmployees = data.employees.filter(employee => {
                     const appointmentStart = new Date(`${this.selectedDate} ${this.selectedTime}`);
                     const appointmentEnd = new Date(appointmentStart.getTime() + ({{ $totalDuration }} * 60000));
                     
-                    // Only check for time off - if employee has time off during this period, they're not available
-                    const hasTimeOff = employee.schedules?.some(schedule => {
+                    // Check for time off requests
+                    const hasTimeOff = employee.time_off_requests?.some(timeOff => {
+                        const timeOffStart = new Date(timeOff.start_date);
+                        const timeOffEnd = new Date(timeOff.end_date);
+                        
+                        // Set the time to start of day and end of day for proper comparison
+                        timeOffStart.setHours(0, 0, 0, 0);
+                        timeOffEnd.setHours(23, 59, 59, 999);
+                        
+                        // Check if appointment date falls within time off period
+                        const appointmentDate = new Date(this.selectedDate);
+                        appointmentDate.setHours(0, 0, 0, 0);
+                        
+                        return (
+                            appointmentDate >= timeOffStart && 
+                            appointmentDate <= timeOffEnd &&
+                            timeOff.status !== 'rejected' // Only consider pending or approved time off
+                        );
+                    });
+
+                    // Check for schedule conflicts
+                    const hasScheduleConflict = employee.schedules?.some(schedule => {
                         if (schedule.type !== 'time_off') return false;
                         
                         const scheduleStart = new Date(schedule.start);
@@ -430,8 +507,8 @@ function timeSlotPicker() {
                         );
                     });
 
-                    // Employee is available if they don't have time off
-                    return !hasTimeOff;
+                    // Employee is available if they don't have time off or schedule conflicts
+                    return !hasTimeOff && !hasScheduleConflict;
                 });
 
             } catch (error) {
