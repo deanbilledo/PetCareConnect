@@ -92,70 +92,152 @@ class AppointmentController extends Controller
 
     public function reschedule(Appointment $appointment)
     {
+        // Check if the appointment belongs to the authenticated user
         if ($appointment->user_id !== auth()->id()) {
-            abort(403);
+            abort(403, 'Unauthorized action.');
         }
 
-        if ($appointment->status !== 'pending') {
+        // Check if the appointment can be rescheduled (pending or accepted)
+        if (!in_array($appointment->status, ['pending', 'accepted'])) {
             return redirect()->route('appointments.show', $appointment)
-                ->with('error', 'Only pending appointments can be rescheduled');
+                ->with('error', 'This appointment cannot be rescheduled.');
         }
 
-        // Load shop with operating hours and services
-        $shop = $appointment->shop->load(['operatingHours', 'services']);
-        
-        // Get available time slots based on operating hours
-        $timeSlots = [];
-        $operatingHours = $shop->operatingHours->keyBy('day');
-        
-        // Get services for the shop
-        $services = $shop->services->where('status', 'active');
+        // Get available services for the shop
+        $services = $appointment->shop->services()
+            ->where('status', 'active')
+            ->get();
 
-        return view('appointments.reschedule', compact('appointment', 'operatingHours', 'services'));
+        // Get shop's operating hours
+        $operatingHours = $appointment->shop->operatingHours()
+            ->get()
+            ->keyBy('day_of_week')
+            ->toArray();
+
+        return view('appointments.reschedule', compact('appointment', 'services', 'operatingHours'));
     }
 
     public function updateSchedule(Request $request, Appointment $appointment)
     {
+        // Check if the appointment belongs to the authenticated user
         if ($appointment->user_id !== auth()->id()) {
-            abort(403);
+            abort(403, 'Unauthorized action.');
         }
 
-        if ($appointment->status !== 'pending') {
+        // Check if the appointment can be rescheduled (pending or accepted)
+        if (!in_array($appointment->status, ['pending', 'accepted'])) {
             return redirect()->route('appointments.show', $appointment)
-                ->with('error', 'Only pending appointments can be rescheduled');
+                ->with('error', 'This appointment cannot be rescheduled.');
         }
 
-        $request->validate([
+        // Validate the request
+        $validated = $request->validate([
             'new_date' => 'required|date|after:today',
             'new_time' => 'required',
-            'service_type' => 'required|string',
-            'reschedule_reason' => 'required|string|max:500'
+            'employee_id' => 'required|exists:employees,id',
+            'reschedule_reason' => 'required|string|min:10'
         ]);
 
         try {
-            // Convert 12-hour format to 24-hour format
-            $time = date('H:i', strtotime($request->new_time));
-            $newDateTime = Carbon::parse($request->new_date . ' ' . $time);
-            
-            // Get the service details
-            $service = $appointment->shop->services()
-                ->where('name', $request->service_type)
-                ->where('status', 'active')
-                ->firstOrFail();
-            
+            // Combine date and time
+            $newDateTime = \Carbon\Carbon::parse($validated['new_date'] . ' ' . $validated['new_time']);
+
+            // Update appointment with reschedule request
             $appointment->update([
-                'appointment_date' => $newDateTime,
-                'service_type' => $service->name,
-                'service_price' => $service->price,
-                'reschedule_reason' => $request->reschedule_reason,
+                'status' => 'reschedule_requested',
+                'requested_date' => $newDateTime,
+                'employee_id' => $validated['employee_id'],
+                'reschedule_reason' => $validated['reschedule_reason'],
                 'last_reschedule_at' => now()
             ]);
 
-            return redirect()->route('appointments.show', $appointment)
-                ->with('success', 'Appointment rescheduled successfully');
+            // Log the reschedule request
+            \Log::info('Reschedule request submitted:', [
+                'appointment_id' => $appointment->id,
+                'new_datetime' => $newDateTime,
+                'employee_id' => $validated['employee_id'],
+                'reason' => $validated['reschedule_reason']
+            ]);
+
+            // Redirect to waiting confirmation page
+            return view('appointments.reschedule-confirmation', [
+                'appointment' => $appointment->fresh(),
+                'newDateTime' => $newDateTime->format('F j, Y g:i A')
+            ])->with('success', 'Your reschedule request has been submitted successfully. Please wait for the shop\'s confirmation.');
         } catch (\Exception $e) {
-            Log::error('Error rescheduling appointment: ' . $e->getMessage());
-            return back()->with('error', 'Failed to reschedule appointment. Please try again.');
+            \Log::error('Reschedule error: ' . $e->getMessage(), [
+                'appointment_id' => $appointment->id,
+                'request_data' => $request->all(),
+                'error' => $e->getMessage()
+            ]);
+            return back()->with('error', 'Failed to submit reschedule request. Please try again.');
+        }
+    }
+
+    public function approveReschedule(Appointment $appointment)
+    {
+        try {
+            if ($appointment->shop_id !== auth()->user()->shop->id) {
+                return response()->json([
+                    'error' => 'Unauthorized to approve this reschedule request'
+                ], 403);
+            }
+
+            if ($appointment->status !== 'reschedule_requested') {
+                return response()->json([
+                    'error' => 'This appointment is not pending reschedule'
+                ], 400);
+            }
+
+            $appointment->update([
+                'status' => 'accepted',
+                'appointment_date' => $appointment->requested_date,
+                'service_type' => $appointment->requested_service,
+                'reschedule_approved_at' => now()
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Reschedule request approved successfully'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error approving reschedule request: ' . $e->getMessage());
+            return response()->json([
+                'error' => 'Failed to approve reschedule request'
+            ], 500);
+        }
+    }
+
+    public function declineReschedule(Appointment $appointment, Request $request)
+    {
+        try {
+            if ($appointment->shop_id !== auth()->user()->shop->id) {
+                return response()->json([
+                    'error' => 'Unauthorized to decline this reschedule request'
+                ], 403);
+            }
+
+            if ($appointment->status !== 'reschedule_requested') {
+                return response()->json([
+                    'error' => 'This appointment is not pending reschedule'
+                ], 400);
+            }
+
+            $appointment->update([
+                'status' => 'accepted', // Revert to previous status
+                'reschedule_rejection_reason' => $request->reason,
+                'reschedule_rejected_at' => now()
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Reschedule request declined successfully'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error declining reschedule request: ' . $e->getMessage());
+            return response()->json([
+                'error' => 'Failed to decline reschedule request'
+            ], 500);
         }
     }
 

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Employee;
+use App\Models\TimeOffRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -197,9 +198,8 @@ class ShopEmployeeController extends Controller
                 'shop_id' => $shop->id
             ]);
 
+            // Get employee schedules
             $query = $shop->employeeSchedules();
-
-            // Filter by date range
             $query->whereBetween('start', [$start, $end]);
 
             // Filter by employee if provided and valid
@@ -219,8 +219,26 @@ class ShopEmployeeController extends Controller
 
             $events = $query->with('employee')->get();
 
-            \Log::info('Found events:', ['count' => $events->count()]);
+            // Get time off requests
+            $timeOffQuery = $shop->timeOffRequests()
+                ->whereIn('status', ['pending', 'approved'])
+                ->where(function($q) use ($start, $end) {
+                    $q->whereBetween('start_date', [$start, $end])
+                      ->orWhereBetween('end_date', [$start, $end])
+                      ->orWhere(function($q) use ($start, $end) {
+                          $q->where('start_date', '<=', $start)
+                            ->where('end_date', '>=', $end);
+                      });
+                });
 
+            // Apply employee filter to time off requests if needed
+            if (!empty($employeeId) && $employeeId !== 'null' && $employeeId !== 'undefined') {
+                $timeOffQuery->where('employee_id', $employeeId);
+            }
+
+            $timeOffRequests = $timeOffQuery->with('employee')->get();
+
+            // Format regular events
             $formattedEvents = $events->map(function ($schedule) {
                 return [
                     'id' => $schedule->id,
@@ -237,9 +255,29 @@ class ShopEmployeeController extends Controller
                 ];
             });
 
+            // Format and add time off requests
+            $timeOffEvents = $timeOffRequests->map(function ($timeOff) {
+                $status = $timeOff->status === 'pending' ? '' : '';
+                return [
+                    'id' => 'timeoff_' . $timeOff->id,
+                    'title' => "Time Off - {$timeOff->employee->name} {$status}",
+                    'start' => $timeOff->start_date->format('Y-m-d'),
+                    'end' => $timeOff->end_date->addDays(1)->format('Y-m-d'), // Add one day to make it inclusive
+                    'employee_id' => $timeOff->employee_id,
+                    'type' => 'time_off',
+                    'status' => $timeOff->status,
+                    'notes' => $timeOff->reason,
+                    'color' => $timeOff->status === 'pending' ? '#ffa500' : '#ff4d4d', // Orange for pending, Red for approved
+                    'allDay' => true
+                ];
+            });
+
+            // Combine both types of events
+            $allEvents = $formattedEvents->concat($timeOffEvents);
+
             return response()->json([
                 'success' => true,
-                'events' => $formattedEvents
+                'events' => $allEvents
             ]);
 
         } catch (\Exception $e) {
@@ -328,6 +366,28 @@ class ShopEmployeeController extends Controller
         }
     }
 
+    public function getTimeOff()
+    {
+        try {
+            $shop = auth()->user()->shop;
+            $timeOff = $shop->timeOffRequests()
+                ->with('employee')
+                ->orderBy('start_date', 'desc')
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'timeOff' => $timeOff
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error fetching time off requests: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to fetch time off requests'
+            ], 500);
+        }
+    }
+
     public function storeTimeOff(Request $request)
     {
         try {
@@ -351,12 +411,38 @@ class ShopEmployeeController extends Controller
                 'status' => 'pending'
             ]);
 
+            // Load the employee relationship for the response
+            $timeOff->load('employee');
+
             return response()->json([
                 'success' => true,
                 'timeOff' => $timeOff
             ]);
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Failed to create time off request'], 500);
+            \Log::error('Error creating time off request: ' . $e->getMessage());
+            return response()->json([
+                'error' => 'Failed to create time off request'
+            ], 500);
+        }
+    }
+
+    public function deleteTimeOff($id)
+    {
+        try {
+            $shop = auth()->user()->shop;
+            $timeOff = $shop->timeOffRequests()->findOrFail($id);
+            $timeOff->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Time off request deleted successfully'
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error deleting time off request: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to delete time off request'
+            ], 500);
         }
     }
 }

@@ -27,13 +27,15 @@ class Appointment extends Model
         'payment_status',
         'paid_at',
         'accepted_at',
-        'note_image'
+        'note_image',
+        'requested_date'
     ];
 
     protected $casts = [
         'appointment_date' => 'datetime',
         'service_price' => 'decimal:2',
-        'accepted_at' => 'datetime'
+        'accepted_at' => 'datetime',
+        'requested_date' => 'datetime'
     ];
 
     public function user()
