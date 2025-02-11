@@ -14,6 +14,7 @@ class Appointment extends Model
         'shop_id',
         'pet_id',
         'employee_id',
+        'requested_employee_id',
         'service_type',
         'service_price',
         'appointment_date',
@@ -28,7 +29,11 @@ class Appointment extends Model
         'paid_at',
         'accepted_at',
         'note_image',
-        'requested_date'
+        'requested_date',
+        'reschedule_approved_at',
+        'reschedule_rejected_at',
+        'reschedule_rejection_reason',
+        'service_id'
     ];
 
     protected $casts = [
@@ -37,6 +42,14 @@ class Appointment extends Model
         'accepted_at' => 'datetime',
         'requested_date' => 'datetime'
     ];
+
+    protected $appends = ['duration'];
+
+    public function getDurationAttribute()
+    {
+        // Default duration if no service is found
+        return $this->service()->exists() ? $this->service->duration : 30;
+    }
 
     public function user()
     {
@@ -56,5 +69,10 @@ class Appointment extends Model
     public function employee()
     {
         return $this->belongsTo(Employee::class);
+    }
+
+    public function service()
+    {
+        return $this->belongsTo(Service::class);
     }
 } 
