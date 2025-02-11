@@ -156,23 +156,43 @@ async function approveReschedule(appointmentId) {
     if (!confirm('Are you sure you want to approve this reschedule request?')) return;
     
     try {
+        const token = document.querySelector('meta[name="csrf-token"]')?.content;
+        if (!token) {
+            throw new Error('CSRF token not found');
+        }
+
         const response = await fetch(`/appointments/reschedule/${appointmentId}/approve`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-            }
+                'X-CSRF-TOKEN': token,
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({}) // Send empty object to ensure proper JSON request
         });
 
-        const data = await response.json();
-        if (response.ok) {
+        let data;
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            data = await response.json();
+        } else {
+            throw new Error('Received non-JSON response from server');
+        }
+
+        if (!response.ok) {
+            throw new Error(data.error || `HTTP error! status: ${response.status}`);
+        }
+
+        if (data.success) {
+            alert('Reschedule request approved successfully!');
             window.location.reload();
         } else {
-            alert(data.message || 'Failed to approve reschedule request');
+            throw new Error(data.error || 'Failed to approve reschedule request');
         }
     } catch (error) {
         console.error('Error:', error);
-        alert('An error occurred while processing your request');
+        alert(error.message || 'An error occurred while processing your request');
     }
 }
 
@@ -185,24 +205,43 @@ async function declineReschedule(appointmentId) {
     }
 
     try {
+        const token = document.querySelector('meta[name="csrf-token"]')?.content;
+        if (!token) {
+            throw new Error('CSRF token not found');
+        }
+
         const response = await fetch(`/appointments/reschedule/${appointmentId}/decline`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                'X-CSRF-TOKEN': token,
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
             },
             body: JSON.stringify({ reason })
         });
 
-        const data = await response.json();
-        if (response.ok) {
+        let data;
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            data = await response.json();
+        } else {
+            throw new Error('Received non-JSON response from server');
+        }
+
+        if (!response.ok) {
+            throw new Error(data.error || `HTTP error! status: ${response.status}`);
+        }
+
+        if (data.success) {
+            alert('Reschedule request declined successfully!');
             window.location.reload();
         } else {
-            alert(data.message || 'Failed to decline reschedule request');
+            throw new Error(data.error || 'Failed to decline reschedule request');
         }
     } catch (error) {
         console.error('Error:', error);
-        alert('An error occurred while processing your request');
+        alert(error.message || 'An error occurred while processing your request');
     }
 }
 </script>

@@ -13,6 +13,7 @@
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Service</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Pet</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Reason</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                     </tr>
@@ -49,6 +50,17 @@
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-500">
                                 <p class="max-w-xs truncate">{{ $request->reason }}</p>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                @if($request->is_last_minute)
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                                        Last Minute
+                                    </span>
+                                @else
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+                                        Standard
+                                    </span>
+                                @endif
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full

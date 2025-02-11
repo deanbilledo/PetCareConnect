@@ -64,5 +64,6 @@ class Kernel extends HttpKernel
         'has-shop' => \App\Http\Middleware\HasShop::class,
         'admin' => \App\Http\Middleware\IsAdmin::class,
         'shop.setup' => \App\Http\Middleware\CheckShopSetup::class,
+        'shop' => \App\Http\Middleware\ShopMiddleware::class,
     ];
 } 

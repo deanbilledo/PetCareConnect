@@ -143,13 +143,16 @@ class AppointmentController extends Controller
             $newDateTime = \Carbon\Carbon::parse($validated['new_date'] . ' ' . $validated['new_time']);
 
             // Update appointment with reschedule request
-            $appointment->update([
-                'status' => 'reschedule_requested',
-                'requested_date' => $newDateTime,
-                'employee_id' => $validated['employee_id'],
-                'reschedule_reason' => $validated['reschedule_reason'],
-                'last_reschedule_at' => now()
-            ]);
+            DB::beginTransaction();
+            
+            $appointment->status = 'reschedule_requested';
+            $appointment->requested_date = $newDateTime;
+            $appointment->employee_id = $validated['employee_id'];
+            $appointment->reschedule_reason = $validated['reschedule_reason'];
+            $appointment->last_reschedule_at = now();
+            $appointment->save();
+            
+            DB::commit();
 
             // Log the reschedule request
             \Log::info('Reschedule request submitted:', [
@@ -159,12 +162,14 @@ class AppointmentController extends Controller
                 'reason' => $validated['reschedule_reason']
             ]);
 
-            // Redirect to waiting confirmation page
+            // Return view with the updated appointment and new datetime
             return view('appointments.reschedule-confirmation', [
                 'appointment' => $appointment->fresh(),
                 'newDateTime' => $newDateTime->format('F j, Y g:i A')
             ])->with('success', 'Your reschedule request has been submitted successfully. Please wait for the shop\'s confirmation.');
+
         } catch (\Exception $e) {
+            DB::rollBack();
             \Log::error('Reschedule error: ' . $e->getMessage(), [
                 'appointment_id' => $appointment->id,
                 'request_data' => $request->all(),
@@ -177,14 +182,16 @@ class AppointmentController extends Controller
     public function approveReschedule(Appointment $appointment)
     {
         try {
-            if ($appointment->shop_id !== auth()->user()->shop->id) {
+            if (!auth()->user()->shop || $appointment->shop_id !== auth()->user()->shop->id) {
                 return response()->json([
+                    'success' => false,
                     'error' => 'Unauthorized to approve this reschedule request'
                 ], 403);
             }
 
             if ($appointment->status !== 'reschedule_requested') {
                 return response()->json([
+                    'success' => false,
                     'error' => 'This appointment is not pending reschedule'
                 ], 400);
             }
@@ -192,7 +199,7 @@ class AppointmentController extends Controller
             $appointment->update([
                 'status' => 'accepted',
                 'appointment_date' => $appointment->requested_date,
-                'service_type' => $appointment->requested_service,
+                'service_type' => $appointment->requested_service ?: $appointment->service_type,
                 'reschedule_approved_at' => now()
             ]);
 
@@ -201,9 +208,10 @@ class AppointmentController extends Controller
                 'message' => 'Reschedule request approved successfully'
             ]);
         } catch (\Exception $e) {
-            Log::error('Error approving reschedule request: ' . $e->getMessage());
+            \Log::error('Error approving reschedule request: ' . $e->getMessage());
             return response()->json([
-                'error' => 'Failed to approve reschedule request'
+                'success' => false,
+                'error' => 'Failed to approve reschedule request: ' . $e->getMessage()
             ], 500);
         }
     }

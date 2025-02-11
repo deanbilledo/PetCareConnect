@@ -149,25 +149,28 @@ Route::middleware(['auth'])->group(function () {
     });
 
     // Appointment routes
-    Route::prefix('appointments')->name('appointments.')->group(function () {
-        Route::get('/{appointment}', [AppointmentController::class, 'show'])->name('show');
-        Route::post('/{appointment}/cancel', [AppointmentController::class, 'cancel'])->name('cancel');
-        Route::get('/{appointment}/reschedule', [AppointmentController::class, 'reschedule'])->name('reschedule');
-        Route::put('/{appointment}/reschedule', [AppointmentController::class, 'updateSchedule'])->name('update-schedule');
-        Route::post('/{appointment}/mark-as-paid', [AppointmentController::class, 'markAsPaid'])->name('mark-as-paid');
-        Route::post('/{appointment}/shop-cancel', [AppointmentController::class, 'shopCancel'])->name('shop-cancel');
-        Route::post('/{appointment}/accept', [AppointmentController::class, 'accept'])->name('accept');
-        Route::get('/{appointment}/receipt', [AppointmentController::class, 'downloadReceipt'])->name('official-receipt.download');
-        Route::post('/{appointment}/add-note', [AppointmentController::class, 'addNote'])->name('appointments.add-note');
-        Route::get('/{appointment}/note', [AppointmentController::class, 'getNote'])->name('appointments.get-note');
-        
-        // Reschedule routes
-        Route::post('/reschedule/{appointment}/approve', [AppointmentController::class, 'approveReschedule'])
-            ->name('reschedule.approve');
-        Route::post('/reschedule/{appointment}/decline', [AppointmentController::class, 'declineReschedule'])
-            ->name('reschedule.decline');
+    Route::middleware(['auth'])->group(function () {
+        Route::get('/appointments', [AppointmentController::class, 'index'])->name('appointments.index');
+        Route::get('/appointments/{appointment}', [AppointmentController::class, 'show'])->name('appointments.show');
+        Route::post('/appointments/{appointment}/cancel', [AppointmentController::class, 'cancel'])->name('appointments.cancel');
+        Route::get('/appointments/{appointment}/reschedule', [AppointmentController::class, 'reschedule'])->name('appointments.reschedule');
+        Route::put('/appointments/{appointment}/update-schedule', [AppointmentController::class, 'updateSchedule'])->name('appointments.update-schedule');
+        Route::post('/appointments/{appointment}/accept', [AppointmentController::class, 'accept'])->name('appointments.accept');
+        Route::post('/appointments/{appointment}/mark-as-paid', [AppointmentController::class, 'markAsPaid'])->name('appointments.mark-as-paid');
+        Route::post('/appointments/{appointment}/shop-cancel', [AppointmentController::class, 'shopCancel'])->name('appointments.shop-cancel');
+        Route::post('/appointments/{appointment}/add-note', [AppointmentController::class, 'addNote'])->name('appointments.add-note');
+        Route::get('/appointments/{appointment}/note', [AppointmentController::class, 'getNote'])->name('appointments.get-note');
+        Route::get('/appointments/{appointment}/download-receipt', [AppointmentController::class, 'downloadReceipt'])->name('appointments.download-receipt');
     });
-    Route::resource('appointments', AppointmentController::class)->except(['show']);
+
+    // Appointment Reschedule Routes
+    Route::middleware(['auth', 'has-shop'])->group(function () {
+        Route::post('/appointments/reschedule/{appointment}/approve', [AppointmentController::class, 'approveReschedule'])
+            ->name('appointments.reschedule.approve');
+
+        Route::post('/appointments/reschedule/{appointment}/decline', [AppointmentController::class, 'declineReschedule'])
+            ->name('appointments.reschedule.decline');
+    });
 
     // Other customer routes
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings');

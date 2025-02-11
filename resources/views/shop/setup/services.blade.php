@@ -218,6 +218,21 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Handle form submission
+    document.getElementById('servicesForm').addEventListener('submit', function(e) {
+        // Remove exotic pet species inputs for unchecked exotic pet services
+        document.querySelectorAll('.service-item').forEach(serviceItem => {
+            const exoticPetCheckbox = serviceItem.querySelector('.exotic-pet-checkbox');
+            const exoticSpeciesInputs = serviceItem.querySelectorAll('input[name*="exotic_pet_species"]');
+            
+            if (!exoticPetCheckbox.checked) {
+                exoticSpeciesInputs.forEach(input => {
+                    input.disabled = true;
+                });
+            }
+        });
+    });
+
     // Handle exotic pet service checkboxes
     document.addEventListener('change', function(e) {
         if (e.target.matches('.exotic-pet-checkbox')) {
