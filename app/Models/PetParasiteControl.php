@@ -5,19 +5,19 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class PetVaccination extends Model
+class PetParasiteControl extends Model
 {
     protected $fillable = [
         'pet_id',
-        'vaccine_name',
-        'administered_by',
-        'administered_date',
-        'next_due_date',
+        'treatment_name',
+        'treatment_type',
+        'treatment_date',
+        'next_treatment_date',
     ];
 
     protected $casts = [
-        'administered_date' => 'date',
-        'next_due_date' => 'date',
+        'treatment_date' => 'date',
+        'next_treatment_date' => 'date',
     ];
 
     public function pet(): BelongsTo

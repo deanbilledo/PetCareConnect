@@ -223,10 +223,23 @@ class ProfileController extends Controller
 
     public function showPetDetails(Pet $pet)
     {
-        // Ensure the user can only view their own pets
-        if ($pet->user_id !== auth()->id()) {
-            abort(403);
-        }
+        // Load the necessary relationships
+        $pet->load([
+            'vaccinations' => function ($query) {
+                $query->latest('administered_date');
+            },
+            'parasiteControls' => function ($query) {
+                $query->latest('treatment_date');
+            },
+            'healthIssues' => function ($query) {
+                $query->latest('identified_date');
+            },
+            'appointments' => function ($query) {
+                $query->with('shop')
+                      ->latest('appointment_date')
+                      ->take(5);
+            }
+        ]);
 
         return view('profile.pets.details', compact('pet'));
     }

@@ -134,26 +134,22 @@ use Illuminate\Support\Str;
         <div class="mb-8">
             <h3 class="text-lg font-medium mb-4">Vaccination History</h3>
             <div class="bg-gray-50 rounded-lg p-4">
-                <div class="flex justify-between items-center border-b pb-4 mb-4">
-                    <div>
-                        <p class="font-medium">Anti-rabies</p>
-                        <p class="text-sm text-gray-600">Administered by: Dr. Smith</p>
+                @forelse($pet->vaccinations as $vaccination)
+                    <div class="flex justify-between items-center {{ !$loop->last ? 'border-b pb-4 mb-4' : '' }}">
+                        <div>
+                            <p class="font-medium">{{ $vaccination->vaccine_name }}</p>
+                            <p class="text-sm text-gray-600">Administered by: {{ $vaccination->administered_by }}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-sm text-gray-600">Date: {{ $vaccination->administered_date->format('M d, Y') }}</p>
+                            <p class="text-sm {{ $vaccination->next_due_date->isPast() ? 'text-red-600' : 'text-teal-600' }}">
+                                Next due: {{ $vaccination->next_due_date->format('M d, Y') }}
+                            </p>
+                        </div>
                     </div>
-                    <div class="text-right">
-                        <p class="text-sm text-gray-600">Date: May 10, 2023</p>
-                        <p class="text-sm text-teal-600">Next due: May 10, 2024</p>
-                    </div>
-                </div>
-                <div class="flex justify-between items-center">
-                    <div>
-                        <p class="font-medium">DHPP</p>
-                        <p class="text-sm text-gray-600">Administered by: Dr. Johnson</p>
-                    </div>
-                    <div class="text-right">
-                        <p class="text-sm text-gray-600">Date: Jun 15, 2023</p>
-                        <p class="text-sm text-teal-600">Next due: Jun 15, 2024</p>
-                    </div>
-                </div>
+                @empty
+                    <p class="text-gray-500 text-center py-2">No vaccination records found</p>
+                @endforelse
             </div>
         </div>
 
@@ -161,13 +157,22 @@ use Illuminate\Support\Str;
         <div class="mb-8">
             <h3 class="text-lg font-medium mb-4">Parasite Control</h3>
             <div class="bg-gray-50 rounded-lg p-4">
-                <div class="flex justify-between items-center">
-                    <div>
-                        <p class="font-medium">Frontline Plus</p>
-                        <p class="text-sm text-gray-600">Flea and Tick Prevention</p>
+                @forelse($pet->parasiteControls as $control)
+                    <div class="flex justify-between items-center {{ !$loop->last ? 'border-b pb-4 mb-4' : '' }}">
+                        <div>
+                            <p class="font-medium">{{ $control->treatment_name }}</p>
+                            <p class="text-sm text-gray-600">{{ $control->treatment_type }} Treatment</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-sm text-gray-600">Last treatment: {{ $control->treatment_date->format('M d, Y') }}</p>
+                            <p class="text-sm {{ $control->next_treatment_date->isPast() ? 'text-red-600' : 'text-teal-600' }}">
+                                Next due: {{ $control->next_treatment_date->format('M d, Y') }}
+                            </p>
+                        </div>
                     </div>
-                    <p class="text-sm text-gray-600">Last treatment: Mar 15, 2024</p>
-                </div>
+                @empty
+                    <p class="text-gray-500 text-center py-2">No parasite control records found</p>
+                @endforelse
             </div>
         </div>
 
@@ -175,14 +180,21 @@ use Illuminate\Support\Str;
         <div>
             <h3 class="text-lg font-medium mb-4">Health Issues</h3>
             <div class="bg-gray-50 rounded-lg p-4">
-                <div class="border-b pb-4">
-                    <div class="flex justify-between items-start mb-2">
-                        <p class="font-medium">Skin Allergies</p>
-                        <p class="text-sm text-gray-600">Feb 15, 2024</p>
+                @forelse($pet->healthIssues as $issue)
+                    <div class="{{ !$loop->last ? 'border-b pb-4 mb-4' : '' }}">
+                        <div class="flex justify-between items-start mb-2">
+                            <p class="font-medium">{{ $issue->issue_title }}</p>
+                            <p class="text-sm text-gray-600">{{ $issue->identified_date->format('M d, Y') }}</p>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-2">{{ $issue->description }}</p>
+                        <p class="text-sm"><span class="text-gray-600">Treatment:</span> {{ $issue->treatment }}</p>
+                        @if($issue->vet_notes)
+                            <p class="text-sm mt-2"><span class="text-gray-600">Vet Notes:</span> {{ $issue->vet_notes }}</p>
+                        @endif
                     </div>
-                    <p class="text-sm text-gray-600 mb-2">Seasonal allergies causing skin irritation</p>
-                    <p class="text-sm"><span class="text-gray-600">Treatment:</span> Prescribed antihistamines</p>
-                </div>
+                @empty
+                    <p class="text-gray-500 text-center py-2">No health issues recorded</p>
+                @endforelse
             </div>
         </div>
     </div>
@@ -193,19 +205,26 @@ use Illuminate\Support\Str;
             <h2 class="text-xl font-semibold">Recent Visits</h2>
         </div>
         <div class="space-y-4">
-            <div class="flex items-center space-x-4 border-b pb-4">
-                <img src="{{ asset('images/shops/shop1.png') }}" alt="Paws & Claws" 
-                     class="w-16 h-16 object-cover rounded-lg">
-                <div class="flex-1">
-                    <h3 class="font-medium">Paws & Claws</h3>
-                    <p class="text-sm text-gray-600">Regular Fur Care</p>
-                    <p class="text-sm text-gray-500">Mar 25, 2024</p>
+            @forelse($pet->appointments as $appointment)
+                <div class="flex items-center space-x-4 {{ !$loop->last ? 'border-b pb-4' : '' }}">
+                    <img src="{{ $appointment->shop->profile_photo_url ?? asset('images/shops/default.png') }}" 
+                         alt="{{ $appointment->shop->name }}" 
+                         class="w-16 h-16 object-cover rounded-lg">
+                    <div class="flex-1">
+                        <h3 class="font-medium">{{ $appointment->shop->name }}</h3>
+                        <p class="text-sm text-gray-600">{{ $appointment->service->name ?? 'Service' }}</p>
+                        <p class="text-sm text-gray-500">{{ $appointment->appointment_date->format('M d, Y') }}</p>
+                    </div>
+                    @if($appointment->shop->rating)
+                        <div class="text-yellow-400 flex items-center">
+                            <span>★</span>
+                            <span class="ml-1 text-gray-600">{{ number_format($appointment->shop->rating, 1) }}</span>
+                        </div>
+                    @endif
                 </div>
-                <div class="text-yellow-400 flex items-center">
-                    <span>★</span>
-                    <span class="ml-1 text-gray-600">4.5</span>
-                </div>
-            </div>
+            @empty
+                <p class="text-gray-500 text-center py-2">No recent visits found</p>
+            @endforelse
         </div>
     </div>
 </div>
