@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Appointment extends Model
 {
@@ -56,12 +57,12 @@ class Appointment extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function shop()
+    public function shop(): BelongsTo
     {
         return $this->belongsTo(Shop::class);
     }
 
-    public function pet()
+    public function pet(): BelongsTo
     {
         return $this->belongsTo(Pet::class);
     }
@@ -71,7 +72,7 @@ class Appointment extends Model
         return $this->belongsTo(Employee::class);
     }
 
-    public function service()
+    public function service(): BelongsTo
     {
         return $this->belongsTo(Service::class);
     }

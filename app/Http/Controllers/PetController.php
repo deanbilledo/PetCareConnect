@@ -3,6 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Pet;
+use App\Models\PetVaccination;
+use App\Models\PetParasiteControl;
+use App\Models\PetHealthIssue;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -59,6 +62,79 @@ class PetController extends Controller
             return redirect()->back()
                 ->withInput()
                 ->withErrors(['error' => 'Failed to update pet information. Please try again.']);
+        }
+    }
+
+    public function storeVaccination(Request $request, Pet $pet)
+    {
+        try {
+            $validated = $request->validate([
+                'vaccine_name' => 'required|string|max:255',
+                'administered_date' => 'required|date|before_or_equal:today',
+                'administered_by' => 'required|string|max:255',
+                'next_due_date' => 'required|date|after:administered_date',
+            ]);
+
+            $pet->vaccinations()->create($validated);
+
+            return redirect()
+                ->route('profile.pets.details', $pet->id)
+                ->with('success', 'Vaccination record added successfully!');
+        } catch (\Exception $e) {
+            Log::error('Failed to add vaccination record: ' . $e->getMessage());
+            return redirect()
+                ->back()
+                ->withInput()
+                ->withErrors(['vaccination' => 'Failed to add vaccination record. Please try again.']);
+        }
+    }
+
+    public function storeParasiteControl(Request $request, Pet $pet)
+    {
+        try {
+            $validated = $request->validate([
+                'treatment_name' => 'required|string|max:255',
+                'treatment_type' => 'required|string|in:Flea,Tick,Worm,Other',
+                'treatment_date' => 'required|date|before_or_equal:today',
+                'next_treatment_date' => 'required|date|after:treatment_date',
+            ]);
+
+            $pet->parasiteControls()->create($validated);
+
+            return redirect()
+                ->route('profile.pets.details', $pet->id)
+                ->with('success', 'Parasite control record added successfully!');
+        } catch (\Exception $e) {
+            Log::error('Failed to add parasite control record: ' . $e->getMessage());
+            return redirect()
+                ->back()
+                ->withInput()
+                ->withErrors(['parasite' => 'Failed to add parasite control record. Please try again.']);
+        }
+    }
+
+    public function storeHealthIssue(Request $request, Pet $pet)
+    {
+        try {
+            $validated = $request->validate([
+                'issue_title' => 'required|string|max:255',
+                'identified_date' => 'required|date|before_or_equal:today',
+                'description' => 'required|string',
+                'treatment' => 'required|string|max:255',
+                'vet_notes' => 'nullable|string',
+            ]);
+
+            $pet->healthIssues()->create($validated);
+
+            return redirect()
+                ->route('profile.pets.details', $pet->id)
+                ->with('success', 'Health issue record added successfully!');
+        } catch (\Exception $e) {
+            Log::error('Failed to add health issue record: ' . $e->getMessage());
+            return redirect()
+                ->back()
+                ->withInput()
+                ->withErrors(['health' => 'Failed to add health issue record. Please try again.']);
         }
     }
 } 

@@ -24,26 +24,35 @@ use Illuminate\Support\Str;
             <!-- Vaccination Record Form -->
             <div class="border-b pb-8">
                 <h2 class="text-xl font-semibold mb-4">Vaccination Record</h2>
-                <form action="#" method="POST" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                @if ($errors->vaccination->any())
+                    <div class="bg-red-50 text-red-500 p-4 rounded-lg mb-4">
+                        <ul class="list-disc pl-5">
+                            @foreach ($errors->vaccination->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+                <form action="{{ route('profile.pets.vaccination.store', $pet->id) }}" method="POST" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     @csrf
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Vaccine Name</label>
-                        <input type="text" name="vaccine_name" required 
+                        <input type="text" name="vaccine_name" required value="{{ old('vaccine_name') }}"
                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Date Administered</label>
-                        <input type="date" name="administered_date" required 
+                        <input type="date" name="administered_date" required value="{{ old('administered_date') }}"
                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Administered By</label>
-                        <input type="text" name="administered_by" required 
+                        <input type="text" name="administered_by" required value="{{ old('administered_by') }}"
                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Next Due Date</label>
-                        <input type="date" name="next_due_date" required 
+                        <input type="date" name="next_due_date" required value="{{ old('next_due_date') }}"
                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
                     </div>
                     <div class="md:col-span-2">
@@ -57,11 +66,20 @@ use Illuminate\Support\Str;
             <!-- Parasite Control Form -->
             <div class="border-b pb-8">
                 <h2 class="text-xl font-semibold mb-4">Parasite Control</h2>
-                <form action="#" method="POST" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                @if ($errors->parasite->any())
+                    <div class="bg-red-50 text-red-500 p-4 rounded-lg mb-4">
+                        <ul class="list-disc pl-5">
+                            @foreach ($errors->parasite->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+                <form action="{{ route('profile.pets.parasite-control.store', $pet->id) }}" method="POST" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     @csrf
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Treatment Name</label>
-                        <input type="text" name="treatment_name" required 
+                        <input type="text" name="treatment_name" required value="{{ old('treatment_name') }}"
                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
                     </div>
                     <div>
@@ -69,20 +87,20 @@ use Illuminate\Support\Str;
                         <select name="treatment_type" required 
                                 class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
                             <option value="">Select Type</option>
-                            <option value="Flea">Flea Treatment</option>
-                            <option value="Tick">Tick Treatment</option>
-                            <option value="Worm">Deworming</option>
-                            <option value="Other">Other</option>
+                            <option value="Flea" {{ old('treatment_type') == 'Flea' ? 'selected' : '' }}>Flea Treatment</option>
+                            <option value="Tick" {{ old('treatment_type') == 'Tick' ? 'selected' : '' }}>Tick Treatment</option>
+                            <option value="Worm" {{ old('treatment_type') == 'Worm' ? 'selected' : '' }}>Deworming</option>
+                            <option value="Other" {{ old('treatment_type') == 'Other' ? 'selected' : '' }}>Other</option>
                         </select>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Treatment Date</label>
-                        <input type="date" name="treatment_date" required 
+                        <input type="date" name="treatment_date" required value="{{ old('treatment_date') }}"
                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Next Treatment Due</label>
-                        <input type="date" name="next_treatment_date" required 
+                        <input type="date" name="next_treatment_date" required value="{{ old('next_treatment_date') }}"
                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
                     </div>
                     <div class="md:col-span-2">
@@ -96,32 +114,41 @@ use Illuminate\Support\Str;
             <!-- Health Issues Form -->
             <div>
                 <h2 class="text-xl font-semibold mb-4">Health Issue</h2>
-                <form action="#" method="POST" class="grid grid-cols-1 gap-4">
+                @if ($errors->health->any())
+                    <div class="bg-red-50 text-red-500 p-4 rounded-lg mb-4">
+                        <ul class="list-disc pl-5">
+                            @foreach ($errors->health->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+                <form action="{{ route('profile.pets.health-issue.store', $pet->id) }}" method="POST" class="grid grid-cols-1 gap-4">
                     @csrf
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Issue Title</label>
-                        <input type="text" name="issue_title" required 
+                        <input type="text" name="issue_title" required value="{{ old('issue_title') }}"
                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Date Identified</label>
-                        <input type="date" name="identified_date" required 
+                        <input type="date" name="identified_date" required value="{{ old('identified_date') }}"
                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
                         <textarea name="description" rows="3" required 
-                                  class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500"></textarea>
+                                  class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">{{ old('description') }}</textarea>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Treatment/Medication</label>
-                        <input type="text" name="treatment" required 
+                        <input type="text" name="treatment" required value="{{ old('treatment') }}"
                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Veterinarian Notes</label>
                         <textarea name="vet_notes" rows="3" 
-                                  class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500"></textarea>
+                                  class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">{{ old('vet_notes') }}</textarea>
                     </div>
                     <div>
                         <button type="submit" class="bg-teal-500 text-white px-4 py-2 rounded-md hover:bg-teal-600">

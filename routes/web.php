@@ -124,6 +124,11 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/{pet}/details', [ProfileController::class, 'showPetDetails'])->name('details');
             Route::get('/{pet}/health-record', [ProfileController::class, 'showHealthRecord'])->name('health-record');
             Route::get('/{pet}/add-health-record', [ProfileController::class, 'showAddHealthRecord'])->name('add-health-record');
+            
+            // New health record routes
+            Route::post('/{pet}/vaccination', [PetController::class, 'storeVaccination'])->name('vaccination.store');
+            Route::post('/{pet}/parasite-control', [PetController::class, 'storeParasiteControl'])->name('parasite-control.store');
+            Route::post('/{pet}/health-issue', [PetController::class, 'storeHealthIssue'])->name('health-issue.store');
         });
     });
 

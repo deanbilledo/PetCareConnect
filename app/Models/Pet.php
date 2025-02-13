@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Pet extends Model
 {
@@ -30,7 +32,7 @@ class Pet extends Model
         'weight' => 'decimal:2',
     ];
 
-    public function user()
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
@@ -47,9 +49,24 @@ class Pet extends Model
         return $this->hasMany(HealthRecord::class);
     }
 
-    public function vaccinations()
+    public function vaccinations(): HasMany
     {
         return $this->hasMany(PetVaccination::class);
+    }
+
+    public function parasiteControls(): HasMany
+    {
+        return $this->hasMany(PetParasiteControl::class);
+    }
+
+    public function healthIssues(): HasMany
+    {
+        return $this->hasMany(PetHealthIssue::class);
+    }
+
+    public function appointments(): HasMany
+    {
+        return $this->hasMany(Appointment::class);
     }
 
     public function getSizeCategoryAttribute($value)
