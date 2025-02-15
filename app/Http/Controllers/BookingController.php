@@ -610,27 +610,110 @@ class BookingController extends Controller
     public function getTimeSlots(Request $request, Shop $shop)
     {
         try {
-            // Validate request
-            $request->validate([
-                'date' => 'required|date|after:today',
-                'duration' => 'required|integer|min:1'
+            $validated = $request->validate([
+                'date' => 'required|date',
+                'duration' => 'required|integer|min:15'
             ]);
 
-            // Parse the requested date
-            $date = Carbon::parse($request->date);
-            
-            // Get available time slots
-            $slots = $this->getAvailableTimeSlots($shop, $date, $request->duration);
+            $date = Carbon::parse($validated['date']);
+            $duration = (int) $validated['duration'];
+            $dayOfWeek = $date->dayOfWeek;
+
+            // Get operating hours for the selected day
+            $operatingHours = $shop->operatingHours()
+                ->where('day', $dayOfWeek)
+                ->where('is_open', true)
+                ->first();
+
+            if (!$operatingHours) {
+                return response()->json(['slots' => [], 'message' => 'Shop is closed on this day'], 200);
+            }
+
+            // Get all employees
+            $totalEmployees = $shop->employees()->count();
+            if ($totalEmployees === 0) {
+                return response()->json(['slots' => [], 'message' => 'No employees available'], 200);
+            }
+
+            // Get existing appointments for the day
+            $appointments = $shop->appointments()
+                ->whereDate('appointment_date', $date)
+                ->whereIn('status', ['pending', 'accepted'])
+                ->get();
+
+            $timeSlots = [];
+            $currentTime = Carbon::parse($date->format('Y-m-d') . ' ' . $operatingHours->open_time);
+            $closeTime = Carbon::parse($date->format('Y-m-d') . ' ' . $operatingHours->close_time);
+
+            // Ensure we don't create slots that would end after closing time
+            $closeTime = $closeTime->subMinutes($duration);
+
+            while ($currentTime <= $closeTime) {
+                $slotEnd = $currentTime->copy()->addMinutes($duration);
+                
+                // Skip if current time is in the past
+                if ($currentTime <= now()) {
+                    $currentTime->addMinutes(30);
+                    continue;
+                }
+
+                // Skip slot if it's during lunch break
+                if ($operatingHours->has_lunch_break) {
+                    $lunchStart = Carbon::parse($date->format('Y-m-d') . ' ' . $operatingHours->lunch_start);
+                    $lunchEnd = Carbon::parse($date->format('Y-m-d') . ' ' . $operatingHours->lunch_end);
+                    
+                    if (($currentTime >= $lunchStart && $currentTime < $lunchEnd) || 
+                        ($slotEnd > $lunchStart && $slotEnd <= $lunchEnd) ||
+                        ($currentTime < $lunchStart && $slotEnd > $lunchEnd)) {
+                        $currentTime = $lunchEnd;
+                        continue;
+                    }
+                }
+
+                // Count busy employees in this time slot
+                $busyEmployees = 0;
+                foreach ($appointments as $appointment) {
+                    $appointmentStart = Carbon::parse($appointment->appointment_date);
+                    $appointmentEnd = $appointmentStart->copy()->addMinutes($appointment->duration ?? 60);
+
+                    if (($currentTime >= $appointmentStart && $currentTime < $appointmentEnd) ||
+                        ($slotEnd > $appointmentStart && $slotEnd <= $appointmentEnd) ||
+                        ($currentTime < $appointmentStart && $slotEnd > $appointmentEnd)) {
+                        $busyEmployees++;
+                    }
+                }
+
+                $availableEmployees = $totalEmployees - $busyEmployees;
+
+                // Only add slot if there are available employees
+                if ($availableEmployees > 0) {
+                    $timeSlots[] = [
+                        'time' => $currentTime->format('g:i A'),
+                        'available_employees' => $availableEmployees,
+                        'total_employees' => $totalEmployees
+                    ];
+                }
+
+                $currentTime->addMinutes(30);
+            }
+
+            if (empty($timeSlots)) {
+                return response()->json([
+                    'slots' => [],
+                    'message' => 'No available time slots for the selected date'
+                ], 200);
+            }
 
             return response()->json([
-                'slots' => $slots,
-                'message' => count($slots) > 0 ? null : 'No available time slots for this date'
+                'slots' => $timeSlots,
+                'message' => null
             ]);
 
         } catch (\Exception $e) {
             Log::error('Error getting time slots: ' . $e->getMessage());
             return response()->json([
-                'error' => 'Failed to get time slots: ' . $e->getMessage()
+                'slots' => [], 
+                'message' => 'Failed to get time slots: ' . $e->getMessage()
             ], 500);
         }
     }
