@@ -342,7 +342,7 @@ function timeSlotPicker() {
             
             try {
                 // First, get the time slots
-                const timeSlotsResponse = await fetch(`/time-slots/shop/{{ $shop->id }}?date=${this.selectedDate}&duration={{ $totalDuration }}`, {
+                const timeSlotsResponse = await fetch(`/time-slots/shop/{{ $shop->id }}?date=${this.selectedDate}&duration=${parseInt({{ $totalDuration }}, 10)}`, {
                     method: 'GET',
                     headers: {
                         'Accept': 'application/json',
@@ -363,11 +363,15 @@ function timeSlotPicker() {
                     throw new Error(timeSlotsData.error);
                 }
 
+                // Ensure timeSlotsData is an array, if not, try to access the slots property
+                const timeSlotArray = Array.isArray(timeSlotsData) ? timeSlotsData : 
+                                    (timeSlotsData.slots || timeSlotsData.data || []);
+
                 // For each time slot, check employee availability
                 const serviceIds = @json($bookingData['pet_services'] ?? []);
                 const slots = [];
 
-                for (const slot of timeSlotsData.slots) {
+                for (const slot of timeSlotArray) {
                     const employeesResponse = await fetch(`{{ route('booking.available-employees', $shop) }}`, {
                         method: 'POST',
                         headers: {
@@ -426,6 +430,7 @@ function timeSlotPicker() {
                     this.errorMessage = 'No available time slots for the selected date';
                 }
             } catch (error) {
+                console.error('Error loading time slots:', error);
                 this.errorMessage = error.message || 'Failed to load time slots';
             } finally {
                 this.loading = false;

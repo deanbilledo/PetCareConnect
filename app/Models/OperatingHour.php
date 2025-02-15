@@ -15,11 +15,15 @@ class OperatingHour extends Model
         'day',
         'is_open',
         'open_time',
-        'close_time'
+        'close_time',
+        'has_lunch_break',
+        'lunch_start',
+        'lunch_end'
     ];
 
     protected $casts = [
-        'is_open' => 'boolean'
+        'is_open' => 'boolean',
+        'has_lunch_break' => 'boolean'
     ];
 
     public function shop()
@@ -47,5 +51,25 @@ class OperatingHour extends Model
     public function setCloseTimeAttribute($value)
     {
         $this->attributes['close_time'] = $value ? Carbon::parse($value)->format('H:i:s') : null;
+    }
+
+    public function getLunchStartAttribute($value)
+    {
+        return $value ? Carbon::parse($value)->format('H:i:s') : null;
+    }
+
+    public function getLunchEndAttribute($value)
+    {
+        return $value ? Carbon::parse($value)->format('H:i:s') : null;
+    }
+
+    public function setLunchStartAttribute($value)
+    {
+        $this->attributes['lunch_start'] = $value ? Carbon::parse($value)->format('H:i:s') : null;
+    }
+
+    public function setLunchEndAttribute($value)
+    {
+        $this->attributes['lunch_end'] = $value ? Carbon::parse($value)->format('H:i:s') : null;
     }
 } 

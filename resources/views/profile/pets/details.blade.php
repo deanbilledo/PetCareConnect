@@ -50,6 +50,40 @@ use Illuminate\Support\Str;
         </div>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
+                <p class="text-sm text-gray-600">Status</p>
+                <div class="flex items-center mt-1">
+                    @if($pet->isDeceased())
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z"/>
+                            </svg>
+                            Deceased
+                        </span>
+                        <button onclick="openDeceasedModal()" class="ml-3 text-sm text-blue-600 hover:text-blue-800">
+                            Edit Details
+                        </button>
+                        <span class="ml-2 text-sm text-gray-600">
+                            ({{ $pet->death_date->format('M d, Y') }})
+                        </span>
+                    @else
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            Active
+                        </span>
+                        <button onclick="openDeceasedModal()" class="ml-3 text-sm text-gray-600 hover:text-gray-800">
+                            Mark as Deceased
+                        </button>
+                    @endif
+                </div>
+                @if($pet->isDeceased() && $pet->death_reason)
+                    <p class="text-sm text-gray-600 mt-1">
+                        Reason: {{ $pet->death_reason }}
+                    </p>
+                @endif
+            </div>
+            <div>
                 <p class="text-sm text-gray-600">Date of Birth</p>
                 <p class="font-medium">
                     {{ $pet->date_of_birth ? $pet->date_of_birth->format('M d, Y') : 'Not set' }}
@@ -61,10 +95,10 @@ use Illuminate\Support\Str;
                     @php
                         $birthDate = $pet->date_of_birth;
                         if ($birthDate) {
-                            $now = now();
+                            $now = $pet->isDeceased() ? $pet->death_date : now();
                             $years = (int)$birthDate->diffInYears($now);
                             $totalMonths = (int)$birthDate->diffInMonths($now);
-                            $months = (int)($totalMonths % 12);  // Get remaining months after years
+                            $months = (int)($totalMonths % 12);
                             $days = (int)$birthDate->copy()->addMonths($totalMonths)->diffInDays($now);
                             
                             if ($years >= 1) {
@@ -72,17 +106,18 @@ use Illuminate\Support\Str;
                                 if ($months > 0) {
                                     echo ' and ' . $months . ' ' . Str::plural('month', $months);
                                 }
-                                echo ' old';
+                                echo $pet->isDeceased() ? ' (at time of death)' : ' old';
                             } else {
                                 if ($months > 0) {
                                     echo $months . ' ' . Str::plural('month', $months);
                                     if ($days > 0) {
                                         echo ' and ' . $days . ' ' . Str::plural('day', $days);
                                     }
-                                    echo ' old';
+                                    echo $pet->isDeceased() ? ' (at time of death)' : ' old';
                                 } else {
                                     $days = (int)$birthDate->diffInDays($now);
-                                    echo $days . ' ' . Str::plural('day', $days) . ' old';
+                                    echo $days . ' ' . Str::plural('day', $days);
+                                    echo $pet->isDeceased() ? ' (at time of death)' : ' old';
                                 }
                             }
                         } else {
@@ -101,7 +136,7 @@ use Illuminate\Support\Str;
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
             <div>
                 <p class="text-sm text-gray-600">Size Category</p>
-                <p class="font-medium">{{ $pet->size_category ?? 'Not set' }}</p>
+                <p class="font-medium">{{ Str::title($pet->size_category ?? 'Not set') }}</p>
             </div>
             <div>
                 <p class="text-sm text-gray-600">Color/Markings</p>
@@ -110,6 +145,14 @@ use Illuminate\Support\Str;
             <div>
                 <p class="text-sm text-gray-600">Coat Type</p>
                 <p class="font-medium">{{ $pet->coat_type ?? 'Not set' }}</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-600">Type</p>
+                <p class="font-medium">{{ $pet->type }}</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-600">Breed</p>
+                <p class="font-medium">{{ $pet->breed }}</p>
             </div>
         </div>
     </div>
@@ -227,5 +270,64 @@ use Illuminate\Support\Str;
             @endforelse
         </div>
     </div>
+
+    <!-- Deceased Status Modal -->
+    <div id="deceased-modal" class="fixed inset-0 bg-gray-500 bg-opacity-75 hidden" x-data>
+        <div class="flex items-center justify-center min-h-screen px-4">
+            <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+                <div class="p-6">
+                    <h3 class="text-lg font-semibold mb-4">
+                        {{ $pet->isDeceased() ? 'Update Deceased Details' : 'Mark as Deceased' }}
+                    </h3>
+                    <form action="{{ route('profile.pets.mark-deceased', $pet) }}" method="POST">
+                        @csrf
+                        <div class="space-y-4">
+                            <div>
+                                <label for="death_date" class="block text-sm font-medium text-gray-700">Date of Death</label>
+                                <input type="date" id="death_date" name="death_date" required
+                                       max="{{ date('Y-m-d') }}"
+                                       value="{{ $pet->death_date?->format('Y-m-d') }}"
+                                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
+                            </div>
+                            <div>
+                                <label for="death_reason" class="block text-sm font-medium text-gray-700">Reason (Optional)</label>
+                                <textarea id="death_reason" name="death_reason" rows="3"
+                                          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">{{ $pet->death_reason }}</textarea>
+                            </div>
+                        </div>
+                        <div class="mt-6 flex justify-end space-x-3">
+                            <button type="button" onclick="closeDeceasedModal()"
+                                    class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                Cancel
+                            </button>
+                            <button type="submit"
+                                    class="px-4 py-2 bg-teal-500 text-white rounded-md text-sm font-medium hover:bg-teal-600">
+                                {{ $pet->isDeceased() ? 'Update Details' : 'Mark as Deceased' }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @push('scripts')
+    <script>
+        function openDeceasedModal() {
+            document.getElementById('deceased-modal').classList.remove('hidden');
+        }
+
+        function closeDeceasedModal() {
+            document.getElementById('deceased-modal').classList.add('hidden');
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('deceased-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeDeceasedModal();
+            }
+        });
+    </script>
+    @endpush
 </div>
 @endsection 

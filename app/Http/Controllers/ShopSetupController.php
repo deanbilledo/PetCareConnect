@@ -151,32 +151,32 @@ class ShopSetupController extends Controller
         
         try {
             $validated = $request->validate([
-                'hours' => 'required|array',
                 'hours.*.day' => 'required|integer|between:0,6',
-                'hours.*.is_open' => 'required|in:0,1',
+                'hours.*.is_open' => 'required|boolean',
                 'hours.*.open_time' => 'required_if:hours.*.is_open,1|nullable|date_format:H:i',
-                'hours.*.close_time' => 'required_if:hours.*.is_open,1|nullable|date_format:H:i|after:hours.*.open_time'
+                'hours.*.close_time' => 'required_if:hours.*.is_open,1|nullable|date_format:H:i|after:hours.*.open_time',
+                'hours.*.has_lunch_break' => 'boolean',
+                'hours.*.lunch_start' => 'required_if:hours.*.has_lunch_break,1|nullable|date_format:H:i|after:hours.*.open_time|before:hours.*.close_time',
+                'hours.*.lunch_end' => 'required_if:hours.*.has_lunch_break,1|nullable|date_format:H:i|after:hours.*.lunch_start|before:hours.*.close_time',
             ]);
 
             $shop = $user->shop;
 
             DB::transaction(function () use ($validated, $shop, $user) {
-                // Clear existing hours
+                // Delete existing hours
                 $shop->operatingHours()->delete();
 
-                // Add new hours
+                // Create new operating hours
                 foreach ($validated['hours'] as $hour) {
-                    // Convert is_open to boolean
-                    $hour['is_open'] = (bool)$hour['is_open'];
-                    
-                    // Only set times if the day is open
-                    if (!$hour['is_open']) {
-                        $hour['open_time'] = null;
-                        $hour['close_time'] = null;
-                    }
-
-                    Log::info('Creating operating hour:', $hour);
-                    $shop->operatingHours()->create($hour);
+                    $shop->operatingHours()->create([
+                        'day' => $hour['day'],
+                        'is_open' => $hour['is_open'],
+                        'open_time' => $hour['is_open'] ? $hour['open_time'] : null,
+                        'close_time' => $hour['is_open'] ? $hour['close_time'] : null,
+                        'has_lunch_break' => $hour['is_open'] && ($hour['has_lunch_break'] ?? false),
+                        'lunch_start' => $hour['is_open'] && ($hour['has_lunch_break'] ?? false) ? $hour['lunch_start'] : null,
+                        'lunch_end' => $hour['is_open'] && ($hour['has_lunch_break'] ?? false) ? $hour['lunch_end'] : null,
+                    ]);
                 }
 
                 // Mark setup as completed
@@ -184,18 +184,14 @@ class ShopSetupController extends Controller
                 $user->save();
             });
 
-            Log::info('Shop setup completed for user: ' . $user->id);
-            
             // Set shop mode and redirect to dashboard
             session(['shop_mode' => true]);
-            session()->save();
-            
+
             return redirect()->route('shop.dashboard')
                 ->with('success', 'Shop setup completed successfully!');
         } catch (\Exception $e) {
-            Log::error('Error in storeHours: ' . $e->getMessage());
-            Log::error($e->getTraceAsString());
-            return back()->with('error', 'Failed to save operating hours. Please try again.');
+            Log::error('Failed to save operating hours: ' . $e->getMessage());
+            return back()->withInput()->withErrors(['error' => 'Failed to save operating hours. Please try again.']);
         }
     }
 } 

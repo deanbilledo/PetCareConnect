@@ -115,10 +115,13 @@ Route::middleware(['auth'])->group(function () {
         
         // Pet routes
         Route::prefix('pets')->name('pets.')->group(function () {
+            Route::get('/', [PetController::class, 'index'])->name('index');
+            Route::get('/dashboard', [ProfileController::class, 'showPetDashboard'])->name('dashboard');
             Route::post('/', [PetController::class, 'store'])->name('store');
             Route::put('/{pet}', [PetController::class, 'update'])->name('update');
             Route::delete('/{pet}', [ProfileController::class, 'deletePet'])->name('delete');
             Route::post('/{pet}/update-photo', [ProfileController::class, 'updatePetPhoto'])->name('update-photo');
+            Route::post('/{pet}/mark-deceased', [PetController::class, 'markDeceased'])->name('mark-deceased');
             
             // Pet details and health records
             Route::get('/{pet}/details', [ProfileController::class, 'showPetDetails'])->name('details');

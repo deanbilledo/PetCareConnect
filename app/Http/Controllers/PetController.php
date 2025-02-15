@@ -11,6 +11,39 @@ use Illuminate\Support\Facades\Log;
 
 class PetController extends Controller
 {
+    public function index()
+    {
+        $user = auth()->user();
+        $pets = $user->pets()->with(['vaccinations', 'parasiteControls', 'healthIssues'])->get();
+
+        // Calculate health metrics for each pet
+        foreach ($pets as $pet) {
+            // Calculate vaccination percentage
+            $totalVaccines = $pet->vaccinations->count();
+            $upToDateVaccines = $pet->vaccinations->filter(function ($vaccination) {
+                return $vaccination->next_due_date->isFuture();
+            })->count();
+            $pet->vaccination_percentage = $totalVaccines > 0 
+                ? round(($upToDateVaccines / $totalVaccines) * 100) 
+                : 0;
+
+            // Calculate health score
+            $healthFactors = [
+                'vaccinations' => $pet->vaccination_percentage,
+                'parasiteControl' => $pet->parasiteControls()
+                    ->where('next_treatment_date', '>', now())
+                    ->exists() ? 100 : 0,
+                'recentCheckup' => $pet->appointments()
+                    ->where('service_type', 'veterinary')
+                    ->where('appointment_date', '>', now()->subMonths(6))
+                    ->exists() ? 100 : 0,
+            ];
+            $pet->health_score = round(array_sum($healthFactors) / count($healthFactors));
+        }
+
+        return view('profile.pets.index', compact('pets'));
+    }
+
     public function store(Request $request)
     {
         try {
@@ -135,6 +168,25 @@ class PetController extends Controller
                 ->back()
                 ->withInput()
                 ->withErrors(['health' => 'Failed to add health issue record. Please try again.']);
+        }
+    }
+
+    public function markDeceased(Request $request, Pet $pet)
+    {
+        try {
+            $validated = $request->validate([
+                'death_date' => 'required|date|before_or_equal:today',
+                'death_reason' => 'nullable|string|max:500',
+            ]);
+
+            $pet->markAsDeceased($validated['death_date'], $validated['death_reason']);
+
+            return redirect()->back()->with('success', 'Pet status updated successfully.');
+        } catch (\Exception $e) {
+            Log::error('Failed to update pet status: ' . $e->getMessage());
+            return redirect()->back()
+                ->withInput()
+                ->withErrors(['error' => 'Failed to update pet status. Please try again.']);
         }
     }
 } 

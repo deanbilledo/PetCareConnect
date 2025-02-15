@@ -15,53 +15,87 @@
                   action="{{ route('shop.setup.hours.store') }}"
                   x-data="{ 
                       days: [
-                          { name: 'Sunday', day: 0, is_open: false, open_time: '09:00', close_time: '17:00' },
-                          { name: 'Monday', day: 1, is_open: true, open_time: '09:00', close_time: '17:00' },
-                          { name: 'Tuesday', day: 2, is_open: true, open_time: '09:00', close_time: '17:00' },
-                          { name: 'Wednesday', day: 3, is_open: true, open_time: '09:00', close_time: '17:00' },
-                          { name: 'Thursday', day: 4, is_open: true, open_time: '09:00', close_time: '17:00' },
-                          { name: 'Friday', day: 5, is_open: true, open_time: '09:00', close_time: '17:00' },
-                          { name: 'Saturday', day: 6, is_open: true, open_time: '09:00', close_time: '17:00' }
+                          { name: 'Sunday', day: 0, is_open: false, open_time: '09:00', close_time: '17:00', has_lunch_break: false, lunch_start: '12:00', lunch_end: '13:00' },
+                          { name: 'Monday', day: 1, is_open: true, open_time: '09:00', close_time: '17:00', has_lunch_break: true, lunch_start: '12:00', lunch_end: '13:00' },
+                          { name: 'Tuesday', day: 2, is_open: true, open_time: '09:00', close_time: '17:00', has_lunch_break: true, lunch_start: '12:00', lunch_end: '13:00' },
+                          { name: 'Wednesday', day: 3, is_open: true, open_time: '09:00', close_time: '17:00', has_lunch_break: true, lunch_start: '12:00', lunch_end: '13:00' },
+                          { name: 'Thursday', day: 4, is_open: true, open_time: '09:00', close_time: '17:00', has_lunch_break: true, lunch_start: '12:00', lunch_end: '13:00' },
+                          { name: 'Friday', day: 5, is_open: true, open_time: '09:00', close_time: '17:00', has_lunch_break: true, lunch_start: '12:00', lunch_end: '13:00' },
+                          { name: 'Saturday', day: 6, is_open: true, open_time: '09:00', close_time: '17:00', has_lunch_break: true, lunch_start: '12:00', lunch_end: '13:00' }
                       ]
                   }">
                 @csrf
 
                 <div class="px-8 py-6 space-y-6">
                     <template x-for="(day, index) in days" :key="index">
-                        <div class="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
+                        <div class="p-4 bg-gray-50 rounded-lg">
                             <input type="hidden" :name="'hours[' + index + '][day]'" :value="day.day">
                             
-                            <div class="w-1/4">
-                                <span class="font-medium" x-text="day.name"></span>
-                            </div>
-
-                            <div class="flex items-center">
-                                <label class="inline-flex items-center">
-                                    <input type="hidden" :name="'hours[' + index + '][is_open]'" :value="day.is_open ? 1 : 0">
-                                    <input type="checkbox" 
-                                           x-model="day.is_open"
-                                           class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
-                                    <span class="ml-2 text-sm text-gray-600">Open</span>
-                                </label>
-                            </div>
-
-                            <div class="flex-1 grid grid-cols-2 gap-4" x-show="day.is_open">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700">Opening Time</label>
-                                    <input type="time" 
-                                           x-model="day.open_time"
-                                           :name="'hours[' + index + '][open_time]'"
-                                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                                           :required="day.is_open">
+                            <div class="flex items-center space-x-4 mb-4">
+                                <div class="w-1/4">
+                                    <span class="font-medium" x-text="day.name"></span>
                                 </div>
 
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700">Closing Time</label>
-                                    <input type="time" 
-                                           x-model="day.close_time"
-                                           :name="'hours[' + index + '][close_time]'"
-                                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                                           :required="day.is_open">
+                                <div class="flex items-center">
+                                    <label class="inline-flex items-center">
+                                        <input type="hidden" :name="'hours[' + index + '][is_open]'" :value="day.is_open ? 1 : 0">
+                                        <input type="checkbox" 
+                                               x-model="day.is_open"
+                                               class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+                                        <span class="ml-2 text-sm text-gray-600">Open</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div x-show="day.is_open">
+                                <div class="grid grid-cols-2 gap-4 mb-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700">Opening Time</label>
+                                        <input type="time" 
+                                               x-model="day.open_time"
+                                               :name="'hours[' + index + '][open_time]'"
+                                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                               :required="day.is_open">
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700">Closing Time</label>
+                                        <input type="time" 
+                                               x-model="day.close_time"
+                                               :name="'hours[' + index + '][close_time]'"
+                                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                               :required="day.is_open">
+                                    </div>
+                                </div>
+
+                                <div class="border-t pt-4">
+                                    <label class="inline-flex items-center mb-4">
+                                        <input type="hidden" :name="'hours[' + index + '][has_lunch_break]'" :value="day.has_lunch_break ? 1 : 0">
+                                        <input type="checkbox" 
+                                               x-model="day.has_lunch_break"
+                                               class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+                                        <span class="ml-2 text-sm text-gray-600">Include Lunch Break</span>
+                                    </label>
+
+                                    <div x-show="day.has_lunch_break" class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700">Lunch Break Start</label>
+                                            <input type="time" 
+                                                   x-model="day.lunch_start"
+                                                   :name="'hours[' + index + '][lunch_start]'"
+                                                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                                   :required="day.has_lunch_break">
+                                        </div>
+
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700">Lunch Break End</label>
+                                            <input type="time" 
+                                                   x-model="day.lunch_end"
+                                                   :name="'hours[' + index + '][lunch_end]'"
+                                                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                                   :required="day.has_lunch_break">
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>

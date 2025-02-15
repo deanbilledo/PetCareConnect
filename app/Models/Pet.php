@@ -23,12 +23,16 @@ class Pet extends Model
         'color_markings',
         'coat_type',
         'date_of_birth',
+        'status',
+        'death_date',
+        'death_reason',
         'profile_photo_path',
         'user_id'
     ];
 
     protected $casts = [
         'date_of_birth' => 'date',
+        'death_date' => 'date',
         'weight' => 'decimal:2',
     ];
 
@@ -72,5 +76,19 @@ class Pet extends Model
     public function getSizeCategoryAttribute($value)
     {
         return strtolower($value);
+    }
+
+    public function isDeceased(): bool
+    {
+        return $this->status === 'deceased';
+    }
+
+    public function markAsDeceased($deathDate, $reason = null)
+    {
+        $this->update([
+            'status' => 'deceased',
+            'death_date' => $deathDate,
+            'death_reason' => $reason,
+        ]);
     }
 } 

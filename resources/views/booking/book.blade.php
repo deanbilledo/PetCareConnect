@@ -75,7 +75,8 @@
                                 ->get()
                                 ->groupBy(function($hour) {
                                     return $hour->is_open ? 
-                                        ($hour->open_time . ' - ' . $hour->close_time) : 
+                                        ($hour->open_time . ' - ' . $hour->close_time . 
+                                        ($hour->has_lunch_break ? '|' . $hour->lunch_start . '-' . $hour->lunch_end : '')) : 
                                         'closed';
                                 });
 
@@ -103,10 +104,14 @@
                                     $days[$start] . '-' . $days[$prev];
                                 
                                 foreach ($dayRanges as $range) {
-                                    $times = explode(' - ', $schedule);
+                                    $times = explode('|', $schedule);
+                                    $operatingTime = explode(' - ', $times[0]);
                                     $output[] = $range . ' ' . 
-                                        date('g:i A', strtotime($times[0])) . ' - ' . 
-                                        date('g:i A', strtotime($times[1]));
+                                        date('g:i A', strtotime($operatingTime[0])) . ' - ' . 
+                                        date('g:i A', strtotime($operatingTime[1])) .
+                                        (isset($times[1]) ? ' (Lunch: ' . 
+                                            date('g:i A', strtotime(explode('-', $times[1])[0])) . ' - ' . 
+                                            date('g:i A', strtotime(explode('-', $times[1])[1])) . ')' : '');
                                 }
                             }
                             
@@ -259,7 +264,8 @@
                                 ->get()
                                 ->groupBy(function($hour) {
                                     return $hour->is_open ? 
-                                        ($hour->open_time . ' - ' . $hour->close_time) : 
+                                        ($hour->open_time . ' - ' . $hour->close_time . 
+                                        ($hour->has_lunch_break ? '|' . $hour->lunch_start . '-' . $hour->lunch_end : '')) : 
                                         'closed';
                                 });
 
@@ -287,10 +293,14 @@
                                     $days[$start] . '-' . $days[$prev];
                                 
                                 foreach ($dayRanges as $range) {
-                                    $times = explode(' - ', $schedule);
+                                    $times = explode('|', $schedule);
+                                    $operatingTime = explode(' - ', $times[0]);
                                     $output[] = $range . ' ' . 
-                                        date('g:i A', strtotime($times[0])) . ' - ' . 
-                                        date('g:i A', strtotime($times[1]));
+                                        date('g:i A', strtotime($operatingTime[0])) . ' - ' . 
+                                        date('g:i A', strtotime($operatingTime[1])) .
+                                        (isset($times[1]) ? ' (Lunch: ' . 
+                                            date('g:i A', strtotime(explode('-', $times[1])[0])) . ' - ' . 
+                                            date('g:i A', strtotime(explode('-', $times[1])[1])) . ')' : '');
                                 }
                             }
                             
