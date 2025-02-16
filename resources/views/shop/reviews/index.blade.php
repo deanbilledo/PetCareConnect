@@ -12,21 +12,30 @@
                     </div>
 
                     <!-- Reviews Stats -->
+                    @php
+                        $shopRatings = $shop->ratings;
+                        $avgRating = $shopRatings->avg('rating') ?? 0;
+                        $totalReviews = $shopRatings->count();
+                        $positiveReviews = $shopRatings->where('rating', '>=', 4)->count();
+                        $positivePercentage = $totalReviews > 0 ? ($positiveReviews / $totalReviews * 100) : 0;
+                        $newThisMonth = $shopRatings->where('created_at', '>=', now()->startOfMonth())->count();
+                    @endphp
+                    
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
                         <div class="bg-white p-6 rounded-lg border">
-                            <div class="text-4xl font-bold text-blue-600">4.8</div>
+                            <div class="text-4xl font-bold text-blue-600">{{ number_format($avgRating, 1) }}</div>
                             <div class="text-sm text-gray-600">Average Rating</div>
                         </div>
                         <div class="bg-white p-6 rounded-lg border">
-                            <div class="text-4xl font-bold text-blue-600">127</div>
+                            <div class="text-4xl font-bold text-blue-600">{{ $totalReviews }}</div>
                             <div class="text-sm text-gray-600">Total Reviews</div>
                         </div>
                         <div class="bg-white p-6 rounded-lg border">
-                            <div class="text-4xl font-bold text-green-600">92%</div>
+                            <div class="text-4xl font-bold text-green-600">{{ number_format($positivePercentage, 0) }}%</div>
                             <div class="text-sm text-gray-600">Positive Reviews</div>
                         </div>
                         <div class="bg-white p-6 rounded-lg border">
-                            <div class="text-4xl font-bold text-yellow-600">24</div>
+                            <div class="text-4xl font-bold text-yellow-600">{{ $newThisMonth }}</div>
                             <div class="text-sm text-gray-600">New This Month</div>
                         </div>
                     </div>
@@ -36,45 +45,133 @@
                         <h3 class="text-lg font-semibold mb-4">Rating Distribution</h3>
                         <div class="space-y-2">
                             @foreach(range(5, 1) as $rating)
+                                @php
+                                    $ratingCount = $shopRatings->where('rating', $rating)->count();
+                                    $percentage = $totalReviews > 0 ? ($ratingCount / $totalReviews * 100) : 0;
+                                @endphp
                                 <div class="flex items-center">
-                                    <span class="w-12 text-sm text-gray-600">{{ $rating }} star</span>
-                                    <div class="flex-1 mx-4">
-                                        <div class="w-full bg-gray-200 rounded-full h-2.5">
-                                            <div class="bg-yellow-400 h-2.5 rounded-full" style="width: {{ rand(10, 90) }}%"></div>
-                                        </div>
+                                    <div class="w-16 text-sm text-gray-600">{{ $rating }} stars</div>
+                                    <div class="flex-1 h-4 mx-2 bg-gray-200 rounded-full overflow-hidden">
+                                        <div class="h-full bg-yellow-400 rounded-full" style="width: {{ $percentage }}%"></div>
                                     </div>
-                                    <span class="w-12 text-sm text-gray-600">{{ rand(10, 50) }}</span>
+                                    <div class="w-16 text-sm text-gray-600">{{ $ratingCount }}</div>
                                 </div>
                             @endforeach
                         </div>
                     </div>
 
-                    <!-- Recent Reviews -->
-                    <div>
-                        <h3 class="text-lg font-semibold mb-4">Recent Reviews</h3>
-                        <div class="space-y-4">
-                            @foreach(range(1, 5) as $index)
-                                <div class="border rounded-lg p-4">
-                                    <div class="flex items-center justify-between mb-2">
-                                        <div class="flex items-center">
-                                            <div class="h-10 w-10 rounded-full bg-gray-200"></div>
-                                            <div class="ml-4">
-                                                <div class="font-medium">Customer Name</div>
-                                                <div class="text-sm text-gray-500">{{ now()->subDays(rand(1, 30))->format('M d, Y') }}</div>
+                    <!-- Reviews List -->
+                    <div class="space-y-6">
+                        <h3 class="text-lg font-semibold">Recent Reviews</h3>
+                        @forelse($shop->ratings()->with(['user', 'appointment.employee', 'appointment.services'])->latest()->get() as $rating)
+                            <div class="bg-white rounded-lg shadow p-6">
+                                <!-- User Info and Rating -->
+                                <div class="flex items-start justify-between mb-4">
+                                    <div class="flex items-center">
+                                        <img src="{{ $rating->user->profile_photo_path ? asset('storage/' . $rating->user->profile_photo_path) : asset('images/default-profile.png') }}" 
+                                             alt="Profile" 
+                                             class="w-10 h-10 rounded-full object-cover mr-3">
+                                        <div>
+                                            <div class="font-medium">{{ $rating->user->first_name }} {{ $rating->user->last_name }}</div>
+                                            <div class="flex items-center">
+                                                <div class="text-yellow-400">
+                                                    @for($i = 1; $i <= 5; $i++)
+                                                        @if($i <= $rating->rating)
+                                                            <span class="text-2xl">★</span>
+                                                        @else
+                                                            <span class="text-2xl text-gray-300">★</span>
+                                                        @endif
+                                                    @endfor
+                                                </div>
+                                                <span class="text-gray-500 text-sm ml-2">{{ $rating->created_at->diffForHumans() }}</span>
                                             </div>
                                         </div>
-                                        <div class="flex items-center">
-                                            @foreach(range(1, 5) as $star)
-                                                <svg class="w-5 h-5 {{ $star <= rand(3, 5) ? 'text-yellow-400' : 'text-gray-300' }}" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
-                                                </svg>
+                                    </div>
+                                </div>
+
+                                <!-- Services -->
+                                @if($rating->appointment && $rating->appointment->services->isNotEmpty())
+                                    <div class="mb-4">
+                                        <div class="flex flex-wrap gap-2">
+                                            @foreach($rating->appointment->services as $service)
+                                                <span class="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full">
+                                                    {{ $service->name }}
+                                                </span>
                                             @endforeach
                                         </div>
                                     </div>
-                                    <p class="text-gray-600">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+                                @endif
+
+                                <!-- Review Text -->
+                                @if($rating->review)
+                                    <div class="mb-4">
+                                        <p class="text-gray-700">{{ $rating->review }}</p>
+                                    </div>
+                                @endif
+
+                                <!-- Employee Rating -->
+                                @if($rating->appointment && $rating->appointment->employee && $rating->appointment->employee->staffRatings()->where('appointment_id', $rating->appointment_id)->exists())
+                                    @php
+                                        $staffRating = $rating->appointment->employee->staffRatings()
+                                            ->where('appointment_id', $rating->appointment_id)
+                                            ->first();
+                                    @endphp
+                                    <div class="mt-4 bg-gray-50 rounded-lg p-4">
+                                        <div class="flex items-center mb-2">
+                                            <img src="{{ $rating->appointment->employee->profile_photo_url }}" 
+                                                 alt="{{ $rating->appointment->employee->name }}" 
+                                                 class="w-8 h-8 rounded-full object-cover mr-2">
+                                            <div>
+                                                <p class="font-medium text-sm">{{ $rating->appointment->employee->name }}</p>
+                                                <div class="flex items-center">
+                                                    <div class="text-yellow-400">
+                                                        @for($i = 1; $i <= 5; $i++)
+                                                            @if($i <= $staffRating->rating)
+                                                                <span class="text-lg">★</span>
+                                                            @else
+                                                                <span class="text-lg text-gray-300">★</span>
+                                                            @endif
+                                                        @endfor
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        @if($staffRating->review)
+                                            <p class="text-gray-700 text-sm mt-2">{{ $staffRating->review }}</p>
+                                        @endif
+                                    </div>
+                                @endif
+
+                                <!-- Shop Comment Section -->
+                                <div class="mt-4 border-t pt-4">
+                                    @if($rating->shop_comment)
+                                        <div class="bg-blue-50 rounded-lg p-4 mb-4">
+                                            <p class="text-sm font-medium text-blue-800 mb-1">Shop's Response:</p>
+                                            <p class="text-gray-700">{{ $rating->shop_comment }}</p>
+                                        </div>
+                                    @endif
+
+                                    <form action="{{ route('shop.reviews.comment', $rating->id) }}" method="POST" class="mt-2">
+                                        @csrf
+                                        <div class="flex gap-2">
+                                            <input type="text" 
+                                                   name="shop_comment" 
+                                                   class="flex-1 rounded-lg border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50" 
+                                                   placeholder="Add a response to this review..."
+                                                   value="{{ $rating->shop_comment }}">
+                                            <button type="submit" 
+                                                    class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                                                {{ $rating->shop_comment ? 'Update Response' : 'Add Response' }}
+                                            </button>
+                                        </div>
+                                    </form>
                                 </div>
-                            @endforeach
-                        </div>
+                            </div>
+                        @empty
+                            <div class="text-gray-500 text-center py-8">
+                                No reviews yet.
+                            </div>
+                        @endforelse
                     </div>
                 </div>
             </div>

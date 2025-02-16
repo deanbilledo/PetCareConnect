@@ -12,12 +12,13 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->foreignId('shop_id')->constrained()->onDelete('cascade');
+            $table->foreignId('appointment_id')->constrained()->onDelete('cascade');
             $table->integer('rating');
-            $table->text('comment')->nullable();
+            $table->text('review')->nullable();
             $table->timestamps();
 
-            // Prevent duplicate ratings from the same user for the same shop
-            $table->unique(['user_id', 'shop_id']);
+            // Prevent duplicate ratings from the same user for the same appointment
+            $table->unique(['user_id', 'shop_id', 'appointment_id']);
         });
     }
 

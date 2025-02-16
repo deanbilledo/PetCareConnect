@@ -24,7 +24,6 @@
         }
     </style>
     @yield('styles')
-    @stack('scripts')
 </head>
 <body class="bg-gray-100 font-[Poppins] min-h-screen min-h-screen flex flex-col">
     @php
@@ -75,6 +74,10 @@
             @include('partials.footer')
         @endif
     </div>
+
+    <!-- Scripts -->
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    @stack('scripts')
 
     @if(session()->has('mode_switch'))
     <script>
