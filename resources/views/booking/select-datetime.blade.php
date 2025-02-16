@@ -270,13 +270,24 @@ use Illuminate\Support\Facades\Log;
                                        class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
                                        required>
                             </div>
-                            <div class="ml-3 flex items-center">
-                                <img :src="employee.profile_photo_url" 
-                                     :alt="employee.name"
-                                     class="w-12 h-12 rounded-full object-cover mr-3">
-                                <div class="flex flex-col">
-                                    <span class="text-sm font-medium text-gray-900" x-text="employee.name"></span>
-                                    <span class="text-sm text-gray-500" x-text="employee.position"></span>
+                            <div class="ml-3 flex-1">
+                                <div class="flex items-center">
+                                    <img :src="employee.profile_photo_url" 
+                                         :alt="employee.name"
+                                         class="w-12 h-12 rounded-full object-cover mr-3">
+                                    <div class="flex flex-col flex-1">
+                                        <span class="text-sm font-medium text-gray-900" x-text="employee.name"></span>
+                                        <span class="text-sm text-gray-500" x-text="employee.position"></span>
+                                        <!-- Star Rating Display -->
+                                        <div class="flex items-center mt-1">
+                                            <template x-for="i in 5" :key="i">
+                                                <svg class="w-4 h-4" :class="i <= Math.round(employee.rating) ? 'text-yellow-400' : 'text-gray-300'" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118l-2.8-2.034c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                                </svg>
+                                            </template>
+                                            <span class="ml-1 text-sm text-gray-600" x-text="employee.rating > 0 ? `${employee.rating.toFixed(1)} / 5.0 (${employee.ratings_count} ${employee.ratings_count === 1 ? 'rating' : 'ratings'})` : 'No ratings yet'"></span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </label>
@@ -458,7 +469,8 @@ function timeSlotPicker() {
                         date: this.selectedDate,
                         time: this.selectedTime,
                         duration: {{ $totalDuration }},
-                        service_ids: Object.values(serviceIds)
+                        service_ids: Object.values(serviceIds),
+                        include_ratings: true
                     })
                 });
 
@@ -474,7 +486,11 @@ function timeSlotPicker() {
                 }
 
                 // Filter employees based on their schedules and time off requests
-                this.availableEmployees = data.employees.filter(employee => {
+                this.availableEmployees = data.employees.map(employee => ({
+                    ...employee,
+                    rating: employee.rating || 0,
+                    ratings_count: employee.ratings_count || 0
+                })).filter(employee => {
                     const appointmentStart = new Date(`${this.selectedDate} ${this.selectedTime}`);
                     const appointmentEnd = new Date(appointmentStart.getTime() + ({{ $totalDuration }} * 60000));
                     
@@ -483,40 +499,26 @@ function timeSlotPicker() {
                         const timeOffStart = new Date(timeOff.start_date);
                         const timeOffEnd = new Date(timeOff.end_date);
                         
-                        // Set the time to start of day and end of day for proper comparison
                         timeOffStart.setHours(0, 0, 0, 0);
                         timeOffEnd.setHours(23, 59, 59, 999);
                         
-                        // Check if appointment date falls within time off period
                         const appointmentDate = new Date(this.selectedDate);
                         appointmentDate.setHours(0, 0, 0, 0);
                         
                         return (
                             appointmentDate >= timeOffStart && 
                             appointmentDate <= timeOffEnd &&
-                            timeOff.status !== 'rejected' // Only consider pending or approved time off
+                            timeOff.status !== 'rejected'
                         );
                     });
 
-                    // Check for schedule conflicts
-                    const hasScheduleConflict = employee.schedules?.some(schedule => {
-                        if (schedule.type !== 'time_off') return false;
-                        
-                        const scheduleStart = new Date(schedule.start);
-                        const scheduleEnd = new Date(schedule.end);
-                        
-                        return (
-                            (appointmentStart >= scheduleStart && appointmentStart < scheduleEnd) ||
-                            (appointmentEnd > scheduleStart && appointmentEnd <= scheduleEnd) ||
-                            (appointmentStart <= scheduleStart && appointmentEnd >= scheduleEnd)
-                        );
-                    });
-
-                    // Employee is available if they don't have time off or schedule conflicts
-                    return !hasTimeOff && !hasScheduleConflict;
+                    return !hasTimeOff;
                 });
 
+                console.log('Available employees with ratings:', this.availableEmployees);
+
             } catch (error) {
+                console.error('Error loading employees:', error);
                 this.employeeErrorMessage = error.message || 'Failed to load available employees';
             } finally {
                 this.loadingEmployees = false;

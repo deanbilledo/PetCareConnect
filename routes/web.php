@@ -20,6 +20,7 @@ use App\Http\Controllers\PetController;
 use App\Http\Controllers\ShopEmployeeController;
 use App\Http\Controllers\ShopEmployeeSetupController;
 use App\Http\Controllers\ShopAnalyticsController;
+use App\Http\Controllers\RatingController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -78,6 +79,10 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/appointments', [ShopAppointmentController::class, 'index'])->name('appointments');
             Route::post('/mode/customer', [ShopDashboardController::class, 'switchToCustomerMode'])->name('mode.customer');
             
+            // Reviews routes
+            Route::get('/reviews', [ShopDashboardController::class, 'reviews'])->name('reviews');
+            Route::post('/reviews/{rating}/comment', [ShopDashboardController::class, 'addComment'])->name('reviews.comment');
+            
             // Employee routes with proper prefix and naming
             Route::prefix('employees')->name('employees.')->group(function () {
                 Route::get('/', [ShopEmployeeController::class, 'index'])->name('index');
@@ -98,7 +103,6 @@ Route::middleware(['auth'])->group(function () {
             
             // Static routes
             Route::view('/analytics', 'shop.analytics.index')->name('analytics');
-            Route::view('/reviews', 'shop.reviews.index')->name('reviews');
             Route::view('/settings', 'shop.settings.index')->name('settings');
             Route::post('/gallery', [ShopProfileController::class, 'uploadGalleryPhoto'])->name('gallery.upload');
             Route::delete('/gallery/{photo}', [ShopProfileController::class, 'deleteGalleryPhoto'])->name('gallery.delete');
@@ -169,6 +173,10 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/appointments/{appointment}/add-note', [AppointmentController::class, 'addNote'])->name('appointments.add-note');
         Route::get('/appointments/{appointment}/note', [AppointmentController::class, 'getNote'])->name('appointments.get-note');
         Route::get('/appointments/{appointment}/download-receipt', [AppointmentController::class, 'downloadReceipt'])->name('appointments.download-receipt');
+        
+        // New rating routes
+        Route::get('/appointments/{appointment}/rate', [RatingController::class, 'show'])->name('appointments.rate.show');
+        Route::post('/appointments/{appointment}/rate', [RatingController::class, 'store'])->name('appointments.rate');
     });
 
     // Appointment Reschedule Routes

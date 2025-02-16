@@ -40,10 +40,22 @@ class AppointmentController extends Controller
     {
         // Check if the user owns this appointment
         if ($appointment->user_id !== auth()->id()) {
+            if (request()->wantsJson()) {
+                return response()->json(['error' => 'Unauthorized'], 403);
+            }
             return redirect()->route('appointments.index')
                 ->with('error', 'You are not authorized to view this appointment.');
         }
 
+        // Load the relationships
+        $appointment->load(['shop', 'pet', 'employee']);
+
+        // Return JSON response for AJAX requests
+        if (request()->wantsJson()) {
+            return response()->json($appointment);
+        }
+
+        // Return view for regular requests
         return view('appointments.show', compact('appointment'));
     }
 

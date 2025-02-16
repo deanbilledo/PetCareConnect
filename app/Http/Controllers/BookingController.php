@@ -758,13 +758,13 @@ class BookingController extends Controller
     public function getAvailableEmployees(Request $request, Shop $shop)
     {
         try {
-        $validated = $request->validate([
-            'date' => 'required|date',
-            'time' => 'required',
-            'duration' => 'required|integer|min:15',
-            'service_ids' => 'required|array',
-            'service_ids.*' => 'exists:services,id'
-        ]);
+            $validated = $request->validate([
+                'date' => 'required|date',
+                'time' => 'required',
+                'duration' => 'required|integer|min:15',
+                'service_ids' => 'required|array',
+                'service_ids.*' => 'exists:services,id'
+            ]);
 
             // Get all employees who can perform the requested services
             $employees = $shop->employees()
@@ -779,10 +779,18 @@ class BookingController extends Controller
                           ->whereDate('end_date', '>=', $validated['date'])
                           ->whereIn('status', ['pending', 'approved']);
                 }])
+                ->with(['staffRatings' => function($query) {
+                    $query->select('employee_id', 'rating');
+                }])
                 ->get()
                 ->each(function ($employee) {
                     // Append the profile_photo_url attribute
                     $employee->append('profile_photo_url');
+                    // Calculate average rating
+                    $employee->rating = $employee->staffRatings->avg('rating') ?? 0;
+                    $employee->ratings_count = $employee->staffRatings->count();
+                    // Remove the staffRatings relationship from the response
+                    unset($employee->staffRatings);
                 });
 
             return response()->json([

@@ -519,15 +519,15 @@
                                 @enderror
                             </div>
                             <div class="mb-4">
-                                <label for="comment" class="block text-sm font-medium text-gray-700 mb-2">Your Review</label>
-                                <textarea id="comment" 
-                                          name="comment" 
+                                <label for="review" class="block text-sm font-medium text-gray-700 mb-2">Your Review</label>
+                                <textarea id="review" 
+                                          name="review" 
                                           rows="4" 
                                           required
                                           minlength="10"
                                           placeholder="Tell us about your experience (minimum 10 characters)"
-                                          class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 @error('comment') border-red-500 @enderror">{{ old('comment') }}</textarea>
-                                @error('comment')
+                                          class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 @error('review') border-red-500 @enderror">{{ old('review') }}</textarea>
+                                @error('review')
                                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                 @enderror
                             </div>
@@ -561,9 +561,10 @@
 
                 <!-- Existing Reviews -->
                 <div class="space-y-4">
-                    @forelse($shop->ratings()->with('user')->latest()->get() as $rating)
-                        <div class="border-b pb-4">
-                            <div class="flex items-start justify-between mb-2">
+                    @forelse($shop->ratings()->with(['user', 'appointment.employee', 'appointment.services'])->latest()->get() as $rating)
+                        <div class="bg-white rounded-lg shadow-lg p-6">
+                            <!-- User Info and Shop Rating -->
+                            <div class="flex items-start justify-between mb-4">
                                 <div class="flex items-center">
                                     <img src="{{ $rating->user->profile_photo_path ? asset('storage/' . $rating->user->profile_photo_path) : asset('images/default-profile.png') }}" 
                                          alt="Profile" 
@@ -585,7 +586,75 @@
                                     </div>
                                 </div>
                             </div>
-                            <p class="text-gray-700">{{ $rating->comment }}</p>
+
+                            <!-- Services -->
+                            @if($rating->appointment && $rating->appointment->services->isNotEmpty())
+                                <div class="mb-3 bg-gray-50 rounded-lg p-3">
+                                    <p class="text-sm text-gray-600 mb-2">Services:</p>
+                                    <div class="flex flex-wrap gap-2">
+                                        @foreach($rating->appointment->services as $service)
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                {{ $service->name }}
+                                            </span>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endif
+
+                            <!-- Shop Review -->
+                            <div class="mb-4">
+                                <p class="text-gray-700">{{ $rating->review }}</p>
+                            </div>
+
+                            <!-- Shop Response -->
+                            @if($rating->shop_comment)
+                                <div class="mt-4 bg-blue-50 rounded-lg p-4">
+                                    <div class="flex items-start space-x-2">
+                                        <div class="flex-shrink-0">
+                                            <img src="{{ $shop->image ? asset('storage/' . $shop->image) : asset('images/default-shop.png') }}"
+                                                 alt="{{ $shop->name }}"
+                                                 class="w-8 h-8 rounded-full object-cover">
+                                        </div>
+                                        <div class="flex-1">
+                                            <p class="text-sm font-medium text-blue-800">Shop's Response:</p>
+                                            <p class="text-sm text-gray-700 mt-1">{{ $rating->shop_comment }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
+
+                            <!-- Employee Rating -->
+                            @if($rating->appointment && $rating->appointment->employee && $rating->appointment->employee->staffRatings()->where('appointment_id', $rating->appointment_id)->exists())
+                                @php
+                                    $staffRating = $rating->appointment->employee->staffRatings()
+                                        ->where('appointment_id', $rating->appointment_id)
+                                        ->first();
+                                @endphp
+                                <div class="mt-4 bg-gray-50 rounded-lg p-4">
+                                    <div class="flex items-center mb-2">
+                                        <img src="{{ $rating->appointment->employee->profile_photo_url }}" 
+                                             alt="{{ $rating->appointment->employee->name }}" 
+                                             class="w-8 h-8 rounded-full object-cover mr-2">
+                                        <div>
+                                            <p class="font-medium text-sm">{{ $rating->appointment->employee->name }}</p>
+                                            <div class="flex items-center">
+                                                <div class="text-yellow-400">
+                                                    @for($i = 1; $i <= 5; $i++)
+                                                        @if($i <= $staffRating->rating)
+                                                            <span class="text-lg">★</span>
+                                                        @else
+                                                            <span class="text-lg text-gray-300">★</span>
+                                                        @endif
+                                                    @endfor
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    @if($staffRating->review)
+                                        <p class="text-sm text-gray-600 mt-2">{{ $staffRating->review }}</p>
+                                    @endif
+                                </div>
+                            @endif
                         </div>
                     @empty
                         <div class="text-center text-gray-500 py-8">

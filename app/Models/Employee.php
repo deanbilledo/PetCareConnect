@@ -60,4 +60,9 @@ class Employee extends Model
     {
         return $this->hasMany(TimeOffRequest::class);
     }
+
+    public function staffRatings()
+    {
+        return $this->hasMany(StaffRating::class);
+    }
 }

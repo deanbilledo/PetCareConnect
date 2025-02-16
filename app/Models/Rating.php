@@ -12,8 +12,10 @@ class Rating extends Model
     protected $fillable = [
         'user_id',
         'shop_id',
+        'appointment_id',
         'rating',
-        'comment'
+        'review',
+        'shop_comment'
     ];
 
     protected $with = ['user'];
@@ -34,5 +36,10 @@ class Rating extends Model
     public function shop()
     {
         return $this->belongsTo(Shop::class);
+    }
+
+    public function appointment()
+    {
+        return $this->belongsTo(Appointment::class);
     }
 } 

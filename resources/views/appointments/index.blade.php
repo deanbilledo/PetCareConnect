@@ -6,146 +6,19 @@ use Illuminate\Support\Str;
 
 @section('content')
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div x-data="{
-        showCancelModal: false,
-        appointmentToCancel: null,
-        currentFilter: 'all',
-        dateFilter: '',
-        showFilters: false,
-        showNoteModal: false,
-        currentNote: '',
-        noteType: '',
-        noteImage: null,
-        currentAppointment: null,
-        
-        toggleFilters() {
-            this.showFilters = !this.showFilters;
-        },
-        
-        setFilter(filter) {
-            this.currentFilter = filter;
-        },
-        
-        clearFilters() {
-            this.currentFilter = 'all';
-            this.dateFilter = '';
-        },
-        
-        viewAppointmentDetails(id, event) {
-            if (event.target.tagName === 'BUTTON' || event.target.closest('button')) {
-                return;
-            }
-            window.location.href = `/appointments/${id}`;
-        },
-        
-        async handleCancel() {
-            const reason = this.$refs.cancelReason.value;
-            try {
-                const token = document.querySelector('meta[name=csrf-token]').content;
-                
-                // Get the appointment details
-                const appointmentResponse = await fetch(`/appointments/${this.appointmentToCancel}`);
-                const appointmentData = await appointmentResponse.json();
-                
-                // Check if appointment is more than 24 hours away
-                const appointmentDate = new Date(appointmentData.appointment_date);
-                const now = new Date();
-                const hoursDifference = (appointmentDate - now) / (1000 * 60 * 60);
-                
-                // If more than 24 hours away, proceed with automatic cancellation
-                if (hoursDifference > 24) {
-                    const response = await fetch(`/appointments/${this.appointmentToCancel}/cancel`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': token,
-                            'Accept': 'application/json',
-                            'X-Requested-With': 'XMLHttpRequest'
-                        },
-                        credentials: 'same-origin',
-                        body: JSON.stringify({
-                            _token: token,
-                            reason: reason,
-                            auto_approved: true
-                        })
-                    });
-
-                    const data = await response.json();
-                    
-                    if (data.success) {
-                        window.location.reload();
-                    } else {
-                        alert(data.error || 'Failed to cancel appointment');
-                    }
+    <div 
+        x-data="appointmentsData()"
+        x-init="
+            console.log('Alpine component initialized');
+            $watch('showRatingModal', value => {
+                console.log('Modal state changed:', value);
+                if (value) {
+                    document.body.style.overflow = 'hidden';
                 } else {
-                    // Less than 24 hours away - create a cancellation request
-                    const response = await fetch(`/appointments/${this.appointmentToCancel}/request-cancellation`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': token,
-                            'Accept': 'application/json',
-                            'X-Requested-With': 'XMLHttpRequest'
-                        },
-                        credentials: 'same-origin',
-                        body: JSON.stringify({
-                            _token: token,
-                            reason: reason,
-                            is_last_minute: true
-                        })
-                    });
-
-                    const data = await response.json();
-                    
-                    if (data.success) {
-                        alert('Your cancellation request has been submitted and is pending approval from the shop.');
-                        window.location.reload();
-                    } else {
-                        alert(data.error || 'Failed to submit cancellation request');
-                    }
+                    document.body.style.overflow = 'auto';
+                    resetRatingForm();
                 }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('An error occurred while processing the cancellation');
-            }
-            
-            this.showCancelModal = false;
-        },
-
-        async viewNote(appointmentId, shopType) {
-            try {
-                const response = await fetch(`/appointments/${appointmentId}/note`);
-                const data = await response.json();
-                
-                if (data.success) {
-                    this.noteType = shopType === 'grooming' ? 'Groomer\'s Note' : 'Doctor\'s Note';
-                    this.currentNote = data.note;
-                    this.noteImage = data.image_url;
-                    this.currentAppointment = data.appointment;
-                    this.showNoteModal = true;
-                } else {
-                    console.error('Failed to fetch note:', data.error);
-                }
-            } catch (error) {
-                console.error('Error fetching note:', error);
-            }
-        },
-
-        isAppointmentVisible(status, date) {
-            if (this.currentFilter !== 'all') {
-                if (this.currentFilter === 'upcoming' && status !== 'pending') return false;
-                if (this.currentFilter === 'completed' && status !== 'completed') return false;
-                if (this.currentFilter === 'cancelled' && status !== 'cancelled') return false;
-            }
-            
-            if (this.dateFilter) {
-                const appointmentDate = new Date(date).toISOString().split('T')[0];
-                if (appointmentDate !== this.dateFilter) return false;
-            }
-            
-            return true;
-        }
-    }" x-cloak>
+            });">
         <div class="flex justify-between items-center mb-6">
             <h1 class="text-2xl font-bold text-gray-900">My Appointments</h1>
             
@@ -449,6 +322,17 @@ use Illuminate\Support\Str;
                                                             <span class="sr-only">{{ $appointment->shop->type === 'grooming' ? 'View Groomer\'s Note' : 'View Doctor\'s Note' }}</span>
                                                         </button>
                                                     @endif
+                                                    @if($appointment->status === 'completed' && !$appointment->has_rating)
+                                                        <a href="{{ route('appointments.rate.show', $appointment->id) }}"
+                                                           onclick="event.stopPropagation();"
+                                                           class="text-yellow-600 hover:text-yellow-800 transition-colors inline-flex items-center gap-1"
+                                                           title="Rate this appointment">
+                                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
+                                                            </svg>
+                                                            <span class="text-sm">Rate Service</span>
+                                                        </a>
+                                                    @endif
                                                 </div>
                                             </td>
                                         </tr>
@@ -543,7 +427,7 @@ use Illuminate\Support\Str;
                                     <div class="flex items-center p-4 bg-gray-50 rounded-lg">
                                     <div class="flex-shrink-0">
                                             <img class="h-16 w-16 rounded-full object-cover border-2 border-white shadow-sm"
-                                                 :src="currentAppointment.employee?.profile_photo_url || '/images/default-avatar.png'"
+                                                 :src="currentAppointment.employee?.profile_photo_url || '{{ asset('images/default-avatar.png') }}'"
                                                  :alt="currentAppointment.employee?.name">
                                             </div>
                                             <div class="ml-4 flex-1">
@@ -609,13 +493,225 @@ use Illuminate\Support\Str;
 
 @push('scripts')
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const token = document.querySelector('meta[name=csrf-token]');
-    if (!token) {
-        console.error('CSRF token not found');
-    } else {
-        console.log('CSRF token is present');
-    }
-});
+function appointmentsData() {
+    return {
+        showCancelModal: false,
+        appointmentToCancel: null,
+        currentFilter: 'all',
+        dateFilter: '',
+        showFilters: false,
+        showNoteModal: false,
+        currentNote: '',
+        noteType: '',
+        noteImage: null,
+        currentAppointment: null,
+        showRatingModal: false,
+        appointmentToRate: null,
+        shopRating: 0,
+        staffRating: 0,
+        shopReview: '',
+        staffReview: '',
+        ratingError: '',
+        
+        async initializeRatingModal(appointmentId) {
+            console.log('Initializing rating modal for appointment:', appointmentId);
+            
+            // Reset the form first
+            this.resetRatingForm();
+            
+            // Set the appointment ID and show modal immediately
+            this.appointmentToRate = appointmentId;
+            this.showRatingModal = true;
+            
+            try {
+                const response = await fetch(`/appointments/${appointmentId}`, {
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log('Appointment data loaded:', data);
+                
+            } catch (error) {
+                console.error('Error initializing rating modal:', error);
+                alert('Unable to load appointment data. Please try again later.');
+                this.showRatingModal = false;
+            }
+        },
+        isAppointmentVisible(status, date) {
+            if (this.currentFilter !== 'all') {
+                if (this.currentFilter === 'upcoming' && status !== 'pending') return false;
+                if (this.currentFilter === 'completed' && status !== 'completed') return false;
+                if (this.currentFilter === 'cancelled' && status !== 'cancelled') return false;
+            }
+            if (this.dateFilter) {
+                const appointmentDate = new Date(date).toISOString().split('T')[0];
+                if (appointmentDate !== this.dateFilter) return false;
+            }
+            return true;
+        },
+        toggleFilters() {
+            this.showFilters = !this.showFilters;
+        },
+        setFilter(filter) {
+            this.currentFilter = filter;
+        },
+        clearFilters() {
+            this.currentFilter = 'all';
+            this.dateFilter = '';
+        },
+        viewAppointmentDetails(id, event) {
+            if (event.target.tagName === 'BUTTON' || event.target.closest('button')) {
+                return;
+            }
+            window.location.href = `/appointments/${id}`;
+        },
+        async handleCancel() {
+            const reason = this.$refs.cancelReason.value;
+            try {
+                const token = document.querySelector('meta[name=csrf-token]').content;
+                
+                const appointmentResponse = await fetch(`/appointments/${this.appointmentToCancel}`);
+                const appointmentData = await appointmentResponse.json();
+                
+                const appointmentDate = new Date(appointmentData.appointment_date);
+                const now = new Date();
+                const hoursDifference = (appointmentDate - now) / (1000 * 60 * 60);
+                
+                if (hoursDifference > 24) {
+                    const response = await fetch(`/appointments/${this.appointmentToCancel}/cancel`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': token,
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        credentials: 'same-origin',
+                        body: JSON.stringify({
+                            _token: token,
+                            reason: reason,
+                            auto_approved: true
+                        })
+                    });
+
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        window.location.reload();
+                    } else {
+                        alert(data.error || 'Failed to cancel appointment');
+                    }
+                } else {
+                    const response = await fetch(`/appointments/${this.appointmentToCancel}/request-cancellation`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': token,
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        credentials: 'same-origin',
+                        body: JSON.stringify({
+                            _token: token,
+                            reason: reason,
+                            is_last_minute: true
+                        })
+                    });
+
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        alert('Your cancellation request has been submitted and is pending approval from the shop.');
+                        window.location.reload();
+                    } else {
+                        alert(data.error || 'Failed to submit cancellation request');
+                    }
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while processing the cancellation');
+            }
+            
+            this.showCancelModal = false;
+        },
+        async viewNote(appointmentId, shopType) {
+            try {
+                const response = await fetch(`/appointments/${appointmentId}/note`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    this.noteType = shopType === 'grooming' ? 'Groomer\'s Note' : 'Doctor\'s Note';
+                    this.currentNote = data.note;
+                    this.noteImage = data.image_url;
+                    this.currentAppointment = data.appointment;
+                    this.showNoteModal = true;
+                } else {
+                    console.error('Failed to fetch note:', data.error);
+                }
+            } catch (error) {
+                console.error('Error fetching note:', error);
+            }
+        },
+        resetRatingForm() {
+            this.shopRating = 0;
+            this.staffRating = 0;
+            this.shopReview = '';
+            this.staffReview = '';
+            this.ratingError = '';
+            this.appointmentToRate = null;
+        },
+        async submitRating() {
+            console.log('Submitting rating:', {
+                appointmentId: this.appointmentToRate,
+                shopRating: this.shopRating,
+                staffRating: this.staffRating,
+                shopReview: this.shopReview,
+                staffReview: this.staffReview
+            });
+
+            if (!this.shopRating || !this.staffRating) {
+                this.ratingError = 'Please provide both shop and staff ratings';
+                return;
+            }
+
+            try {
+                const response = await fetch(`/appointments/${this.appointmentToRate}/rate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        shop_rating: this.shopRating,
+                        shop_review: this.shopReview,
+                        staff_rating: this.staffRating,
+                        staff_review: this.staffReview
+                    })
+                });
+
+                const data = await response.json();
+                console.log('Rating submission response:', data);
+
+                if (data.success) {
+                    this.showRatingModal = false;
+                    window.location.reload();
+                } else {
+                    this.ratingError = data.error || 'Failed to submit rating';
+                }
+            } catch (error) {
+                console.error('Error submitting rating:', error);
+                this.ratingError = 'An error occurred while submitting the rating';
+            }
+        }
+    };
+}
 </script>
 @endpush 
