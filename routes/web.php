@@ -100,6 +100,7 @@ Route::middleware(['auth'])->group(function () {
             Route::put('/services/{service}', [ShopServicesController::class, 'update'])->name('services.update');
             Route::delete('/services/{service}', [ShopServicesController::class, 'destroy'])->name('services.destroy');
             Route::put('/services/{service}/status', [ShopServicesController::class, 'updateStatus'])->name('services.update-status');
+            Route::post('/services/{service}/discounts', [ShopServicesController::class, 'addDiscount'])->name('services.add-discount');
             
             // Static routes
             Route::view('/analytics', 'shop.analytics.index')->name('analytics');
@@ -157,6 +158,8 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/acknowledgement', [BookingController::class, 'downloadAcknowledgement'])->name('acknowledgement.download');
             Route::post('/available-employees', [BookingController::class, 'getAvailableEmployees'])
                 ->name('available-employees');
+            Route::post('/validate-discount/{code}', [BookingController::class, 'validateDiscount'])
+                ->name('validate-discount');
         });
     });
 

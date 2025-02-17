@@ -8,16 +8,11 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('time_off_requests', function (Blueprint $table) {
-            $table->foreignId('shop_id')->after('id')->constrained()->onDelete('cascade');
-        });
+        // No-op: shop_id is now added in the create_time_off_requests_table migration
     }
 
     public function down(): void
     {
-        Schema::table('time_off_requests', function (Blueprint $table) {
-            $table->dropForeign(['shop_id']);
-            $table->dropColumn('shop_id');
-        });
+        // No-op: shop_id is now added in the create_time_off_requests_table migration
     }
 }; 

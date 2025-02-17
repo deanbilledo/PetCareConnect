@@ -268,4 +268,57 @@ class ShopServicesController extends Controller
             ], 500);
         }
     }
+
+    public function addDiscount(Request $request, Service $service)
+    {
+        try {
+            // Check if the service belongs to the authenticated user's shop
+            if ($service->shop_id !== auth()->user()->shop->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized to add discount to this service'
+                ], 403);
+            }
+
+            $validated = $request->validate([
+                'discount_type' => 'required|in:percentage,fixed',
+                'discount_value' => 'required|numeric|min:0',
+                'voucher_code' => 'nullable|string|unique:service_discounts,voucher_code',
+                'valid_from' => 'required|date',
+                'valid_until' => 'required|date|after:valid_from',
+                'description' => 'nullable|string'
+            ]);
+
+            // Additional validation for percentage discount
+            if ($validated['discount_type'] === 'percentage' && $validated['discount_value'] > 100) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Percentage discount cannot be more than 100%'
+                ], 422);
+            }
+
+            // Create the discount
+            $discount = $service->discounts()->create([
+                'discount_type' => $validated['discount_type'],
+                'discount_value' => $validated['discount_value'],
+                'voucher_code' => $validated['voucher_code'],
+                'valid_from' => $validated['valid_from'],
+                'valid_until' => $validated['valid_until'],
+                'description' => $validated['description'],
+                'is_active' => true
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Discount added successfully',
+                'discount' => $discount
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error adding discount: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to add discount: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 } 
