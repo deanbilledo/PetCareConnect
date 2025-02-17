@@ -25,6 +25,7 @@ class User extends Authenticatable
         'address',
         'profile_photo_path',
         'role',
+        'status'
     ];
 
     /**
@@ -85,6 +86,26 @@ class User extends Authenticatable
         return $this->hasOne(Shop::class);
     }
 
+    public function employeeShop()
+    {
+        return $this->belongsTo(Shop::class, 'shop_id');
+    }
+
+    public function isShopOwner()
+    {
+        return $this->role === 'shop_owner';
+    }
+
+    public function isStaff()
+    {
+        return $this->role === 'staff';
+    }
+
+    public function isCustomer()
+    {
+        return $this->role === 'customer';
+    }
+
     public function appointments()
     {
         return $this->hasMany(Appointment::class);
@@ -103,5 +124,10 @@ class User extends Authenticatable
     public function isAdmin()
     {
         return $this->role === 'admin';
+    }
+
+    public function ratings()
+    {
+        return $this->hasMany(Rating::class);
     }
 }

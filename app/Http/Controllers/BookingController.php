@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use App\Models\Service;
 
 class BookingController extends Controller
 {
@@ -402,7 +403,10 @@ class BookingController extends Controller
                 'services.*' => 'exists:services,id',
                 'appointment_date' => 'required|date|after:today',
                 'appointment_time' => 'required',
-                'notes' => 'nullable|string|max:500'
+                'notes' => 'nullable|string|max:500',
+                'voucher_code' => 'nullable|string',
+                'discount_amount' => 'nullable|numeric',
+                'final_total' => 'nullable|numeric'
             ]);
 
             $appointmentDateTime = Carbon::parse($request->appointment_date . ' ' . $request->appointment_time);
@@ -420,7 +424,7 @@ class BookingController extends Controller
 
             // Get booking data from session with default values
             $bookingData = session('booking', []);
-            $bookingData['appointment_type'] = $bookingData['appointment_type'] ?? 'single'; // Ensure appointment_type has a default
+            $bookingData['appointment_type'] = $bookingData['appointment_type'] ?? 'single';
             
             Log::info('Session booking data:', [
                 'booking_data' => $bookingData,
@@ -464,16 +468,12 @@ class BookingController extends Controller
                     ]);
 
                     // Calculate price based on pet size
-                    $price = $service->base_price;
-                    if (!empty($service->variable_pricing)) {
-                        $variablePricing = is_string($service->variable_pricing) ? 
-                            json_decode($service->variable_pricing, true) : 
-                            $service->variable_pricing;
-                        
-                        $sizePrice = collect($variablePricing)->firstWhere('size', $pet->size_category);
-                        if ($sizePrice && isset($sizePrice['price'])) {
-                            $price = $sizePrice['price'];
-                        }
+                    $price = $service->getPriceForSize($pet->size_category);
+
+                    // Apply discount if voucher code is present
+                    if ($request->filled('voucher_code')) {
+                        $discountedPrice = $service->getDiscountedPrice($price, $request->voucher_code);
+                        $price = $discountedPrice;
                     }
 
                     $total += $price;
@@ -485,6 +485,10 @@ class BookingController extends Controller
                         'employee_id' => $employee->id,
                         'service_type' => $service->name,
                         'service_price' => $price,
+                        'original_price' => $service->getPriceForSize($pet->size_category),
+                        'voucher_code' => $request->voucher_code,
+                        'discount_amount' => $request->filled('voucher_code') ? 
+                            ($service->getPriceForSize($pet->size_category) - $price) : null,
                         'appointment_date' => $currentDateTime,
                         'notes' => $request->notes,
                         'status' => 'pending'
@@ -513,6 +517,9 @@ class BookingController extends Controller
                     'time' => $appointmentDateTime->format('g:i A'),
                     'services' => $servicesBreakdown,
                     'total_amount' => $total,
+                    'original_total' => array_sum(array_column($servicesBreakdown, 'price')),
+                    'discount_amount' => $request->discount_amount,
+                    'voucher_code' => $request->voucher_code,
                     'appointment_type' => $bookingData['appointment_type'] ?? 'single',
                     'employee' => [
                         'name' => $employee->name,
@@ -803,6 +810,110 @@ class BookingController extends Controller
             return response()->json([
                 'success' => false,
                 'error' => 'Failed to get available employees'
+            ], 500);
+        }
+    }
+
+    public function validateDiscount(Request $request, Shop $shop, $code)
+    {
+        try {
+            $validated = $request->validate([
+                'services' => 'required|array',
+                'total' => 'required|numeric|min:0'
+            ]);
+
+            // Debug log the incoming request
+            Log::info('Validating discount code:', [
+                'code' => $code,
+                'shop_id' => $shop->id,
+                'services' => $validated['services'],
+                'total' => $validated['total']
+            ]);
+
+            $services = Service::whereIn('id', array_values($validated['services']))->get();
+            
+            // Debug log the services found
+            Log::info('Services found:', [
+                'service_count' => $services->count(),
+                'service_ids' => $services->pluck('id')->toArray()
+            ]);
+
+            $total = $validated['total'];
+            $discountAmount = 0;
+            $discountFound = false;
+
+            foreach ($services as $service) {
+                $activeDiscounts = $service->getActiveDiscounts();
+                
+                // Debug log active discounts for each service
+                Log::info("Active discounts for service {$service->id}:", [
+                    'service_name' => $service->name,
+                    'active_discounts' => $activeDiscounts->map(function($discount) {
+                        return [
+                            'id' => $discount->id,
+                            'voucher_code' => $discount->voucher_code,
+                            'discount_type' => $discount->discount_type,
+                            'discount_value' => $discount->discount_value,
+                            'valid_from' => $discount->valid_from,
+                            'valid_until' => $discount->valid_until,
+                            'is_active' => $discount->is_active
+                        ];
+                    })->toArray()
+                ]);
+                
+                // Case-insensitive voucher code comparison
+                $voucherDiscount = $activeDiscounts->first(function($discount) use ($code) {
+                    return strcasecmp($discount->voucher_code, $code) === 0;
+                });
+                
+                if ($voucherDiscount) {
+                    $discountFound = true;
+                    // Calculate service-specific discount
+                    $servicePrice = $service->getPriceForSize($request->input('pet_size', 'medium'));
+                    $discountedPrice = $voucherDiscount->calculateDiscountedPrice($servicePrice);
+                    $discountAmount += ($servicePrice - $discountedPrice);
+                    
+                    // Debug log discount calculation
+                    Log::info("Discount calculation for service {$service->id}:", [
+                        'service_price' => $servicePrice,
+                        'discounted_price' => $discountedPrice,
+                        'discount_amount' => $servicePrice - $discountedPrice
+                    ]);
+                }
+            }
+
+            if ($discountAmount > 0) {
+                Log::info('Discount applied successfully:', [
+                    'code' => $code,
+                    'total_discount' => $discountAmount
+                ]);
+                
+                return response()->json([
+                    'success' => true,
+                    'discount_amount' => $discountAmount,
+                    'message' => 'Discount applied successfully'
+                ]);
+            }
+
+            Log::warning('No valid discount found:', [
+                'code' => $code,
+                'discount_found' => $discountFound
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'No valid discount found for this code'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error validating discount: ' . $e->getMessage(), [
+                'code' => $code,
+                'exception' => $e,
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while validating the discount'
             ], 500);
         }
     }

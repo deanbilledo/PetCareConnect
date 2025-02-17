@@ -10,6 +10,7 @@ return new class extends Migration
     {
         Schema::create('time_off_requests', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('shop_id')->constrained()->onDelete('cascade');
             $table->foreignId('employee_id')->constrained()->onDelete('cascade');
             $table->date('start_date');
             $table->date('end_date');

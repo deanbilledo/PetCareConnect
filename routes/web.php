@@ -21,6 +21,8 @@ use App\Http\Controllers\ShopEmployeeController;
 use App\Http\Controllers\ShopEmployeeSetupController;
 use App\Http\Controllers\ShopAnalyticsController;
 use App\Http\Controllers\RatingController;
+use App\Http\Controllers\AdminDashboardController;
+use App\Http\Controllers\AdminServicesController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -68,6 +70,9 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/setup/services', [ShopSetupController::class, 'storeServices'])->name('setup.services.store');
             Route::get('/setup/hours', [ShopSetupController::class, 'hours'])->name('setup.hours');
             Route::post('/setup/hours', [ShopSetupController::class, 'storeHours'])->name('setup.hours.store');
+            Route::get('/subscriptions', [App\Http\Controllers\Shop\SubscriptionController::class, 'index'])->name('subscriptions');
+            Route::post('/subscriptions/verify', [App\Http\Controllers\Shop\SubscriptionController::class, 'verifyPayment'])->name('subscriptions.verify');
+            Route::post('/subscriptions/cancel', [App\Http\Controllers\Shop\SubscriptionController::class, 'cancel'])->name('subscriptions.cancel');
         });
 
         // Shop management routes (requires shop)
@@ -100,6 +105,7 @@ Route::middleware(['auth'])->group(function () {
             Route::put('/services/{service}', [ShopServicesController::class, 'update'])->name('services.update');
             Route::delete('/services/{service}', [ShopServicesController::class, 'destroy'])->name('services.destroy');
             Route::put('/services/{service}/status', [ShopServicesController::class, 'updateStatus'])->name('services.update-status');
+            Route::post('/services/{service}/discounts', [ShopServicesController::class, 'addDiscount'])->name('services.add-discount');
             
             // Static routes
             Route::view('/analytics', 'shop.analytics.index')->name('analytics');
@@ -157,6 +163,8 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/acknowledgement', [BookingController::class, 'downloadAcknowledgement'])->name('acknowledgement.download');
             Route::post('/available-employees', [BookingController::class, 'getAvailableEmployees'])
                 ->name('available-employees');
+            Route::post('/validate-discount/{code}', [BookingController::class, 'validateDiscount'])
+                ->name('validate-discount');
         });
     });
 
@@ -197,16 +205,42 @@ Route::middleware(['auth'])->group(function () {
 
 // Admin routes
 Route::middleware(['auth', IsAdmin::class])->prefix('admin')->name('admin.')->group(function () {
-    Route::get('/dashboard', [AdminController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
+    
+    // Shop management routes
+    Route::get('/shops/{shop}/edit', [AdminDashboardController::class, 'editShop'])->name('shops.edit');
+    Route::put('/shops/{shop}', [AdminDashboardController::class, 'updateShop'])->name('shops.update');
+    Route::post('/shops/{shop}/toggle-status', [AdminDashboardController::class, 'toggleShopStatus'])->name('shops.toggle-status');
+    
+    // User management routes
+    Route::get('/users', [AdminController::class, 'users'])->name('users');
+    Route::get('/users/{user}/edit', [AdminController::class, 'editUser'])->name('users.edit');
+    Route::put('/users/{user}', [AdminController::class, 'updateUser'])->name('users.update');
+    Route::get('/users/{user}/activity', [AdminController::class, 'getUserActivity'])->name('users.activity');
+    Route::get('/users/{user}/complaints', [AdminController::class, 'getUserComplaints'])->name('users.complaints');
+    Route::post('/users/{user}/toggle-status', [AdminController::class, 'toggleUserStatus'])->name('users.toggle-status');
+
+    // Services management routes
+    Route::get('/services', [AdminServicesController::class, 'index'])->name('services');
+    Route::get('/services/{service}', [AdminServicesController::class, 'show'])->name('services.show');
+    Route::post('/services/{service}/status', [AdminServicesController::class, 'updateStatus'])->name('services.update-status');
+    Route::delete('/services/{service}', [AdminServicesController::class, 'destroy'])->name('services.destroy');
+
+    // Other admin routes
     Route::get('/shops', [AdminController::class, 'shops'])->name('shops');
     Route::post('/shops/{shop}/approve', [AdminController::class, 'approveShop'])->name('shops.approve');
     Route::post('/shops/{shop}/reject', [AdminController::class, 'rejectShop'])->name('shops.reject');
-    Route::post('/shops/{shop}/toggle-status', [AdminController::class, 'toggleShopStatus'])->name('shops.toggle-status');
     Route::get('/shops/{shop}/analytics', [AdminController::class, 'getShopAnalytics'])->name('shops.analytics');
+    Route::get('/shops/{shop}/details', [AdminController::class, 'getShopDetails'])->name('shops.details');
+    Route::get('/shops/{shop}/registration-details', [AdminController::class, 'getRegistrationDetails'])->name('shops.registration-details');
     
-    Route::get('/users', [AdminController::class, 'users'])->name('users');
-    Route::get('/services', [AdminController::class, 'services'])->name('services');
-    Route::get('/payments', [AdminController::class, 'payments'])->name('payments');
+    // Payment management routes
+    Route::get('/payments', [App\Http\Controllers\Admin\PaymentController::class, 'index'])->name('payments');
+    Route::post('/payments/{subscription}/verify', [App\Http\Controllers\Admin\PaymentController::class, 'verifyPayment'])->name('payments.verify');
+    Route::post('/payments/{subscription}/reject', [App\Http\Controllers\Admin\PaymentController::class, 'rejectPayment'])->name('payments.reject');
+    Route::post('/payments/update-rate', [App\Http\Controllers\Admin\PaymentController::class, 'updateSubscriptionRate'])->name('payments.update-rate');
+    Route::get('/payments/{subscription}/details', [App\Http\Controllers\Admin\PaymentController::class, 'getPaymentDetails'])->name('payments.details');
+    
     Route::get('/reports', [AdminController::class, 'reports'])->name('reports');
     Route::get('/profile', [AdminController::class, 'profile'])->name('profile');
     Route::get('/support', [AdminController::class, 'support'])->name('support');

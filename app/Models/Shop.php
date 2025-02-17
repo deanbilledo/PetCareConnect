@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Shop extends Model
 {
@@ -133,5 +134,13 @@ class Shop extends Model
     public function timeOffRequests()
     {
         return $this->hasMany(TimeOffRequest::class);
+    }
+
+    /**
+     * Get the subscriptions for the shop.
+     */
+    public function subscriptions(): HasMany
+    {
+        return $this->hasMany(Subscription::class);
     }
 } 

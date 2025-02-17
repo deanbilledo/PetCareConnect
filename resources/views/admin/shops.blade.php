@@ -74,7 +74,7 @@
                                     <td class="px-4 py-2">{{ $shop->address }}</td>
                                     <td class="px-4 py-2">{{ ucfirst($shop->type) }}</td>
                                     <td class="px-4 py-2">
-                                        <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded-lg mr-2" onclick="viewShopDetails('{{ $shop->id }}')">View</button>
+                                        <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded-lg mr-2" onclick="viewRegistrationDetails('{{ $shop->id }}')">View</button>
                                         <form action="{{ route('admin.shops.approve', $shop) }}" method="POST" class="inline">
                                             @csrf
                                             <button type="submit" class="bg-green-500 hover:bg-green-700 text-white font-bold py-1 px-2 rounded-lg mr-2">Approve</button>
@@ -176,5 +176,594 @@
 
         // Add other JavaScript functions from shop_management.html as needed
     </script>
+
+    <!-- Shop Details Modal -->
+    <div id="shopDetailsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full">
+        <div class="relative top-10 mx-auto p-5 border w-3/4 shadow-lg rounded-md bg-white dark:bg-gray-800">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-2xl font-bold" id="modalShopName"></h3>
+                <button onclick="closeShopDetailsModal()" class="text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-gray-100">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <!-- Shop Stats -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div class="bg-blue-50 dark:bg-blue-900 p-4 rounded-xl">
+                    <h4 class="text-blue-800 dark:text-blue-200 font-medium mb-2">Revenue</h4>
+                    <p class="text-2xl font-bold text-blue-900 dark:text-blue-100" id="modalShopRevenue">₱0</p>
+                </div>
+                <div class="bg-green-50 dark:bg-green-900 p-4 rounded-xl">
+                    <h4 class="text-green-800 dark:text-green-200 font-medium mb-2">Total Appointments</h4>
+                    <p class="text-2xl font-bold text-green-900 dark:text-green-100" id="modalShopAppointments">0</p>
+                </div>
+                <div class="bg-yellow-50 dark:bg-yellow-900 p-4 rounded-xl">
+                    <h4 class="text-yellow-800 dark:text-yellow-200 font-medium mb-2">Average Rating</h4>
+                    <p class="text-2xl font-bold text-yellow-900 dark:text-yellow-100" id="modalShopRating">0</p>
+                </div>
+            </div>
+
+            <!-- Shop Details Tabs -->
+            <div class="mb-4 border-b border-gray-200 dark:border-gray-700">
+                <ul class="flex flex-wrap -mb-px" role="tablist">
+                    <li class="mr-2">
+                        <button class="inline-block p-4 border-b-2 rounded-t-lg hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300 text-blue-600 border-blue-600 active" 
+                                onclick="switchTab('details')" id="details-tab">
+                            Details
+                        </button>
+                    </li>
+                    <li class="mr-2">
+                        <button class="inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300" 
+                                onclick="switchTab('services')" id="services-tab">
+                            Services
+                        </button>
+                    </li>
+                    <li class="mr-2">
+                        <button class="inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300" 
+                                onclick="switchTab('appointments')" id="appointments-tab">
+                            Recent Appointments
+                        </button>
+                    </li>
+                    <li class="mr-2">
+                        <button class="inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300" 
+                                onclick="switchTab('reviews')" id="reviews-tab">
+                            Reviews
+                        </button>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Tab Contents -->
+            <div class="tab-content">
+                <!-- Details Tab -->
+                <div id="details-content" class="tab-pane active">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <h4 class="font-medium mb-2">Basic Information</h4>
+                            <div class="space-y-2">
+                                <p><span class="font-medium">Owner:</span> <span id="modalShopOwner"></span></p>
+                                <p><span class="font-medium">Email:</span> <span id="modalShopEmail"></span></p>
+                                <p><span class="font-medium">Phone:</span> <span id="modalShopPhone"></span></p>
+                                <p><span class="font-medium">Address:</span> <span id="modalShopAddress"></span></p>
+                                <p><span class="font-medium">Type:</span> <span id="modalShopType"></span></p>
+                                <p><span class="font-medium">Status:</span> <span id="modalShopStatus"></span></p>
+                            </div>
+                        </div>
+                        <div>
+                            <h4 class="font-medium mb-2">Operating Hours</h4>
+                            <div id="modalShopHours" class="space-y-1">
+                                <!-- Operating hours will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Services Tab -->
+                <div id="services-content" class="tab-pane hidden">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="modalShopServices">
+                        <!-- Services will be populated here -->
+                    </div>
+                </div>
+
+                <!-- Appointments Tab -->
+                <div id="appointments-content" class="tab-pane hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full table-auto">
+                            <thead>
+                                <tr class="bg-gray-100 dark:bg-gray-700">
+                                    <th class="px-4 py-2 text-left">Date</th>
+                                    <th class="px-4 py-2 text-left">Customer</th>
+                                    <th class="px-4 py-2 text-left">Service</th>
+                                    <th class="px-4 py-2 text-left">Status</th>
+                                    <th class="px-4 py-2 text-left">Price</th>
+                                </tr>
+                            </thead>
+                            <tbody id="modalShopAppointmentsList">
+                                <!-- Appointments will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Reviews Tab -->
+                <div id="reviews-content" class="tab-pane hidden">
+                    <div class="space-y-4" id="modalShopReviews">
+                        <!-- Reviews will be populated here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Make table rows clickable
+        document.querySelectorAll('tr[data-shop-id]').forEach(row => {
+            row.addEventListener('click', () => {
+                const shopId = row.dataset.shopId;
+                openShopDetailsModal(shopId);
+            });
+        });
+
+        // Shop Details Modal Functions
+        function openShopDetailsModal(shopId) {
+            fetch(`/admin/shops/${shopId}/details`)
+                .then(response => response.json())
+                .then(data => {
+                    populateModalData(data);
+                    document.getElementById('shopDetailsModal').classList.remove('hidden');
+                });
+        }
+
+        function closeShopDetailsModal() {
+            document.getElementById('shopDetailsModal').classList.add('hidden');
+        }
+
+        function populateModalData(data) {
+            const shop = data.shop;
+            const stats = data.stats;
+
+            // Populate shop name and basic stats
+            document.getElementById('modalShopName').textContent = shop.name;
+            document.getElementById('modalShopRevenue').textContent = `₱${formatNumber(stats.total_revenue)}`;
+            document.getElementById('modalShopAppointments').textContent = stats.total_appointments;
+            document.getElementById('modalShopRating').textContent = stats.average_rating.toFixed(1);
+
+            // Populate basic information
+            document.getElementById('modalShopOwner').textContent = shop.user.name;
+            document.getElementById('modalShopEmail').textContent = shop.user.email;
+            document.getElementById('modalShopPhone').textContent = shop.phone;
+            document.getElementById('modalShopAddress').textContent = shop.address;
+            document.getElementById('modalShopType').textContent = capitalizeFirstLetter(shop.type);
+            document.getElementById('modalShopStatus').textContent = capitalizeFirstLetter(shop.status);
+
+            // Populate operating hours
+            const hoursContainer = document.getElementById('modalShopHours');
+            hoursContainer.innerHTML = shop.operating_hours.map(hour => `
+                <p><span class="font-medium">${capitalizeFirstLetter(hour.day)}:</span> 
+                   ${formatTime(hour.opening_time)} - ${formatTime(hour.closing_time)}</p>
+            `).join('');
+
+            // Populate services
+            const servicesContainer = document.getElementById('modalShopServices');
+            servicesContainer.innerHTML = shop.services.map(service => `
+                <div class="bg-white dark:bg-gray-700 p-4 rounded-xl shadow">
+                    <h5 class="font-medium text-lg mb-2">${service.name}</h5>
+                    <p class="text-gray-600 dark:text-gray-300 mb-2">${service.description}</p>
+                    <p class="font-medium">₱${formatNumber(service.price)}</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Duration: ${service.duration} minutes</p>
+                </div>
+            `).join('');
+
+            // Populate appointments
+            const appointmentsList = document.getElementById('modalShopAppointmentsList');
+            appointmentsList.innerHTML = shop.appointments.map(appointment => `
+                <tr class="border-b dark:border-gray-700">
+                    <td class="px-4 py-2">${formatDate(appointment.appointment_date)}</td>
+                    <td class="px-4 py-2">${appointment.user.name}</td>
+                    <td class="px-4 py-2">${appointment.service_type}</td>
+                    <td class="px-4 py-2">
+                        <span class="px-2 py-1 rounded-full text-sm ${getStatusClass(appointment.status)}">
+                            ${capitalizeFirstLetter(appointment.status)}
+                        </span>
+                    </td>
+                    <td class="px-4 py-2">₱${formatNumber(appointment.service_price)}</td>
+                </tr>
+            `).join('');
+
+            // Populate reviews
+            const reviewsContainer = document.getElementById('modalShopReviews');
+            reviewsContainer.innerHTML = shop.ratings.map(rating => `
+                <div class="bg-white dark:bg-gray-700 p-4 rounded-xl shadow">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center">
+                            <img src="${rating.user.profile_photo_url}" alt="${rating.user.name}" 
+                                 class="w-10 h-10 rounded-full mr-3">
+                            <div>
+                                <p class="font-medium">${rating.user.name}</p>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">${formatDate(rating.created_at)}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center">
+                            ${getStarRating(rating.rating)}
+                        </div>
+                    </div>
+                    <p class="text-gray-600 dark:text-gray-300">${rating.review}</p>
+                </div>
+            `).join('');
+        }
+
+        function switchTab(tabName) {
+            // Remove active class from all tabs and content
+            document.querySelectorAll('[id$="-tab"]').forEach(tab => {
+                tab.classList.remove('text-blue-600', 'border-blue-600');
+                tab.classList.add('border-transparent');
+            });
+            document.querySelectorAll('.tab-pane').forEach(content => {
+                content.classList.add('hidden');
+            });
+
+            // Add active class to selected tab and content
+            document.getElementById(`${tabName}-tab`).classList.add('text-blue-600', 'border-blue-600');
+            document.getElementById(`${tabName}-content`).classList.remove('hidden');
+        }
+
+        // Utility functions
+        function formatNumber(number) {
+            return number.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function formatDate(dateString) {
+            return new Date(dateString).toLocaleDateString('en-PH', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function formatTime(timeString) {
+            return new Date(`2000-01-01 ${timeString}`).toLocaleTimeString('en-PH', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function capitalizeFirstLetter(string) {
+            return string.charAt(0).toUpperCase() + string.slice(1);
+        }
+
+        function getStatusClass(status) {
+            const classes = {
+                'pending': 'bg-yellow-200 text-yellow-800',
+                'completed': 'bg-green-200 text-green-800',
+                'cancelled': 'bg-red-200 text-red-800'
+            };
+            return classes[status] || 'bg-gray-200 text-gray-800';
+        }
+
+        function getStarRating(rating) {
+            let stars = '';
+            for (let i = 1; i <= 5; i++) {
+                stars += `<i class="fas fa-star ${i <= rating ? 'text-yellow-400' : 'text-gray-300'} mr-1"></i>`;
+            }
+            return stars;
+        }
+
+        // Registration Details Modal Functions
+        function viewRegistrationDetails(shopId) {
+            // Show loading state
+            const modal = document.getElementById('registrationDetailsModal');
+            const imageContainer = document.getElementById('modalShopImage');
+            const loadingSpinner = document.getElementById('modalShopImageLoading');
+            const certificateContainer = document.getElementById('modalBIRCertificateContainer');
+            const noCertificateText = document.getElementById('modalNoBIRCertificate');
+            
+            // Reset and show loading state
+            imageContainer.style.display = 'none';
+            loadingSpinner.style.display = 'flex';
+            certificateContainer.classList.add('hidden');
+            noCertificateText.classList.add('hidden');
+            modal.classList.remove('hidden');
+
+            fetch(`/admin/shops/${shopId}/registration-details`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Registration details:', data); // Debug log
+
+                    // Handle shop image
+                    if (data.shop_image_url) {
+                        imageContainer.src = data.shop_image_url;
+                        imageContainer.onload = function() {
+                            loadingSpinner.style.display = 'none';
+                            imageContainer.style.display = 'block';
+                        };
+                        imageContainer.onerror = function() {
+                            console.error('Failed to load shop image');
+                            this.src = '{{ asset('images/default-shop.png') }}';
+                            loadingSpinner.style.display = 'none';
+                            imageContainer.style.display = 'block';
+                        };
+                    }
+
+                    // Update modal title
+                    const modalTitle = document.getElementById('modalShopTitle');
+                    if (modalTitle) {
+                        modalTitle.textContent = data.name ? `Registration Details - ${data.name}` : 'Registration Details';
+                    }
+
+                    // Update shop details - Basic Information
+                    const shopName = document.getElementById('modalShopName');
+                    const shopType = document.getElementById('modalShopType');
+                    if (shopName) shopName.textContent = data.name || 'Not provided';
+                    if (shopType) shopType.textContent = data.type ? capitalizeFirstLetter(data.type) : 'Not provided';
+
+                    // Update shop details - Contact Information
+                    const shopPhone = document.getElementById('modalShopPhone');
+                    const shopAddress = document.getElementById('modalShopAddress');
+                    if (shopPhone) shopPhone.textContent = data.phone || 'Not provided';
+                    if (shopAddress) shopAddress.textContent = data.address || 'Not provided';
+
+                    // Update shop details - Business Information
+                    const shopTIN = document.getElementById('modalShopTIN');
+                    const shopVAT = document.getElementById('modalShopVAT');
+                    if (shopTIN) shopTIN.textContent = data.tin || 'Not provided';
+                    if (shopVAT) shopVAT.textContent = data.vat_status ? 
+                        capitalizeFirstLetter(data.vat_status.replace('_', ' ')) : 'Not specified';
+
+                    // Handle BIR Certificate display
+                    if (data.bir_certificate_url) {
+                        certificateContainer.classList.remove('hidden');
+                        noCertificateText.classList.add('hidden');
+                        const certificateLink = document.getElementById('modalBIRCertificate');
+                        if (certificateLink) {
+                            certificateLink.href = data.bir_certificate_url;
+                            certificateLink.innerHTML = `
+                                <i class="fas fa-file-pdf mr-2"></i>
+                                <span>View BIR Certificate</span>
+                            `;
+                            certificateLink.setAttribute('download', '');
+                            certificateLink.setAttribute('target', '_blank');
+                        }
+                    } else {
+                        certificateContainer.classList.add('hidden');
+                        noCertificateText.classList.remove('hidden');
+                        noCertificateText.textContent = 'No certificate uploaded';
+                    }
+
+                    // Update owner information
+                    if (data.user) {
+                        const ownerName = document.getElementById('modalOwnerName');
+                        const ownerEmail = document.getElementById('modalOwnerEmail');
+                        
+                        if (ownerName) ownerName.textContent = data.user.name || 'Not provided';
+                        if (ownerEmail) ownerEmail.textContent = data.user.email || 'Not provided';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching registration details:', error);
+                    alert('Failed to load shop registration details. Please try again.');
+                    loadingSpinner.style.display = 'none';
+                    modal.classList.add('hidden');
+                });
+        }
+
+        function closeRegistrationDetailsModal() {
+            document.getElementById('registrationDetailsModal').classList.add('hidden');
+        }
+
+        // Shop Edit Functions
+        let currentShopId = null;
+
+        function editShop(shopId) {
+            currentShopId = shopId;
+            const modal = document.getElementById('shopEditModal');
+            
+            // Show loading state
+            modal.classList.remove('hidden');
+            
+            // Fetch shop details
+            fetch(`/admin/shops/${shopId}/edit`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Populate form fields
+                    document.querySelector('#shopEditForm [name="name"]').value = data.name;
+                    document.querySelector('#shopEditForm [name="address"]').value = data.address;
+                    document.querySelector('#shopEditForm [name="phone"]').value = data.phone;
+                    document.querySelector('#shopEditForm [name="status"]').value = data.status;
+                })
+                .catch(error => {
+                    console.error('Error fetching shop details:', error);
+                    alert('Failed to load shop details. Please try again.');
+                    closeShopEditModal();
+                });
+        }
+
+        function closeShopEditModal() {
+            document.getElementById('shopEditModal').classList.add('hidden');
+            currentShopId = null;
+        }
+
+        // Handle form submission
+        document.getElementById('shopEditForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            if (!currentShopId) {
+                console.error('No shop ID set');
+                return;
+            }
+
+            const formData = new FormData(this);
+            
+            fetch(`/admin/shops/${currentShopId}`, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    window.location.reload();
+                } else {
+                    throw new Error(data.message || 'Failed to update shop');
+                }
+            })
+            .catch(error => {
+                console.error('Error updating shop:', error);
+                alert('Failed to update shop. Please try again.');
+            });
+        });
+    </script>
+
+    <!-- Registration Details Modal -->
+    <div id="registrationDetailsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full">
+        <div class="relative top-10 mx-auto p-5 border w-3/4 shadow-lg rounded-md bg-white dark:bg-gray-800">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-2xl font-bold" id="modalShopTitle"></h3>
+                <button onclick="closeRegistrationDetailsModal()" class="text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-gray-100">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+
+            <div class="space-y-6">
+                <!-- Basic Information -->
+                <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-6">
+                    <h4 class="text-lg font-semibold mb-4">Basic Information</h4>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">Shop Image</p>
+                            <div class="relative w-32 h-32 mt-2 rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-600">
+                                <img id="modalShopImage" src="" alt="Shop Image" 
+                                     class="w-full h-full object-cover"
+                                     onerror="this.onerror=null; this.src='{{ asset('images/default-shop.png') }}'; console.log('Failed to load shop image');">
+                                <div id="modalShopImageLoading" class="absolute inset-0 flex items-center justify-center bg-gray-200 dark:bg-gray-600">
+                                    <i class="fas fa-spinner fa-spin text-gray-400"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="space-y-3">
+                            <div>
+                                <p class="text-sm text-gray-600 dark:text-gray-400">Shop Name</p>
+                                <p id="modalShopName" class="font-medium"></p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600 dark:text-gray-400">Shop Type</p>
+                                <p id="modalShopType" class="font-medium"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contact Information -->
+                <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-6">
+                    <h4 class="text-lg font-semibold mb-4">Contact Information</h4>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">Phone Number</p>
+                            <p id="modalShopPhone" class="font-medium"></p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">Address</p>
+                            <p id="modalShopAddress" class="font-medium"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Business Information -->
+                <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-6">
+                    <h4 class="text-lg font-semibold mb-4">Business Information</h4>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">TIN</p>
+                            <p id="modalShopTIN" class="font-medium"></p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">VAT Status</p>
+                            <p id="modalShopVAT" class="font-medium"></p>
+                        </div>
+                        <div class="col-span-2">
+                            <p class="text-sm text-gray-600 dark:text-gray-400">BIR Certificate</p>
+                            <div id="modalBIRCertificateContainer">
+                                <a id="modalBIRCertificate" href="#" target="_blank" 
+                                   class="inline-flex items-center text-blue-500 hover:text-blue-700 mt-2">
+                                    <i class="fas fa-file-pdf mr-2"></i>
+                                    <span>View Certificate</span>
+                                </a>
+                            </div>
+                            <p id="modalNoBIRCertificate" class="text-gray-500 italic hidden mt-2">No certificate uploaded</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Owner Information -->
+                <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-6">
+                    <h4 class="text-lg font-semibold mb-4">Owner Information</h4>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">Owner Name</p>
+                            <p id="modalOwnerName" class="font-medium"></p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">Email</p>
+                            <p id="modalOwnerEmail" class="font-medium"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Shop Edit Modal -->
+    <div id="shopEditModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
+            <div class="mt-3">
+                <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-white mb-4">Edit Shop</h3>
+                <form id="shopEditForm" class="space-y-4">
+                    @csrf
+                    @method('PUT')
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Shop Name</label>
+                        <input type="text" name="name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Address</label>
+                        <input type="text" name="address" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Phone</label>
+                        <input type="text" name="phone" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Status</label>
+                        <select name="status" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <option value="active">Active</option>
+                            <option value="suspended">Suspended</option>
+                        </select>
+                    </div>
+                    <div class="flex justify-end gap-3">
+                        <button type="button" onclick="closeShopEditModal()" class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600">Cancel</button>
+                        <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 </body>
 </html> 

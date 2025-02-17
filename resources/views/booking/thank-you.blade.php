@@ -70,6 +70,13 @@ use Illuminate\Support\Facades\Log;
                     @endforeach
                 </div>
                 
+                @if(isset($booking_details['voucher_code']))
+                <div class="flex justify-between text-sm text-green-600 border-t border-gray-200 pt-3 mt-3">
+                    <span>Discount ({{ $booking_details['voucher_code'] }})</span>
+                    <span>-₱{{ number_format($booking_details['discount_amount'], 2) }}</span>
+                </div>
+                @endif
+
                 <div class="flex justify-between font-medium border-t border-gray-200 pt-3 mt-3">
                     <span class="text-gray-800">Total Amount:</span>
                     <span>₱{{ number_format($booking_details['total_amount'], 2) }}</span>

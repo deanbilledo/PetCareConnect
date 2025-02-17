@@ -166,17 +166,40 @@ use Illuminate\Support\Facades\Log;
             <div class="mb-6 pb-6 border-b border-gray-200">
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="font-medium">Discount</h3>
-                    <div class="flex items-center space-x-2">
-                        <span class="text-sm text-gray-600">Use code:</span>
-                        <span class="bg-blue-100 text-blue-800 font-medium px-3 py-1 rounded-full text-sm">WELCOME10</span>
-                    </div>
+                    @if(isset($services) && $services->isNotEmpty())
+                        @php
+                            $activeDiscounts = collect();
+                            foreach($services as $service) {
+                                $serviceDiscounts = $service->getActiveDiscounts();
+                                $activeDiscounts = $activeDiscounts->concat($serviceDiscounts);
+                            }
+                            $voucherDiscounts = $activeDiscounts->where('voucher_code', '!=', null);
+                        @endphp
+                        @if($voucherDiscounts->isNotEmpty())
+                            <div class="flex items-center space-x-2">
+                                <span class="text-sm text-gray-600">Available codes:</span>
+                                <div class="flex flex-wrap gap-2">
+                                    @foreach($voucherDiscounts as $discount)
+                                        <span class="bg-blue-100 text-blue-800 font-medium px-3 py-1 rounded-full text-sm">
+                                            {{ $discount->voucher_code }}
+                                            @if($discount->discount_type === 'percentage')
+                                                ({{ number_format($discount->discount_value, 0) }}%)
+                                            @else
+                                                (₱{{ number_format($discount->discount_value, 2) }})
+                                            @endif
+                                        </span>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
+                    @endif
                 </div>
                 <div class="flex items-center space-x-2">
                     <input type="text" 
                            name="coupon_code" 
                            id="couponCode"
                            class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-                           placeholder="Enter coupon code">
+                           placeholder="Enter voucher code">
                     <button type="button" 
                             onclick="applyCoupon()"
                             class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors">
@@ -400,34 +423,73 @@ function hideConfirmationModal() {
 }
 
 function applyCoupon() {
-    const couponCode = document.getElementById('couponCode').value.toUpperCase();
+    const couponCode = document.getElementById('couponCode').value.trim().toUpperCase();
+    if (!couponCode) {
+        alert('Please enter a voucher code');
+        return;
+    }
+
     const subtotal = {{ $total }}; // Get the original total from PHP
+    const petServices = @json($bookingData['pet_services'] ?? []); // Get pet services from PHP
     
-    if (couponCode === 'WELCOME10') {
-        // Calculate 10% discount
-        const discountAmount = subtotal * 0.10;
-        const newTotal = subtotal - discountAmount;
-        
-        // Update discount display
-        document.getElementById('discountDisplay').classList.remove('hidden');
-        document.getElementById('discountAmount').textContent = `-₱${discountAmount.toFixed(2)}`;
-        
-        // Update total section
-        document.getElementById('discountLine').classList.remove('hidden');
-        document.getElementById('discountLineAmount').textContent = `-₱${discountAmount.toFixed(2)}`;
-        document.getElementById('finalTotal').textContent = `₱${newTotal.toFixed(2)}`;
-        
-        // Add success message
-        alert('Coupon WELCOME10 applied successfully!');
-    } else {
-        // Hide discount displays
+    // Get CSRF token from meta tag
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    
+    // Make an AJAX call to validate the coupon
+    fetch(`/book/{{ $shop->id }}/validate-discount/${couponCode}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': csrfToken,
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+            services: Object.values(petServices),
+            total: subtotal
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            // Calculate discount
+            const discountAmount = parseFloat(data.discount_amount);
+            const newTotal = subtotal - discountAmount;
+            
+            // Update discount display
+            document.getElementById('discountDisplay').classList.remove('hidden');
+            document.getElementById('discountAmount').textContent = `-₱${discountAmount.toFixed(2)}`;
+            
+            // Update total section
+            document.getElementById('discountLine').classList.remove('hidden');
+            document.getElementById('discountLineAmount').textContent = `-₱${discountAmount.toFixed(2)}`;
+            document.getElementById('finalTotal').textContent = `₱${newTotal.toFixed(2)}`;
+            
+            // Show success message
+            alert(`Voucher ${couponCode} applied successfully!`);
+        } else {
+            // Hide discount displays
+            document.getElementById('discountDisplay').classList.add('hidden');
+            document.getElementById('discountLine').classList.add('hidden');
+            document.getElementById('finalTotal').textContent = `₱${subtotal.toFixed(2)}`;
+            
+            // Show error message
+            alert(data.message || 'Invalid voucher code. Please try again.');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        // Reset displays
         document.getElementById('discountDisplay').classList.add('hidden');
         document.getElementById('discountLine').classList.add('hidden');
         document.getElementById('finalTotal').textContent = `₱${subtotal.toFixed(2)}`;
         
-        // Show error message
-        alert('Invalid coupon code. Please try again.');
-    }
+        alert('An error occurred while validating the voucher code. Please try again.');
+    });
 }
 
 function submitBooking() {
@@ -437,18 +499,38 @@ function submitBooking() {
         return;
     }
     
-    // Add the coupon code to the form if it's applied
-    const couponCode = document.getElementById('couponCode').value.toUpperCase();
-    if (couponCode === 'WELCOME10') {
-        const form = document.getElementById('confirmForm');
-        const couponInput = document.createElement('input');
-        couponInput.type = 'hidden';
-        couponInput.name = 'applied_coupon';
-        couponInput.value = couponCode;
-        form.appendChild(couponInput);
+    // Add the discount information to the form
+    const form = document.getElementById('confirmForm');
+    const discountDisplay = document.getElementById('discountDisplay');
+    
+    if (!discountDisplay.classList.contains('hidden')) {
+        // Add voucher code
+        const voucherInput = document.createElement('input');
+        voucherInput.type = 'hidden';
+        voucherInput.name = 'voucher_code';
+        voucherInput.value = document.getElementById('couponCode').value.trim().toUpperCase();
+        form.appendChild(voucherInput);
+        
+        // Add discount amount
+        const discountAmount = document.getElementById('discountAmount').textContent
+            .replace('₱', '').replace('-', '').trim();
+        const discountInput = document.createElement('input');
+        discountInput.type = 'hidden';
+        discountInput.name = 'discount_amount';
+        discountInput.value = discountAmount;
+        form.appendChild(discountInput);
+        
+        // Add final total
+        const finalTotal = document.getElementById('finalTotal').textContent
+            .replace('₱', '').trim();
+        const totalInput = document.createElement('input');
+        totalInput.type = 'hidden';
+        totalInput.name = 'final_total';
+        totalInput.value = finalTotal;
+        form.appendChild(totalInput);
     }
     
-    document.getElementById('confirmForm').submit();
+    form.submit();
 }
 
 document.getElementById('confirmForm').addEventListener('submit', function(e) {

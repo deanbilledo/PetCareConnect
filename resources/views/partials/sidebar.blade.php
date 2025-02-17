@@ -59,6 +59,15 @@
             <span class="font-medium">Reviews</span>
         </a>
 
+        <!-- Subscriptions -->
+        <a href="{{ route('shop.subscriptions') }}" 
+           class="flex items-center px-4 py-3 rounded-lg transition-colors {{ request()->routeIs('shop.subscriptions') ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
+            <svg class="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
+            </svg>
+            <span class="font-medium">Subscriptions</span>
+        </a>
+
         <!-- Settings -->
         <a href="{{ route('shop.settings') }}" 
            class="flex items-center px-4 py-3 rounded-lg transition-colors {{ request()->routeIs('shop.settings') ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">

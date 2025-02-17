@@ -55,6 +55,11 @@ class Service extends Model
         return $this->hasMany(Appointment::class);
     }
 
+    public function discounts()
+    {
+        return $this->hasMany(ServiceDiscount::class);
+    }
+
     public function getPriceForSize($size)
     {
         if (empty($this->variable_pricing)) {
@@ -176,5 +181,65 @@ class Service extends Model
             }
         }
         return $types;
+    }
+
+    public function getActiveDiscounts()
+    {
+        $now = now();
+        Log::info("Getting active discounts for service {$this->id}:", [
+            'service_name' => $this->name,
+            'current_time' => $now->toDateTimeString()
+        ]);
+
+        $discounts = $this->discounts()
+            ->where('is_active', true)
+            ->where('valid_from', '<=', $now)
+            ->where('valid_until', '>=', $now)
+            ->get();
+
+        Log::info("Found discounts:", [
+            'service_id' => $this->id,
+            'discount_count' => $discounts->count(),
+            'discounts' => $discounts->map(function($discount) {
+                return [
+                    'id' => $discount->id,
+                    'voucher_code' => $discount->voucher_code,
+                    'discount_type' => $discount->discount_type,
+                    'discount_value' => $discount->discount_value,
+                    'valid_from' => $discount->valid_from,
+                    'valid_until' => $discount->valid_until
+                ];
+            })->toArray()
+        ]);
+
+        return $discounts;
+    }
+
+    public function getDiscountedPrice($originalPrice, $voucherCode = null)
+    {
+        $activeDiscounts = $this->getActiveDiscounts();
+        
+        if ($voucherCode) {
+            // Case-insensitive voucher code comparison
+            $voucherDiscount = $activeDiscounts->first(function($discount) use ($voucherCode) {
+                return strcasecmp($discount->voucher_code, $voucherCode) === 0;
+            });
+            
+            if ($voucherDiscount) {
+                return $voucherDiscount->calculateDiscountedPrice($originalPrice);
+            }
+            return $originalPrice;
+        }
+
+        // Get the best non-voucher discount
+        $bestDiscount = $activeDiscounts
+            ->where('voucher_code', null)
+            ->sortByDesc(function ($discount) use ($originalPrice) {
+                $discountedPrice = $discount->calculateDiscountedPrice($originalPrice);
+                return $originalPrice - $discountedPrice;
+            })
+            ->first();
+
+        return $bestDiscount ? $bestDiscount->calculateDiscountedPrice($originalPrice) : $originalPrice;
     }
 } 
