@@ -20,9 +20,12 @@
             'operating_hours' => auth()->user()->shop->operatingHours->map(function($hour) {
                 return [
                     'day' => $hour->day,
-                    'is_open' => $hour->is_open,
-                    'open_time' => $hour->open_time,
-                    'close_time' => $hour->close_time,
+                    'is_open' => (bool) $hour->is_open,
+                    'open_time' => $hour->open_time ? substr($hour->open_time, 0, 5) : '09:00',
+                    'close_time' => $hour->close_time ? substr($hour->close_time, 0, 5) : '17:00',
+                    'has_lunch_break' => (bool) $hour->has_lunch_break,
+                    'lunch_start' => $hour->lunch_start ? substr($hour->lunch_start, 0, 5) : '12:00',
+                    'lunch_end' => $hour->lunch_end ? substr($hour->lunch_end, 0, 5) : '13:00',
                     'name' => match($hour->day) {
                         0 => 'Sunday',
                         1 => 'Monday',
@@ -118,8 +121,8 @@
                         </label>
                     </div>
 
-                    <div x-show="day.is_open" class="space-y-4">
-                        <div class="grid grid-cols-2 gap-4">
+                    <div x-show="day.is_open">
+                        <div class="grid grid-cols-2 gap-4 mb-4">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Opening Time</label>
                                 <input type="time" 
@@ -131,6 +134,33 @@
                                 <input type="time" 
                                        x-model="day.close_time"
                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            </div>
+                        </div>
+
+                        <div class="border-t pt-4">
+                            <label class="inline-flex items-center mb-4">
+                                <input type="checkbox" 
+                                       x-model="day.has_lunch_break"
+                                       class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+                                <span class="ml-2 text-sm text-gray-600">Include Lunch Break</span>
+                            </label>
+
+                            <div x-show="day.has_lunch_break" class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Lunch Break Start</label>
+                                    <input type="time" 
+                                           x-model="day.lunch_start"
+                                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                           :required="day.has_lunch_break">
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Lunch Break End</label>
+                                    <input type="time" 
+                                           x-model="day.lunch_end"
+                                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                           :required="day.has_lunch_break">
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -236,13 +266,13 @@ function shopSettings(initialData) {
         },
         hours: {
             days: initialData.operating_hours.length ? initialData.operating_hours : [
-                { name: 'Monday', day: 1, is_open: true, open_time: '09:00', close_time: '17:00' },
-                { name: 'Tuesday', day: 2, is_open: true, open_time: '09:00', close_time: '17:00' },
-                { name: 'Wednesday', day: 3, is_open: true, open_time: '09:00', close_time: '17:00' },
-                { name: 'Thursday', day: 4, is_open: true, open_time: '09:00', close_time: '17:00' },
-                { name: 'Friday', day: 5, is_open: true, open_time: '09:00', close_time: '17:00' },
-                { name: 'Saturday', day: 6, is_open: true, open_time: '09:00', close_time: '17:00' },
-                { name: 'Sunday', day: 0, is_open: false, open_time: '09:00', close_time: '17:00' }
+                { name: 'Monday', day: 1, is_open: true, open_time: '09:00', close_time: '17:00', has_lunch_break: true, lunch_start: '12:00', lunch_end: '13:00' },
+                { name: 'Tuesday', day: 2, is_open: true, open_time: '09:00', close_time: '17:00', has_lunch_break: true, lunch_start: '12:00', lunch_end: '13:00' },
+                { name: 'Wednesday', day: 3, is_open: true, open_time: '09:00', close_time: '17:00', has_lunch_break: true, lunch_start: '12:00', lunch_end: '13:00' },
+                { name: 'Thursday', day: 4, is_open: true, open_time: '09:00', close_time: '17:00', has_lunch_break: true, lunch_start: '12:00', lunch_end: '13:00' },
+                { name: 'Friday', day: 5, is_open: true, open_time: '09:00', close_time: '17:00', has_lunch_break: true, lunch_start: '12:00', lunch_end: '13:00' },
+                { name: 'Saturday', day: 6, is_open: true, open_time: '09:00', close_time: '17:00', has_lunch_break: true, lunch_start: '12:00', lunch_end: '13:00' },
+                { name: 'Sunday', day: 0, is_open: false, open_time: '09:00', close_time: '17:00', has_lunch_break: false, lunch_start: '12:00', lunch_end: '13:00' }
             ]
         },
         showMessage(elementId) {
@@ -274,9 +304,30 @@ function shopSettings(initialData) {
                 // Ensure time values are in HH:mm:ss format
                 let openTime = day.is_open ? day.open_time : null;
                 let closeTime = day.is_open ? day.close_time : null;
+                let lunchStart = null;
+                let lunchEnd = null;
+
+                // Only process lunch break times if the day is open and has lunch break
+                if (day.is_open && day.has_lunch_break) {
+                    lunchStart = day.lunch_start;
+                    lunchEnd = day.lunch_end;
+
+                    // Add seconds to lunch times if needed
+                    if (lunchStart && !lunchStart.includes(':')) {
+                        lunchStart = lunchStart + ':00';
+                    } else if (lunchStart && lunchStart.split(':').length === 2) {
+                        lunchStart = lunchStart + ':00';
+                    }
+                    
+                    if (lunchEnd && !lunchEnd.includes(':')) {
+                        lunchEnd = lunchEnd + ':00';
+                    } else if (lunchEnd && lunchEnd.split(':').length === 2) {
+                        lunchEnd = lunchEnd + ':00';
+                    }
+                }
                 
                 if (day.is_open) {
-                    // Add seconds if they're missing
+                    // Add seconds if they're missing for open/close times
                     if (openTime && !openTime.includes(':')) {
                         openTime = openTime + ':00';
                     } else if (openTime && openTime.split(':').length === 2) {
@@ -290,11 +341,17 @@ function shopSettings(initialData) {
                     }
                 }
 
+                // Ensure has_lunch_break is always boolean
+                const hasLunchBreak = Boolean(day.has_lunch_break);
+
                 return {
                     day: day.day,
-                    is_open: day.is_open,
+                    is_open: Boolean(day.is_open),
                     open_time: openTime,
-                    close_time: closeTime
+                    close_time: closeTime,
+                    has_lunch_break: hasLunchBreak,
+                    lunch_start: lunchStart,
+                    lunch_end: lunchEnd
                 };
             });
 

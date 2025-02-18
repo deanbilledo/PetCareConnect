@@ -92,7 +92,10 @@ class ShopSettingsController extends Controller
                 'hours.*.day' => 'required|integer|between:0,6',
                 'hours.*.is_open' => 'required|boolean',
                 'hours.*.open_time' => 'nullable|required_if:hours.*.is_open,true|date_format:H:i:s',
-                'hours.*.close_time' => 'nullable|required_if:hours.*.is_open,true|date_format:H:i:s|after:hours.*.open_time'
+                'hours.*.close_time' => 'nullable|required_if:hours.*.is_open,true|date_format:H:i:s|after:hours.*.open_time',
+                'hours.*.has_lunch_break' => 'boolean',
+                'hours.*.lunch_start' => 'nullable|required_if:hours.*.has_lunch_break,true|date_format:H:i:s',
+                'hours.*.lunch_end' => 'nullable|required_if:hours.*.has_lunch_break,true|date_format:H:i:s|after:hours.*.lunch_start'
             ]);
 
             if ($validator->fails()) {
@@ -119,7 +122,10 @@ class ShopSettingsController extends Controller
                         'day' => $hour['day'],
                         'is_open' => $hour['is_open'],
                         'open_time' => $hour['is_open'] ? $hour['open_time'] : null,
-                        'close_time' => $hour['is_open'] ? $hour['close_time'] : null
+                        'close_time' => $hour['is_open'] ? $hour['close_time'] : null,
+                        'has_lunch_break' => $hour['has_lunch_break'] ?? false,
+                        'lunch_start' => ($hour['is_open'] && ($hour['has_lunch_break'] ?? false)) ? $hour['lunch_start'] : null,
+                        'lunch_end' => ($hour['is_open'] && ($hour['has_lunch_break'] ?? false)) ? $hour['lunch_end'] : null
                     ]);
                 }
                 

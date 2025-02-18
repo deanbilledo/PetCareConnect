@@ -18,6 +18,21 @@
                         <div class="flex-shrink-0">
                             <div class="flex items-center justify-center h-12 w-12 rounded-md bg-blue-500 text-white">
                                 <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="ml-4">
+                            <h2 class="text-lg font-medium text-gray-900">Shop Details & Gallery</h2>
+                            <p class="mt-2 text-sm text-gray-500">Add your shop description, contact information, and showcase your work with a photo gallery.</p>
+                        </div>
+                    </div>
+
+                    <!-- Step 2 -->
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0">
+                            <div class="flex items-center justify-center h-12 w-12 rounded-md bg-blue-500 text-white">
+                                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
                                 </svg>
                             </div>
@@ -28,7 +43,7 @@
                         </div>
                     </div>
 
-                    <!-- Step 2 -->
+                    <!-- Step 3 -->
                     <div class="flex items-start">
                         <div class="flex-shrink-0">
                             <div class="flex items-center justify-center h-12 w-12 rounded-md bg-blue-500 text-white">
@@ -43,7 +58,7 @@
                         </div>
                     </div>
 
-                    <!-- Step 3 -->
+                    <!-- Step 4 -->
                     <div class="flex items-start">
                         <div class="flex-shrink-0">
                             <div class="flex items-center justify-center h-12 w-12 rounded-md bg-blue-500 text-white">
@@ -60,7 +75,7 @@
                 </div>
 
                 <div class="mt-8 flex justify-end">
-                    <a href="{{ route('shop.setup.employees') }}" 
+                    <a href="{{ route('shop.setup.details') }}" 
                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                         Get Started
                         <svg class="ml-2 -mr-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

@@ -263,6 +263,10 @@ Route::middleware(['auth', 'has-shop'])->group(function () {
 Route::prefix('shop/setup')->name('shop.setup.')->middleware(['auth', 'has-shop'])->group(function () {
     Route::get('/welcome', [ShopSetupController::class, 'welcome'])->name('welcome');
     
+    // Details setup routes
+    Route::get('/details', [ShopSetupController::class, 'details'])->name('details');
+    Route::post('/details', [ShopSetupController::class, 'storeDetails'])->name('details.store');
+    
     // Employee setup routes
     Route::get('/employees', [ShopEmployeeSetupController::class, 'index'])->name('employees');
     Route::post('/employees', [ShopEmployeeSetupController::class, 'store'])->name('employees.store');

@@ -134,6 +134,24 @@
         </div>
     </div>
 
+    <!-- Shop Description -->
+    <div class="bg-white rounded-2xl shadow-lg overflow-hidden mb-8">
+        <div class="p-6">
+            <h2 class="text-xl font-semibold mb-4">About {{ $shop->name }}</h2>
+            <div class="prose max-w-none">
+                <p class="text-gray-600">{{ $shop->description ?: 'No description available.' }}</p>
+            </div>
+            @if($shop->contact_email)
+            <div class="mt-4 flex items-center text-gray-600">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                </svg>
+                <span>Contact: {{ $shop->contact_email }}</span>
+            </div>
+            @endif
+        </div>
+    </div>
+
     <!-- Photo Gallery Section -->
     <div class="bg-white rounded-2xl shadow-lg overflow-hidden mb-8">
         <div class="p-6">
@@ -141,29 +159,18 @@
             
             <!-- Gallery Grid -->
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                <!-- Image 1 -->
-                <div class="relative group cursor-pointer" onclick="openGalleryModal(0)">
-                    <img src="{{ asset('images/gallery/grooming1.jpg') }}" 
-                         alt="Gallery Image 1" 
-                         class="w-full h-48 object-cover rounded-lg transition-transform duration-300 group-hover:scale-105">
-                    <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity duration-300 rounded-lg"></div>
-                </div>
-
-                <!-- Image 2 -->
-                <div class="relative group cursor-pointer" onclick="openGalleryModal(1)">
-                    <img src="{{ asset('images/gallery/grooming2.jpg') }}" 
-                         alt="Gallery Image 2" 
-                         class="w-full h-48 object-cover rounded-lg transition-transform duration-300 group-hover:scale-105">
-                    <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity duration-300 rounded-lg"></div>
-                </div>
-
-                <!-- Image 3 -->
-                <div class="relative group cursor-pointer" onclick="openGalleryModal(2)">
-                        <img src="{{ asset('images/gallery/grooming3.jpg') }}" 
-                         alt="Gallery Image 3" 
-                         class="w-full h-48 object-cover rounded-lg transition-transform duration-300 group-hover:scale-105">
-                    <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity duration-300 rounded-lg"></div>
-                </div>
+                @forelse($shop->gallery as $image)
+                    <div class="relative group cursor-pointer" onclick="openGalleryModal({{ $loop->index }})">
+                        <img src="{{ asset('storage/' . $image->image_path) }}" 
+                             alt="Gallery Image {{ $loop->iteration }}" 
+                             class="w-full h-48 object-cover rounded-lg transition-transform duration-300 group-hover:scale-105">
+                        <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity duration-300 rounded-lg"></div>
+                    </div>
+                @empty
+                    <div class="col-span-3 text-center py-8">
+                        <p class="text-gray-500">No gallery images available</p>
+                    </div>
+                @endforelse
             </div>
         </div>
     </div>
@@ -742,6 +749,47 @@
             alert('Report submitted successfully!');
             closeReportModal();
         }
+
+        // Store gallery images data
+        const galleryImages = @json($shop->gallery->map(function($image) {
+            return [
+                'url' => asset('storage/' . $image->image_path),
+                'alt' => 'Gallery Image'
+            ];
+        }));
+        
+        let currentImageIndex = 0;
+
+        function openGalleryModal(index) {
+            currentImageIndex = index;
+            const modal = document.getElementById('galleryModal');
+            const modalImage = document.getElementById('modalImage');
+            
+            modal.classList.remove('hidden');
+            updateModalImage();
+        }
+
+        function closeGalleryModal() {
+            document.getElementById('galleryModal').classList.add('hidden');
+        }
+
+        function changeImage(direction) {
+            currentImageIndex = (currentImageIndex + direction + galleryImages.length) % galleryImages.length;
+            updateModalImage();
+        }
+
+        function updateModalImage() {
+            const modalImage = document.getElementById('modalImage');
+            modalImage.src = galleryImages[currentImageIndex].url;
+            modalImage.alt = galleryImages[currentImageIndex].alt;
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('galleryModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeGalleryModal();
+            }
+        });
     </script>
 
 @endsection
