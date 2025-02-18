@@ -20,7 +20,16 @@
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                     @foreach($dayAppointments as $appointment)
-                        <tr x-show="isAppointmentVisible('{{ $appointment->status }}', '{{ $date }}')"
+                        <!-- Debug info -->
+                        <div x-data="{
+                            debug: function() {
+                                console.log('Service Type:', '{{ $appointment->service_type }}');
+                                console.log('Filter Value:', this.serviceTypeFilter);
+                                console.log('Visible:', this.isAppointmentVisible('{{ $appointment->status }}', '{{ $date }}', '{{ $appointment->shop->type }}'));
+                            }
+                        }" x-init="debug()">
+                        </div>
+                        <tr x-show="isAppointmentVisible('{{ $appointment->status }}', '{{ $date }}', '{{ $appointment->shop->type }}')"
                             class="hover:bg-gray-50">
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="flex items-center">
