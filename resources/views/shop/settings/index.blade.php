@@ -1,7 +1,42 @@
 @extends('layouts.shop')
 
 @section('content')
-<div class="container mx-auto px-4 py-6">
+<div class="container mx-auto px-4 py-6" 
+    x-data="shopSettings({{ 
+        json_encode([
+            'profile' => [
+                'name' => auth()->user()->shop->name ?? '',
+                'description' => auth()->user()->shop->description ?? '',
+                'email' => auth()->user()->shop->contact_email ?? '',
+                'phone' => auth()->user()->shop->phone ?? '',
+                'address' => auth()->user()->shop->address ?? '',
+                'logo' => auth()->user()->shop->logo_url ?? asset('images/default-shop.png')
+            ],
+            'notifications' => [
+                'email_notifications' => auth()->user()->shop->email_notifications ?? false,
+                'sms_notifications' => auth()->user()->shop->sms_notifications ?? false,
+                'daily_summary' => auth()->user()->shop->daily_summary ?? false
+            ],
+            'operating_hours' => auth()->user()->shop->operatingHours->map(function($hour) {
+                return [
+                    'day' => $hour->day,
+                    'is_open' => $hour->is_open,
+                    'open_time' => $hour->open_time,
+                    'close_time' => $hour->close_time,
+                    'name' => match($hour->day) {
+                        0 => 'Sunday',
+                        1 => 'Monday',
+                        2 => 'Tuesday',
+                        3 => 'Wednesday',
+                        4 => 'Thursday',
+                        5 => 'Friday',
+                        6 => 'Saturday',
+                        default => 'Unknown'
+                    }
+                ];
+            })->toArray()
+        ])
+    }})">
     <h1 class="text-2xl font-bold mb-6">Shop Settings</h1>
 
     <!-- Shop Profile Section -->
@@ -12,11 +47,11 @@
                 Changes saved successfully
             </span>
         </div>
-        <form class="space-y-6">
+        <form class="space-y-6" @submit.prevent="updateProfile">
             <div class="flex items-center space-x-6">
                 <div class="relative group">
                     <div class="h-32 w-32 rounded-lg overflow-hidden bg-gray-100 border-2 border-gray-200 hover:border-blue-500 transition-colors duration-150">
-                        <img src="https://via.placeholder.com/150" alt="Shop logo" class="h-full w-full object-cover">
+                        <img :src="profile.logo" alt="Shop logo" class="h-full w-full object-cover">
                     </div>
                     <button type="button" class="absolute bottom-2 right-2 p-2 bg-white rounded-full shadow-lg hover:bg-gray-50">
                         <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -27,29 +62,29 @@
                 </div>
                 <div class="flex-1">
                     <label class="block text-sm font-medium text-gray-700 mb-1">Shop Name</label>
-                    <input type="text" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    <input type="text" x-model="profile.name" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                 </div>
             </div>
 
             <div class="grid grid-cols-1 gap-6">
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Description</label>
-                    <textarea rows="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"></textarea>
+                    <textarea x-model="profile.description" rows="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"></textarea>
                 </div>
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Contact Email</label>
-                    <input type="email" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    <input type="email" x-model="profile.email" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                 </div>
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Phone Number</label>
-                    <input type="tel" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    <input type="tel" x-model="profile.phone" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                 </div>
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Address</label>
-                    <input type="text" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    <input type="text" x-model="profile.address" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                 </div>
             </div>
 
@@ -69,32 +104,44 @@
                 Hours updated successfully
             </span>
         </div>
+        
         <div class="space-y-4">
-            @foreach(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] as $day)
-            <div class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors duration-150">
-                <span class="text-sm font-medium text-gray-700 w-28">{{ $day }}</span>
-                <div class="flex items-center space-x-4">
-                    <select class="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                        @foreach(range(6, 22) as $hour)
-                            <option>{{ str_pad($hour, 2, '0', STR_PAD_LEFT) }}:00</option>
-                        @endforeach
-                    </select>
-                    <span>to</span>
-                    <select class="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                        @foreach(range(6, 22) as $hour)
-                            <option>{{ str_pad($hour, 2, '0', STR_PAD_LEFT) }}:00</option>
-                        @endforeach
-                    </select>
-                    <label class="flex items-center">
-                        <input type="checkbox" class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                        <span class="ml-2 text-sm text-gray-600">Closed</span>
-                    </label>
+            <template x-for="(day, index) in hours.days" :key="index">
+                <div class="p-4 bg-gray-50 rounded-lg">
+                    <div class="flex items-center justify-between mb-4">
+                        <span class="font-medium" x-text="day.name"></span>
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" 
+                                   x-model="day.is_open"
+                                   class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+                            <span class="ml-2 text-sm text-gray-600">Open</span>
+                        </label>
+                    </div>
+
+                    <div x-show="day.is_open" class="space-y-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Opening Time</label>
+                                <input type="time" 
+                                       x-model="day.open_time"
+                                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Closing Time</label>
+                                <input type="time" 
+                                       x-model="day.close_time"
+                                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </div>
-            @endforeach
+            </template>
         </div>
+
         <div class="mt-6">
-            <button type="button" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+            <button type="button" 
+                    @click="updateHours"
+                    class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
                 Update Hours
             </button>
         </div>
@@ -102,282 +149,222 @@
 
     <!-- Notifications Section -->
     <div id="notifications" class="bg-white rounded-lg shadow-md p-6 mb-6">
-        <h2 class="text-lg font-semibold mb-4">Notification Preferences</h2>
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold">Notification Preferences</h2>
+            <span class="text-sm text-green-600 hidden" id="notifications-saved">
+                Preferences saved successfully
+            </span>
+        </div>
         <div class="space-y-4">
             <label class="flex items-center">
-                <input type="checkbox" class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                <input type="checkbox" 
+                       x-model="notifications.email_notifications"
+                       class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                 <span class="ml-2 text-sm text-gray-700">Email notifications for new appointments</span>
             </label>
             <label class="flex items-center">
-                <input type="checkbox" class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                <input type="checkbox"
+                       x-model="notifications.sms_notifications"
+                       class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                 <span class="ml-2 text-sm text-gray-700">SMS notifications for new appointments</span>
             </label>
             <label class="flex items-center">
-                <input type="checkbox" class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                <input type="checkbox"
+                       x-model="notifications.daily_summary"
+                       class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                 <span class="ml-2 text-sm text-gray-700">Daily summary email</span>
             </label>
         </div>
-    </div>
-
-
-    <!-- Subscription Payment Section -->
-    <div id="subscription-payment" class="bg-white rounded-lg shadow-md p-6 mb-6">
-        <h2 class="text-lg font-semibold mb-4">Subscription Payment</h2>
-
-        <!-- Trial Status -->
-        <div class="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <div class="flex items-center">
-                <svg class="w-5 h-5 text-yellow-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <div>
-                    <p class="font-medium text-yellow-800">Trial Period Ending Soon</p>
-                    <p class="text-sm text-yellow-600">Your 30-day free trial ends in 5 days</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- GCash Payment Section -->
-        <div class="border rounded-lg p-6">
-            <div class="mb-6">
-                <h3 class="text-lg font-medium mb-2">Partner Plan</h3>
-                <p class="text-2xl font-bold">₱299<span class="text-sm font-normal text-gray-600">/month</span></p>
-            </div>
-
-            <!-- GCash Payment Details -->
-            <div class="bg-blue-50 p-4 rounded-lg mb-6">
-                <div class="flex items-center justify-center mb-4">
-                    <img src="{{ asset('images/GCash_logo.svg') }}" alt="GCash Logo" class="h-8">
-                </div>
-                <div class="space-y-2">
-                    <div class="flex justify-between">
-                        <span class="text-gray-600">Account Name:</span>
-                        <span class="font-medium">Dean R****</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="text-gray-600">GCash Number:</span>
-                        <span class="font-medium">0917 123 4567</span>
-                    </div>
-                    <div class="flex justify-between font-medium">
-                        <span>Total Amount:</span>
-                        <span>₱299.00</span>
-                    </div>
-                </div>
-            </div>
-
-            <button onclick="showGcashModal()" class="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-                Pay with GCash
+        <div class="mt-6">
+            <button type="button"
+                    @click="updateNotifications"
+                    class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                Save Preferences
             </button>
-
-            <p class="text-sm text-gray-500 text-center mt-4">
-                By subscribing, you agree to our Terms of Service and Privacy Policy
-            </p>
-        </div>
-
-        <!-- Cancel Subscription Warning -->
-        <div class="mt-6 border-t pt-6">
-            <div class="flex items-center justify-between">
-                <h3 class="text-lg font-medium text-red-600">Cancel Subscription</h3>
-            </div>
-            <p class="mt-2 text-sm text-gray-600">
-                Warning: Canceling your subscription will immediately restrict access to shop mode features. You will no longer be able to:
-            </p>
-            <ul class="mt-2 text-sm text-gray-600 list-disc list-inside space-y-1">
-                <li>Manage appointments</li>
-                <li>Accept bookings</li>
-                <li>Access shop analytics</li>
-                <li>Use premium features</li>
-            </ul>
-            <button class="mt-4 px-4 py-2 border border-red-600 text-red-600 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
-                Cancel Subscription
-            </button>
-        </div>
-
-        <!-- Secure Payment Notice -->
-        <div class="mt-6 flex items-center justify-center text-sm text-gray-500">
-            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-            </svg>
-            Secured payment with SSL encryption
         </div>
     </div>
 
-        <!-- Security Section -->
+    <!-- Security Section -->
     <div id="security" class="bg-white rounded-lg shadow-md p-6">
-        <h2 class="text-lg font-semibold mb-4">Security Settings</h2>
-        <div class="space-y-6">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold">Security Settings</h2>
+            <span class="text-sm text-green-600 hidden" id="security-saved">
+                Password updated successfully
+            </span>
+        </div>
+        <form class="space-y-6" @submit.prevent="updatePassword">
             <div>
                 <label class="block text-sm font-medium text-gray-700">Current Password</label>
-                <input type="password" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                <input type="password" 
+                       x-model="security.current_password"
+                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700">New Password</label>
-                <input type="password" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                <input type="password"
+                       x-model="security.new_password"
+                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700">Confirm New Password</label>
-                <input type="password" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                <input type="password"
+                       x-model="security.confirm_password"
+                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
             </div>
             <div>
-                <button type="button" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                <button type="submit"
+                        class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
                     Update Password
                 </button>
             </div>
-        </div>
+        </form>
     </div>
 </div>
 
-<!-- Simplified script without scroll tracking -->
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Remove all scroll-related JavaScript since we no longer need it
-});
-</script>
+function shopSettings(initialData) {
+    return {
+        profile: {
+            ...initialData.profile,
+            logo: initialData.profile.logo || asset('images/default-shop.png')
+        },
+        notifications: initialData.notifications,
+        security: {
+            current_password: '',
+            new_password: '',
+            confirm_password: ''
+        },
+        hours: {
+            days: initialData.operating_hours.length ? initialData.operating_hours : [
+                { name: 'Monday', day: 1, is_open: true, open_time: '09:00', close_time: '17:00' },
+                { name: 'Tuesday', day: 2, is_open: true, open_time: '09:00', close_time: '17:00' },
+                { name: 'Wednesday', day: 3, is_open: true, open_time: '09:00', close_time: '17:00' },
+                { name: 'Thursday', day: 4, is_open: true, open_time: '09:00', close_time: '17:00' },
+                { name: 'Friday', day: 5, is_open: true, open_time: '09:00', close_time: '17:00' },
+                { name: 'Saturday', day: 6, is_open: true, open_time: '09:00', close_time: '17:00' },
+                { name: 'Sunday', day: 0, is_open: false, open_time: '09:00', close_time: '17:00' }
+            ]
+        },
+        showMessage(elementId) {
+            const message = document.getElementById(elementId);
+            message.classList.remove('hidden');
+            setTimeout(() => {
+                message.classList.add('hidden');
+            }, 3000);
+        },
+        updateProfile() {
+            fetch('/shop/settings/profile', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                },
+                body: JSON.stringify(this.profile)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    this.showMessage('profile-saved');
+                }
+            });
+        },
+        updateHours() {
+            // Format the hours data before sending
+            const formattedHours = this.hours.days.map(day => {
+                // Ensure time values are in HH:mm:ss format
+                let openTime = day.is_open ? day.open_time : null;
+                let closeTime = day.is_open ? day.close_time : null;
+                
+                if (day.is_open) {
+                    // Add seconds if they're missing
+                    if (openTime && !openTime.includes(':')) {
+                        openTime = openTime + ':00';
+                    } else if (openTime && openTime.split(':').length === 2) {
+                        openTime = openTime + ':00';
+                    }
+                    
+                    if (closeTime && !closeTime.includes(':')) {
+                        closeTime = closeTime + ':00';
+                    } else if (closeTime && closeTime.split(':').length === 2) {
+                        closeTime = closeTime + ':00';
+                    }
+                }
 
-<!-- GCash Payment Modal -->
-<div id="gcashModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-    <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-        <div class="flex justify-between items-center mb-4">
-            <h3 class="text-lg font-semibold text-gray-900">GCash Payment Details</h3>
-            <button onclick="hideGcashModal()" class="text-gray-500 hover:text-gray-700">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-            </button>
-        </div>
+                return {
+                    day: day.day,
+                    is_open: day.is_open,
+                    open_time: openTime,
+                    close_time: closeTime
+                };
+            });
 
-        <div class="space-y-4">
-            <!-- GCash QR Code -->
-            <div class="flex justify-center">
-                <img src="{{ asset('images/QRcode.jpg') }}" alt="GCash QR Code" class="w-48 h-48">
-            </div> 
-
-            <!-- Payment Details -->
-            <div class="bg-blue-50 p-4 rounded-lg space-y-2">
-                <div class="flex justify-between">
-                    <span class="text-gray-600">Account Name:</span>
-                    <span class="font-medium">Dean R****</span>
-                </div>
-                <div class="flex justify-between">
-                    <span class="text-gray-600">GCash Number:</span>
-                    <span class="font-medium">0917 123 4567</span>
-                </div>
-                <div class="flex justify-between">
-                    <span class="text-gray-600">Amount:</span>
-                    <span class="font-medium">₱299.00</span>
-                </div>
-            </div>
-
-            <!-- Add Reference Number Input -->
-            <div class="mt-4">
-                <label for="reference_number" class="block text-sm font-medium text-gray-700 mb-1">
-                    GCash Reference Number
-                </label>
-                <input 
-                    type="text" 
-                    id="reference_number" 
-                    name="reference_number" 
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Enter your GCash reference number"
-                    required
-                >
-                <p class="mt-1 text-xs text-gray-500">
-                    Please enter the reference number from your GCash transaction
-                </p>
-            </div>
-
-            <!-- Add Screenshot Upload Section -->
-            <div class="mt-4">
-                <label for="payment_screenshot" class="block text-sm font-medium text-gray-700 mb-1">
-                    Payment Screenshot
-                </label>
-                <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
-                    <div class="space-y-1 text-center">
-                        <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                            <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                        </svg>
-                        <div class="flex text-sm text-gray-600">
-                            <label for="payment_screenshot" class="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
-                                <span>Upload a file</span>
-                                <input id="payment_screenshot" name="payment_screenshot" type="file" class="sr-only" accept="image/*">
-                            </label>
-                            <p class="pl-1">or drag and drop</p>
-                        </div>
-                        <p class="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
-                    </div>
-                </div>
-                <div id="preview" class="mt-2 hidden">
-                    <img id="preview_image" src="" alt="Preview" class="max-h-40 rounded-md">
-                </div>
-            </div>
-
-            <!-- Instructions -->
-            <div class="text-sm text-gray-600">
-                <p class="font-medium mb-2">How to pay:</p>
-                <ol class="list-decimal list-inside space-y-1">
-                    <li>Open your GCash app</li>
-                    <li>Scan the QR code or send to the number above</li>
-                    <li>Enter the exact amount</li>
-                    <li>Complete the payment</li>
-                    <li>Take a screenshot of your receipt</li>
-                </ol>
-            </div>
-
-            <!-- Update the buttons to include verification -->
-            <button onclick="verifyPayment()" class="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 mb-2">
-                Verify Payment
-            </button>
-            
-            <button onclick="hideGcashModal()" class="w-full border border-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-                Close
-            </button>
-        </div>
-    </div>
-</div>
-
-<!-- Update the script section -->
-<script>
-    function showGcashModal() {
-        document.getElementById('gcashModal').classList.remove('hidden');
-        document.getElementById('gcashModal').classList.add('flex');
-    }
-
-    function hideGcashModal() {
-        document.getElementById('gcashModal').classList.add('hidden');
-        document.getElementById('gcashModal').classList.remove('flex');
-    }
-
-    function verifyPayment() {
-        const referenceNumber = document.getElementById('reference_number').value;
-        const screenshot = document.getElementById('payment_screenshot').files[0];
-        
-        if (!referenceNumber) {
-            alert('Please enter the GCash reference number');
-            return;
-        }
-        
-        if (!screenshot) {
-            alert('Please upload a screenshot of your payment');
-            return;
-        }
-        
-        // Here you would typically make an API call to verify the payment
-        // For now, we'll just show a success message
-        alert('Payment verification submitted. We will process your subscription once verified.');
-        hideGcashModal();
-    }
-
-    // Add file preview functionality
-    document.getElementById('payment_screenshot').addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                document.getElementById('preview_image').src = e.target.result;
-                document.getElementById('preview').classList.remove('hidden');
+            fetch('/shop/settings/hours', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                },
+                body: JSON.stringify({ hours: formattedHours })
+            })
+            .then(async response => {
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.message || 'Failed to update hours');
+                }
+                return data;
+            })
+            .then(data => {
+                if (data.success) {
+                    this.showMessage('hours-saved');
+                } else {
+                    alert(data.message || 'Failed to update hours');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert(error.message || 'Failed to update hours. Please try again.');
+            });
+        },
+        updateNotifications() {
+            fetch('/shop/settings/notifications', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                },
+                body: JSON.stringify(this.notifications)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    this.showMessage('notifications-saved');
+                }
+            });
+        },
+        updatePassword() {
+            if (this.security.new_password !== this.security.confirm_password) {
+                alert('New passwords do not match');
+                return;
             }
-            reader.readAsDataURL(file);
+            fetch('/shop/settings/security', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                },
+                body: JSON.stringify(this.security)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    this.showMessage('security-saved');
+                    this.security.current_password = '';
+                    this.security.new_password = '';
+                    this.security.confirm_password = '';
+                }
+            });
         }
-    });
+    }
+}
 </script>
 @endsection 

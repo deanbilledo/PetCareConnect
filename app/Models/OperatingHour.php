@@ -10,6 +10,18 @@ class OperatingHour extends Model
 {
     use HasFactory;
 
+    /**
+     * The table associated with the model.
+     *
+     * @var string
+     */
+    protected $table = 'operating_hours';
+
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array<int, string>
+     */
     protected $fillable = [
         'shop_id',
         'day',
@@ -21,11 +33,21 @@ class OperatingHour extends Model
         'lunch_end'
     ];
 
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array<string, string>
+     */
     protected $casts = [
         'is_open' => 'boolean',
-        'has_lunch_break' => 'boolean'
+        'has_lunch_break' => 'boolean',
+        'open_time' => 'datetime:H:i',
+        'close_time' => 'datetime:H:i'
     ];
 
+    /**
+     * Get the shop that owns the operating hours.
+     */
     public function shop()
     {
         return $this->belongsTo(Shop::class);

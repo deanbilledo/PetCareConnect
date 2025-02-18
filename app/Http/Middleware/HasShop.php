@@ -8,32 +8,27 @@ use Symfony\Component\HttpFoundation\Response;
 
 class HasShop
 {
+    /**
+     * Handle an incoming request.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \Closure  $next
+     * @return mixed
+     */
     public function handle(Request $request, Closure $next): Response
     {
-        if (!auth()->check()) {
+        if (!auth()->check() || !auth()->user()->shop) {
             if ($request->expectsJson()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Please login to access this feature'
-                ], 401);
+                    'message' => 'Unauthorized. Shop access required.'
+                ], 403);
             }
-            return redirect()->route('login')
-                ->with('error', 'Please login to access this feature.');
+            return redirect()->route('home')->with('error', 'Unauthorized. Shop access required.');
         }
 
         $user = auth()->user();
         
-        if (!$user->shop) {
-            if ($request->expectsJson()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'You must have a registered shop to access this resource'
-                ], 403);
-            }
-            return redirect()->route('shop.register.form')
-                ->with('error', 'You need to register a shop first.');
-        }
-
         if ($user->shop->status === 'pending') {
             if ($request->expectsJson()) {
                 return response()->json([

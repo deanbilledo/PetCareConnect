@@ -23,6 +23,7 @@ use App\Http\Controllers\ShopAnalyticsController;
 use App\Http\Controllers\RatingController;
 use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\AdminServicesController;
+use App\Http\Controllers\ShopSettingsController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -276,4 +277,14 @@ Route::prefix('shop/setup')->name('shop.setup.')->middleware(['auth', 'has-shop'
     // Hours setup routes
     Route::get('/hours', [ShopSetupController::class, 'hours'])->name('hours');
     Route::post('/hours', [ShopSetupController::class, 'storeHours'])->name('hours.store');
+});
+
+// Shop Settings Routes
+Route::middleware(['auth', 'verified', 'has-shop'])->group(function () {
+    Route::prefix('shop/settings')->name('shop.settings.')->group(function () {
+        Route::post('/profile', [ShopSettingsController::class, 'updateProfile'])->name('profile.update');
+        Route::post('/hours', [ShopSettingsController::class, 'updateHours'])->name('hours.update');
+        Route::post('/notifications', [ShopSettingsController::class, 'updateNotifications'])->name('notifications.update');
+        Route::post('/security', [ShopSettingsController::class, 'updatePassword'])->name('security.update');
+    });
 });
