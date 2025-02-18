@@ -97,6 +97,7 @@ use Illuminate\Support\Facades\Log;
                 @php 
                     $total = 0;
                     $petServices = $bookingData['pet_services'] ?? [];
+                    $addOns = $bookingData['add_ons'] ?? [];
                 @endphp
                 
                 @if(isset($pets) && $pets->isNotEmpty() && isset($services) && $services->isNotEmpty() && !empty($petServices))
@@ -104,8 +105,6 @@ use Illuminate\Support\Facades\Log;
                         @php
                             $serviceId = $petServices[$pet->id] ?? null;
                             $service = $services->firstWhere('id', $serviceId);
-                            
-                          
                             
                             // Get price based on pet size
                             $price = $service->base_price; // Default to base price
@@ -123,16 +122,25 @@ use Illuminate\Support\Facades\Log;
                                 if ($sizePrice && isset($sizePrice['price'])) {
                                     $price = (float) $sizePrice['price'];
                                 }
-                                
-                                // Debug the price calculation
-                                Log::info('Price Calculation:', [
-                                    'pet_name' => $pet->name,
-                                    'size_category' => $pet->size_category,
-                                    'variable_pricing' => $variablePricing,
-                                    'matched_price' => $sizePrice ?? null,
-                                    'final_price' => $price
-                                ]);
                             }
+
+                            // Calculate add-ons total for this service
+                            $addOnTotal = 0;
+                            $selectedAddOns = $addOns[$pet->id][$service->id] ?? [];
+                            $addOnDetails = [];
+                            if (!empty($selectedAddOns) && !empty($service->add_ons)) {
+                                foreach ($selectedAddOns as $selectedAddOn) {
+                                    foreach ($service->add_ons as $addOn) {
+                                        if ($addOn['name'] === $selectedAddOn) {
+                                            $addOnTotal += (float) $addOn['price'];
+                                            $addOnDetails[] = $addOn;
+                                        }
+                                    }
+                                }
+                            }
+
+                            $serviceTotal = $price + $addOnTotal;
+                            $total += $serviceTotal;
                         @endphp
                         
                         @if($service)
@@ -141,20 +149,48 @@ use Illuminate\Support\Facades\Log;
                             <input type="hidden" name="services[]" value="{{ $service->id }}">
                             <input type="hidden" name="service_prices[]" value="{{ $price }}">
                             
-                            <div class="flex justify-between items-start mb-3">
-                                <div>
-                                    <p class="font-medium">{{ $pet->name }}</p>
-                                    <p class="text-sm text-gray-600">{{ $service->name }}</p>
-                                    <p class="text-xs text-gray-500">
-                                        {{ $service->description }}
-                                        <span class="font-medium">({{ ucfirst($pet->size_category) }} Size)</span>
-                                    </p>
-                                    <!-- Debug output -->
-                                  
+                            @foreach($selectedAddOns as $addOnName)
+                                <input type="hidden" name="add_ons[{{ $pet->id }}][{{ $service->id }}][]" value="{{ $addOnName }}">
+                            @endforeach
+                            
+                            <div class="flex justify-between items-start mb-6">
+                                <div class="flex-grow">
+                                    <div class="flex items-center gap-2">
+                                        <h4 class="font-medium">{{ $pet->name }}</h4>
+                                        <span class="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-full">
+                                            {{ ucfirst($pet->size_category) }} {{ ucfirst($pet->type) }}
+                                        </span>
+                                    </div>
+                                    <div class="mt-2">
+                                        <p class="text-gray-800">{{ $service->name }}</p>
+                                        <p class="text-sm text-gray-600">{{ $service->description }}</p>
+                                        <p class="text-sm text-gray-500 mt-1">Duration: {{ $service->duration }} minutes</p>
+                                        
+                                        @if(!empty($addOnDetails))
+                                            <div class="mt-3">
+                                                <p class="text-sm font-medium text-gray-700">Add-ons:</p>
+                                                <ul class="mt-1 space-y-1">
+                                                    @foreach($addOnDetails as $addOn)
+                                                        <li class="text-sm text-gray-600 flex justify-between">
+                                                            <span>{{ $addOn['name'] }}</span>
+                                                            <span class="text-gray-700">₱{{ number_format($addOn['price'], 2) }}</span>
+                                                        </li>
+                                                    @endforeach
+                                                </ul>
+                                            </div>
+                                        @endif
+                                    </div>
                                 </div>
-                                <p class="font-medium">₱{{ number_format($price, 2) }}</p>
+                                <div class="text-right ml-4">
+                                    <p class="font-medium">Service: ₱{{ number_format($price, 2) }}</p>
+                                    @if($addOnTotal > 0)
+                                        <p class="text-sm text-gray-600">Add-ons: ₱{{ number_format($addOnTotal, 2) }}</p>
+                                        <div class="mt-1 pt-1 border-t border-gray-200">
+                                            <p class="font-medium text-blue-600">Total: ₱{{ number_format($serviceTotal, 2) }}</p>
+                                        </div>
+                                    @endif
+                                </div>
                             </div>
-                            @php $total += $price; @endphp
                         @endif
                     @endforeach
                 @else

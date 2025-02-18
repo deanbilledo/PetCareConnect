@@ -40,6 +40,12 @@ class ShopServicesController extends Controller
                 'exotic_pet_species.*' => 'string',
                 'base_price' => 'required|numeric|min:0',
                 'duration' => 'required|integer|min:15',
+                'variable_pricing' => 'nullable|array',
+                'variable_pricing.*.size' => 'required_with:variable_pricing|string',
+                'variable_pricing.*.price' => 'required_with:variable_pricing|numeric|min:0',
+                'add_ons' => 'nullable|array',
+                'add_ons.*.name' => 'required_with:add_ons|string',
+                'add_ons.*.price' => 'required_with:add_ons|numeric|min:0',
                 'employee_ids' => 'required|array',
                 'employee_ids.*' => 'exists:employees,id'
             ]);
@@ -59,6 +65,10 @@ class ShopServicesController extends Controller
                 $employeeIds = $validated['employee_ids'];
                 unset($validated['employee_ids']);
                 
+                // Ensure variable_pricing is an array
+                $validated['variable_pricing'] = $validated['variable_pricing'] ?? [];
+                
+                // Create the service
                 $service = $shop->services()->create($validated);
                 
                 // Attach employees to the service
@@ -69,7 +79,7 @@ class ShopServicesController extends Controller
                 return response()->json([
                     'success' => true,
                     'message' => 'Service added successfully',
-                    'service' => $service
+                    'service' => $service->fresh(['employees'])
                 ]);
             } catch (\Exception $e) {
                 DB::rollBack();

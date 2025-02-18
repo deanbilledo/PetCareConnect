@@ -143,7 +143,7 @@
                                        x-model="day.has_lunch_break"
                                        class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
                                 <span class="ml-2 text-sm text-gray-600">Include Lunch Break</span>
-                            </label>
+                    </label>
 
                             <div x-show="day.has_lunch_break" class="grid grid-cols-2 gap-4">
                                 <div>
@@ -214,7 +214,7 @@
         </div>
     </div>
 
-    <!-- Security Section -->
+        <!-- Security Section -->
     <div id="security" class="bg-white rounded-lg shadow-md p-6">
         <div class="flex items-center justify-between mb-4">
             <h2 class="text-lg font-semibold">Security Settings</h2>
