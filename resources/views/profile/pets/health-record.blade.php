@@ -7,12 +7,21 @@ use Illuminate\Support\Str;
 @section('content')
 <div class="container mx-auto px-4 py-8">
     <!-- Back Button -->
-    <a href="{{ route('profile.pets.details', $pet->id) }}" class="inline-flex items-center text-gray-600 hover:text-gray-800 mb-6">
+    @if(auth()->user()->shop && auth()->user()->shop->status === 'active')
+        <a href="{{ route('shop.appointments') }}" class="inline-flex items-center text-gray-600 hover:text-gray-800 mb-6 mt-10">
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
             </svg>
-        Back to Pet Details
-    </a>
+            Back to Appointments
+        </a>
+    @else
+        <a href="{{ route('profile.index') }}" class="inline-flex items-center text-gray-600 hover:text-gray-800 mb-6 mt-10">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+            Back to Profile
+        </a>
+    @endif
 
     <!-- Pet Info Header -->
     <div class="bg-white rounded-lg shadow-md p-6 mb-8">
@@ -52,13 +61,23 @@ use Illuminate\Support\Str;
             </div>
             @if(!$pet->isDeceased())
             <div class="ml-auto">
-                <button onclick="window.location.href='{{ route('profile.pets.add-health-record', $pet) }}'" 
-                        class="bg-teal-500 text-white px-4 py-2 rounded-md hover:bg-teal-600 flex items-center">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                    </svg>
-                    Add Health Record
-                </button>
+                @if(auth()->user()->shop && auth()->user()->shop->status === 'active')
+                    <button onclick="window.location.href='{{ route('profile.pets.add-health-record', $pet) }}'" 
+                            class="bg-teal-500 text-white px-4 py-2 rounded-md hover:bg-teal-600 flex items-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        Add Health Record
+                    </button>
+                @else
+                    <button onclick="window.location.href='{{ route('profile.pets.user-add-health-record', $pet) }}'" 
+                            class="bg-teal-500 text-white px-4 py-2 rounded-md hover:bg-teal-600 flex items-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        Add Health Record
+                    </button>
+                @endif
             </div>
             @endif
         </div>

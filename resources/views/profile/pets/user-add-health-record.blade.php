@@ -9,30 +9,15 @@ use Illuminate\Support\Str;
     <div class="bg-white rounded-lg shadow-md p-6">
         <!-- Back Button -->
         <div class="mb-6">
-            @if(auth()->user()->shop && auth()->user()->shop->status === 'active')
-                <a href="{{ route('shop.appointments') }}" class="flex items-center text-gray-600 hover:text-gray-900">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-                    </svg>
-                    Back to Appointments
-                </a>
-            @else
-                <a href="{{ route('profile.pets.health-record', $pet->id) }}" class="flex items-center text-gray-600 hover:text-gray-900">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-                    </svg>
-                    Back to Health Record
-                </a>
-            @endif
+            <a href="{{ route('profile.pets.health-record', $pet->id) }}" class="flex items-center text-gray-600 hover:text-gray-900">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                </svg>
+                Back to Health Record
+            </a>
         </div>
 
-        <h1 class="text-2xl font-bold mb-6">
-            @if(auth()->user()->shop && auth()->user()->shop->status === 'active')
-                Add Health Record for {{ $pet->name }} - {{ auth()->user()->shop->name }}
-            @else
-                Add Health Record for {{ $pet->name }}
-            @endif
-        </h1>
+        <h1 class="text-2xl font-bold mb-6">Add Health Record for {{ $pet->name }}</h1>
 
         <!-- Health Record Forms -->
         <div class="space-y-8">
@@ -50,10 +35,7 @@ use Illuminate\Support\Str;
                 @endif
                 <form action="{{ route('profile.pets.vaccination.store', $pet->id) }}" method="POST" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     @csrf
-                    @if(auth()->user()->shop && auth()->user()->shop->status === 'active')
-                        <input type="hidden" name="redirect_to" value="{{ route('shop.appointments') }}">
-                        <input type="hidden" name="administered_by" value="{{ auth()->user()->shop->name }}">
-                    @endif
+                    <input type="hidden" name="redirect_to" value="{{ route('profile.pets.health-record', $pet->id) }}">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Vaccine Name</label>
                         <input type="text" name="vaccine_name" required value="{{ old('vaccine_name') }}"
@@ -61,17 +43,14 @@ use Illuminate\Support\Str;
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Date Administered</label>
-                        <input type="date" name="administered_date" required value="{{ old('administered_date', now()->format('Y-m-d')) }}"
-                               @if(auth()->user()->shop && auth()->user()->shop->status === 'active') readonly @endif
+                        <input type="date" name="administered_date" required value="{{ old('administered_date') }}"
                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
                     </div>
-                    @if(!auth()->user()->shop || auth()->user()->shop->status !== 'active')
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Administered By</label>
                         <input type="text" name="administered_by" required value="{{ old('administered_by') }}"
                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
                     </div>
-                    @endif
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Next Due Date</label>
                         <input type="date" name="next_due_date" required value="{{ old('next_due_date') }}"
@@ -99,9 +78,7 @@ use Illuminate\Support\Str;
                 @endif
                 <form action="{{ route('profile.pets.parasite-control.store', $pet->id) }}" method="POST" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     @csrf
-                    @if(auth()->user()->shop && auth()->user()->shop->status === 'active')
-                        <input type="hidden" name="redirect_to" value="{{ route('shop.appointments') }}">
-                    @endif
+                    <input type="hidden" name="redirect_to" value="{{ route('profile.pets.health-record', $pet->id) }}">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Treatment Name</label>
                         <input type="text" name="treatment_name" required value="{{ old('treatment_name') }}"
@@ -120,8 +97,7 @@ use Illuminate\Support\Str;
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Treatment Date</label>
-                        <input type="date" name="treatment_date" required value="{{ old('treatment_date', now()->format('Y-m-d')) }}"
-                               @if(auth()->user()->shop && auth()->user()->shop->status === 'active') readonly @endif
+                        <input type="date" name="treatment_date" required value="{{ old('treatment_date') }}"
                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
                     </div>
                     <div>
@@ -151,9 +127,7 @@ use Illuminate\Support\Str;
                 @endif
                 <form action="{{ route('profile.pets.health-issue.store', $pet->id) }}" method="POST" class="grid grid-cols-1 gap-4">
                     @csrf
-                    @if(auth()->user()->shop && auth()->user()->shop->status === 'active')
-                        <input type="hidden" name="redirect_to" value="{{ route('shop.appointments') }}">
-                    @endif
+                    <input type="hidden" name="redirect_to" value="{{ route('profile.pets.health-record', $pet->id) }}">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Issue Title</label>
                         <input type="text" name="issue_title" required value="{{ old('issue_title') }}"
@@ -161,8 +135,7 @@ use Illuminate\Support\Str;
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Date Identified</label>
-                        <input type="date" name="identified_date" required value="{{ old('identified_date', now()->format('Y-m-d')) }}"
-                               @if(auth()->user()->shop && auth()->user()->shop->status === 'active') readonly @endif
+                        <input type="date" name="identified_date" required value="{{ old('identified_date') }}"
                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
                     </div>
                     <div>
@@ -175,19 +148,11 @@ use Illuminate\Support\Str;
                         <input type="text" name="treatment" required value="{{ old('treatment') }}"
                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
                     </div>
-                    @if(auth()->user()->shop && auth()->user()->shop->status === 'active')
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Veterinarian Notes</label>
-                        <textarea name="vet_notes" rows="3" required
-                                  class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">{{ old('vet_notes') }}</textarea>
-                    </div>
-                    @else
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Additional Notes</label>
                         <textarea name="vet_notes" rows="3" 
                                   class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">{{ old('vet_notes') }}</textarea>
                     </div>
-                    @endif
                     <div>
                         <button type="submit" class="bg-teal-500 text-white px-4 py-2 rounded-md hover:bg-teal-600">
                             Add Health Issue Record
@@ -198,4 +163,4 @@ use Illuminate\Support\Str;
         </div>
     </div>
 </div>
-@endsection
+@endsection 

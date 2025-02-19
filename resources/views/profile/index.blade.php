@@ -481,7 +481,7 @@ use Illuminate\Support\Str;
                                             Health
                                         </a>
 
-                                        <a href="{{ route('profile.pets.add-health-record', ['pet' => $pet->id]) }}" 
+                                        <a href="{{ route('profile.pets.user-add-health-record', ['pet' => $pet->id]) }}" 
                                            class="inline-flex items-center gap-1 px-2 py-1 bg-white border border-gray-300 rounded text-xs text-gray-700 hover:bg-gray-50">
                                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
