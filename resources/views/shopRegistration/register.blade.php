@@ -335,25 +335,26 @@ use Illuminate\Support\Facades\Log;
                                     <div class="flex items-center space-x-2">
                                         <!-- Image Preview -->
                                         <div class="relative w-24 h-24 rounded-lg overflow-hidden bg-gray-100">
-                                            <img 
-                                                x-show="formData.shop_image_preview"
-                                                :src="formData.shop_image_preview"
-                                                class="w-full h-full object-cover"
-                                                alt="Shop preview">
-                                            <div 
-                                                x-show="!formData.shop_image_preview"
-                                                class="w-full h-full flex items-center justify-center text-gray-400">
-                                                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                                                </svg>
-                                            </div>
+                                            <template x-if="formData.shop_image_preview">
+                                                <img :src="formData.shop_image_preview"
+                                                     class="w-full h-full object-cover"
+                                                     alt="Shop preview">
+                                            </template>
+                                            <template x-if="!formData.shop_image_preview">
+                                                <div class="w-full h-full flex items-center justify-center text-gray-400">
+                                                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                                    </svg>
+                                                </div>
+                                            </template>
                                         </div>
                                         
                                         <!-- Upload Button -->
                                         <div class="flex-1">
                                             <input type="file" 
+                                                id="shop_image"
                                                 name="shop_image" 
-                                                accept="image/jpeg,image/png,image/jpg"
+                                                accept="image/*"
                                                 @change="const file = $event.target.files[0];
                                                         if (file) {
                                                             formData.shop_image = file;
@@ -518,11 +519,11 @@ use Illuminate\Support\Facades\Log;
 
                         <!-- Step 4: Review -->
                         <div x-show="currentStep === 4" class="min-h-[600px] w-full">
-                            <div class="space-y-6 px-6">
+                            <div class="space-y-6">
                                 <!-- Basic Information Review -->
-                                <div class="bg-gray-50 rounded-lg p-8">
+                                <div class="bg-gray-50 rounded-lg p-6">
                                     <h3 class="text-xl font-semibold text-gray-900 mb-6">Basic Information</h3>
-                                    <div class="grid grid-cols-2 gap-x-12 gap-y-6">
+                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-6">
                                         <div>
                                             <p class="text-sm font-medium text-gray-500">Shop Name</p>
                                             <p class="mt-2 text-lg" x-text="formData.shop_name"></p>
@@ -531,18 +532,29 @@ use Illuminate\Support\Facades\Log;
                                             <p class="text-sm font-medium text-gray-500">Shop Type</p>
                                             <p class="mt-2 text-lg" x-text="formData.shop_type === 'veterinary' ? 'Veterinary Clinic' : 'Grooming Shop'"></p>
                                         </div>
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-500">Shop Image</p>
+                                            <template x-if="formData.shop_image_preview">
+                                                <img :src="formData.shop_image_preview" 
+                                                     class="mt-2 h-24 w-24 object-cover rounded-lg border border-gray-200"
+                                                     alt="Shop preview">
+                                            </template>
+                                            <template x-if="!formData.shop_image_preview">
+                                                <p class="mt-2 text-lg text-gray-400">No image uploaded</p>
+                                            </template>
+                                        </div>
                                     </div>
                                 </div>
 
                                 <!-- Contact Information Review -->
-                                <div class="bg-gray-50 rounded-lg p-8">
+                                <div class="bg-gray-50 rounded-lg p-6">
                                     <h3 class="text-xl font-semibold text-gray-900 mb-6">Contact Information</h3>
-                                    <div class="grid grid-cols-2 gap-x-12 gap-y-6">
+                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-6">
                                         <div>
                                             <p class="text-sm font-medium text-gray-500">Phone Number</p>
                                             <p class="mt-2 text-lg" x-text="formData.phone"></p>
                                         </div>
-                                        <div>
+                                        <div class="md:col-span-2">
                                             <p class="text-sm font-medium text-gray-500">Address</p>
                                             <p class="mt-2 text-lg" x-text="address"></p>
                                         </div>
@@ -550,9 +562,9 @@ use Illuminate\Support\Facades\Log;
                                 </div>
 
                                 <!-- Business Information Review -->
-                                <div class="bg-gray-50 rounded-lg p-8">
+                                <div class="bg-gray-50 rounded-lg p-6">
                                     <h3 class="text-xl font-semibold text-gray-900 mb-6">Business Information</h3>
-                                    <div class="grid grid-cols-2 gap-x-12 gap-y-6">
+                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-6">
                                         <div>
                                             <p class="text-sm font-medium text-gray-500">TIN</p>
                                             <p class="mt-2 text-lg" x-text="formData.tin"></p>
@@ -561,15 +573,15 @@ use Illuminate\Support\Facades\Log;
                                             <p class="text-sm font-medium text-gray-500">VAT Status</p>
                                             <p class="mt-2 text-lg" x-text="formData.vat_status === 'registered' ? 'VAT Registered' : 'Non-VAT Registered'"></p>
                                         </div>
-                                        <div class="col-span-2">
+                                        <div>
                                             <p class="text-sm font-medium text-gray-500">BIR Certificate</p>
-                                            <p class="mt-2 text-lg" x-text="formData.bir_certificate || 'No file selected'"></p>
+                                            <p class="mt-2 text-lg" x-text="formData.bir_certificate ? 'Uploaded' : 'Not uploaded'"></p>
                                         </div>
                                     </div>
                                 </div>
 
                                 <!-- Terms and Conditions -->
-                                <div class="bg-gray-50 rounded-lg p-8">
+                                <div class="bg-gray-50 rounded-lg p-6">
                                     <label class="flex items-start">
                                         <input type="checkbox" 
                                                name="terms" 

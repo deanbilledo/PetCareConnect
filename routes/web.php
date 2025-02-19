@@ -24,6 +24,7 @@ use App\Http\Controllers\RatingController;
 use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\AdminServicesController;
 use App\Http\Controllers\ShopSettingsController;
+use App\Http\Controllers\NotificationController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -66,11 +67,31 @@ Route::middleware(['auth'])->group(function () {
         
         // Setup routes (requires shop and checks setup status)
         Route::middleware([HasShop::class])->group(function () {
-            Route::get('/setup', [ShopSetupController::class, 'welcome'])->name('setup.welcome');
+            // Setup Welcome
+            Route::get('/setup/welcome', [ShopSetupController::class, 'welcome'])->name('setup.welcome');
+            
+            // Setup Details
+            Route::get('/setup/details', [ShopSetupController::class, 'details'])->name('setup.details');
+            Route::post('/setup/details', [ShopSetupController::class, 'storeDetails'])->name('setup.details.store');
+            
+            // Setup Services
             Route::get('/setup/services', [ShopSetupController::class, 'services'])->name('setup.services');
             Route::post('/setup/services', [ShopSetupController::class, 'storeServices'])->name('setup.services.store');
+            
+            // Setup Hours
             Route::get('/setup/hours', [ShopSetupController::class, 'hours'])->name('setup.hours');
             Route::post('/setup/hours', [ShopSetupController::class, 'storeHours'])->name('setup.hours.store');
+            
+            // Setup Employees
+            Route::prefix('setup/employees')->name('setup.employees.')->group(function () {
+                Route::get('/', [ShopEmployeeSetupController::class, 'index'])->name('index');
+                Route::post('/', [ShopEmployeeSetupController::class, 'store'])->name('store');
+                Route::get('/{employee}', [ShopEmployeeSetupController::class, 'show'])->name('show');
+                Route::put('/{employee}', [ShopEmployeeSetupController::class, 'update'])->name('update');
+                Route::delete('/{employee}', [ShopEmployeeSetupController::class, 'destroy'])->name('destroy');
+            });
+
+            // Subscriptions
             Route::get('/subscriptions', [App\Http\Controllers\Shop\SubscriptionController::class, 'index'])->name('subscriptions');
             Route::post('/subscriptions/verify', [App\Http\Controllers\Shop\SubscriptionController::class, 'verifyPayment'])->name('subscriptions.verify');
             Route::post('/subscriptions/cancel', [App\Http\Controllers\Shop\SubscriptionController::class, 'cancel'])->name('subscriptions.cancel');
@@ -203,6 +224,14 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/favorites', [FavoriteController::class, 'index'])->name('favorites.index');
     Route::post('/favorites/{shop}', [FavoriteController::class, 'toggle'])->name('favorites.toggle');
     Route::post('/shops/{shop}/review', [ShopController::class, 'submitReview'])->name('shops.review')->middleware('auth');
+
+    // Notification routes
+    Route::prefix('notifications')->name('notifications.')->group(function () {
+        Route::get('/', [NotificationController::class, 'index'])->name('index');
+        Route::post('/{notification}/mark-as-read', [NotificationController::class, 'markAsRead'])->name('mark-as-read');
+        Route::post('/mark-all-as-read', [NotificationController::class, 'markAllAsRead'])->name('mark-all-as-read');
+        Route::delete('/{notification}', [NotificationController::class, 'destroy'])->name('destroy');
+    });
 });
 
 // Admin routes
@@ -210,9 +239,16 @@ Route::middleware(['auth', IsAdmin::class])->prefix('admin')->name('admin.')->gr
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
     
     // Shop management routes
+    Route::get('/shops', [AdminController::class, 'shops'])->name('shops');
+    Route::get('/shops/{shop}', [AdminController::class, 'show'])->name('shops.show');
     Route::get('/shops/{shop}/edit', [AdminDashboardController::class, 'editShop'])->name('shops.edit');
     Route::put('/shops/{shop}', [AdminDashboardController::class, 'updateShop'])->name('shops.update');
     Route::post('/shops/{shop}/toggle-status', [AdminDashboardController::class, 'toggleShopStatus'])->name('shops.toggle-status');
+    Route::post('/shops/{shop}/approve', [AdminController::class, 'approveShop'])->name('shops.approve');
+    Route::post('/shops/{shop}/reject', [AdminController::class, 'rejectShop'])->name('shops.reject');
+    Route::get('/shops/{shop}/analytics', [AdminController::class, 'getShopAnalytics'])->name('shops.analytics');
+    Route::get('/shops/{shop}/details', [AdminController::class, 'getShopDetails'])->name('shops.details');
+    Route::get('/shops/{shop}/registration-details', [AdminController::class, 'getRegistrationDetails'])->name('shops.registration-details');
     
     // User management routes
     Route::get('/users', [AdminController::class, 'users'])->name('users');
@@ -260,30 +296,6 @@ Route::middleware(['auth', 'has-shop'])->group(function () {
     Route::get('/shop/analytics', [ShopAnalyticsController::class, 'index'])->name('shop.analytics');
 });
 
-// Shop Setup Routes
-Route::prefix('shop/setup')->name('shop.setup.')->middleware(['auth', 'has-shop'])->group(function () {
-    Route::get('/welcome', [ShopSetupController::class, 'welcome'])->name('welcome');
-    
-    // Details setup routes
-    Route::get('/details', [ShopSetupController::class, 'details'])->name('details');
-    Route::post('/details', [ShopSetupController::class, 'storeDetails'])->name('details.store');
-    
-    // Employee setup routes
-    Route::get('/employees', [ShopEmployeeSetupController::class, 'index'])->name('employees');
-    Route::post('/employees', [ShopEmployeeSetupController::class, 'store'])->name('employees.store');
-    Route::get('/employees/{employee}', [ShopEmployeeSetupController::class, 'show'])->name('employees.show');
-    Route::put('/employees/{employee}', [ShopEmployeeSetupController::class, 'update'])->name('employees.update');
-    Route::delete('/employees/{employee}', [ShopEmployeeSetupController::class, 'destroy'])->name('employees.destroy');
-    
-    // Services setup routes
-    Route::get('/services', [ShopSetupController::class, 'services'])->name('services');
-    Route::post('/services', [ShopSetupController::class, 'storeServices'])->name('services.store');
-    
-    // Hours setup routes
-    Route::get('/hours', [ShopSetupController::class, 'hours'])->name('hours');
-    Route::post('/hours', [ShopSetupController::class, 'storeHours'])->name('hours.store');
-});
-
 // Shop Settings Routes
 Route::middleware(['auth', 'verified', 'has-shop'])->group(function () {
     Route::prefix('shop/settings')->name('shop.settings.')->group(function () {
@@ -292,4 +304,11 @@ Route::middleware(['auth', 'verified', 'has-shop'])->group(function () {
         Route::post('/notifications', [ShopSettingsController::class, 'updateNotifications'])->name('notifications.update');
         Route::post('/security', [ShopSettingsController::class, 'updatePassword'])->name('security.update');
     });
+});
+
+// Admin Reports Routes
+Route::middleware(['auth', IsAdmin::class])->group(function () {
+    Route::get('/admin/reports', [App\Http\Controllers\Admin\ReportsController::class, 'index'])->name('admin.reports');
+    Route::get('/admin/reports/filter', [App\Http\Controllers\Admin\ReportsController::class, 'filter'])->name('admin.reports.filter');
+    Route::get('/admin/reports/export/{format}', [App\Http\Controllers\Admin\ReportsController::class, 'export'])->name('admin.reports.export');
 });

@@ -30,15 +30,18 @@
                     </button>
                     <div class="relative">
                         <button id="profileDropdown" class="flex items-center focus:outline-none bg-gray-100 dark:bg-gray-700 p-2 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300">
-                            <img class="h-8 w-8 rounded-full object-cover mr-2" src="../images/01.jpg" alt="Admin">
-                            <span class="hidden md:block mr-1">Christian Jude Faminiano</span>
+                            <img class="h-8 w-8 rounded-full object-cover mr-2" src="{{ auth()->user()->profile_photo_url }}" alt="{{ auth()->user()->name }}">
+                            <span class="hidden md:block mr-1">{{ auth()->user()->name }}</span>
                             <i class="fas fa-chevron-down ml-1"></i>
                         </button>
                         <!-- Dropdown menu (hidden by default) -->
                         <div id="profileMenu" class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-xl z-10 hidden">
-                            <a href="profile.html" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Profile</a>
-                            <a href="settings.html" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Settings</a>
-                            <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Logout</a>
+                            <a href="{{ route('profile.index') }}" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Profile</a>
+                            <a href="{{ route('settings') }}" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Settings</a>
+                            <form method="POST" action="{{ route('logout') }}">
+                                @csrf
+                                <button type="submit" class="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Logout</button>
+                            </form>
                         </div>
                     </div>
                 </div>
@@ -54,14 +57,19 @@
                         <input type="date" class="p-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500" id="endDate">
                         <select class="p-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500" id="shopFilter">
                             <option value="">All Shops</option>
-                            <option value="shop1">Pawsome Grooming</option>
-                            <option value="shop2">Happy Paws</option>
+                            @if(isset($shops) && $shops->count() > 0)
+                                @foreach($shops as $shop)
+                                    <option value="{{ $shop->id }}">{{ $shop->name }}</option>
+                                @endforeach
+                            @endif
                         </select>
                         <select class="p-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500" id="serviceFilter">
                             <option value="">All Services</option>
-                            <option value="grooming">Grooming</option>
-                            <option value="veterinary">Veterinary</option>
-                            <option value="boarding">Boarding</option>
+                            @if(isset($services) && $services->count() > 0)
+                                @foreach($services as $service)
+                                    <option value="{{ $service->id }}">{{ $service->name }}</option>
+                                @endforeach
+                            @endif
                         </select>
                         <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-xl" onclick="applyFilters()">
                             Apply Filters
@@ -75,19 +83,19 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div class="bg-blue-100 dark:bg-blue-900 p-4 rounded-xl">
                             <h4 class="text-blue-800 dark:text-blue-200 font-semibold">Total Revenue</h4>
-                            <p class="text-2xl font-bold">₱1,250,000</p>
+                            <p class="text-2xl font-bold">₱{{ number_format($totalRevenue, 2) }}</p>
                         </div>
                         <div class="bg-green-100 dark:bg-green-900 p-4 rounded-xl">
                             <h4 class="text-green-800 dark:text-green-200 font-semibold">Platform Commission</h4>
-                            <p class="text-2xl font-bold">₱187,500</p>
+                            <p class="text-2xl font-bold">₱{{ number_format($platformCommission, 2) }}</p>
                         </div>
                         <div class="bg-yellow-100 dark:bg-yellow-900 p-4 rounded-xl">
                             <h4 class="text-yellow-800 dark:text-yellow-200 font-semibold">Total Refunds</h4>
-                            <p class="text-2xl font-bold">₱15,000</p>
+                            <p class="text-2xl font-bold">₱{{ number_format($totalRefunds, 2) }}</p>
                         </div>
                         <div class="bg-purple-100 dark:bg-purple-900 p-4 rounded-xl">
                             <h4 class="text-purple-800 dark:text-purple-200 font-semibold">Net Profit</h4>
-                            <p class="text-2xl font-bold">₱172,500</p>
+                            <p class="text-2xl font-bold">₱{{ number_format($netProfit, 2) }}</p>
                         </div>
                     </div>
                     <div class="mt-6 h-64">
@@ -101,15 +109,15 @@
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                         <div class="bg-green-100 dark:bg-green-900 p-4 rounded-xl">
                             <h4 class="text-green-800 dark:text-green-200 font-semibold">Completed Appointments</h4>
-                            <p class="text-2xl font-bold">1,250</p>
+                            <p class="text-2xl font-bold">{{ $completedAppointments }}</p>
                         </div>
                         <div class="bg-yellow-100 dark:bg-yellow-900 p-4 rounded-xl">
                             <h4 class="text-yellow-800 dark:text-yellow-200 font-semibold">Pending Appointments</h4>
-                            <p class="text-2xl font-bold">150</p>
+                            <p class="text-2xl font-bold">{{ $pendingAppointments }}</p>
                         </div>
                         <div class="bg-red-100 dark:bg-red-900 p-4 rounded-xl">
                             <h4 class="text-red-800 dark:text-red-200 font-semibold">Canceled Appointments</h4>
-                            <p class="text-2xl font-bold">75</p>
+                            <p class="text-2xl font-bold">{{ $canceledAppointments }}</p>
                         </div>
                     </div>
                     <div class="h-64">
@@ -132,16 +140,17 @@
                                 </tr>
                             </thead>
                             <tbody>
+                                @foreach($topShops as $shop)
                                 <tr class="border-b dark:border-gray-700">
-                                    <td class="px-4 py-2">Pawsome Grooming</td>
-                                    <td class="px-4 py-2">₱250,000</td>
-                                    <td class="px-4 py-2">500</td>
-                                    <td class="px-4 py-2">4.8 <i class="fas fa-star text-yellow-400"></i></td>
+                                    <td class="px-4 py-2">{{ $shop->name }}</td>
+                                    <td class="px-4 py-2">₱{{ number_format($shop->total_revenue, 2) }}</td>
+                                    <td class="px-4 py-2">{{ $shop->appointments_count }}</td>
+                                    <td class="px-4 py-2">{{ number_format($shop->average_rating, 1) }} <i class="fas fa-star text-yellow-400"></i></td>
                                     <td class="px-4 py-2">
-                                        <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded-lg">View Details</button>
+                                        <a href="{{ route('admin.shops.show', $shop->id) }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded-lg">View Details</a>
                                     </td>
                                 </tr>
-                                <!-- Add more rows as needed -->
+                                @endforeach
                             </tbody>
                         </table>
                     </div>
@@ -174,42 +183,55 @@
             document.getElementById('profileMenu').classList.toggle('hidden');
         });
 
-        // Function to apply filters (to be implemented)
+        // Function to apply filters
         function applyFilters() {
-            // Implement filter logic here
-            console.log('Applying filters...');
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            const shopId = document.getElementById('shopFilter').value;
+            const serviceId = document.getElementById('serviceFilter').value;
+
+            // Make AJAX request to update the data
+            fetch(`{{ route('admin.reports.filter') }}?start_date=${startDate}&end_date=${endDate}&shop_id=${shopId}&service_id=${serviceId}`)
+                .then(response => response.json())
+                .then(data => {
+                    updateCharts(data);
+                    updateStats(data);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('There was an error updating the reports. Please try again.');
+                });
         }
 
-        // Mock data for charts
-        const revenueData = {
-            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-            datasets: [{
-                label: 'Revenue',
-                data: [65000, 59000, 80000, 81000, 56000, 55000],
-                borderColor: 'rgb(75, 192, 192)',
-                tension: 0.1
-            }]
-        };
-
-        const appointmentData = {
-            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-            datasets: [{
-                label: 'Completed',
-                data: [65, 59, 80, 81, 56, 55],
-                backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                borderColor: 'rgb(75, 192, 192)',
-                borderWidth: 1
-            }, {
-                label: 'Canceled',
-                data: [28, 48, 40, 19, 86, 27],
-                backgroundColor: 'rgba(255, 99, 132, 0.2)',
-                borderColor: 'rgb(255, 99, 132)',
-                borderWidth: 1
-            }]
-        };
-
-        // Create charts
+        // Create charts with dynamic data
         window.addEventListener('load', function() {
+            const revenueData = {
+                labels: @json($revenueChartData['labels']),
+                datasets: [{
+                    label: 'Revenue',
+                    data: @json($revenueChartData['data']),
+                    borderColor: 'rgb(75, 192, 192)',
+                    tension: 0.1
+                }]
+            };
+
+            const appointmentData = {
+                labels: @json($appointmentChartData['labels']),
+                datasets: [{
+                    label: 'Completed',
+                    data: @json($appointmentChartData['completed']),
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    borderColor: 'rgb(75, 192, 192)',
+                    borderWidth: 1
+                }, {
+                    label: 'Canceled',
+                    data: @json($appointmentChartData['canceled']),
+                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                    borderColor: 'rgb(255, 99, 132)',
+                    borderWidth: 1
+                }]
+            };
+
             const ctx1 = document.getElementById('revenueChart').getContext('2d');
             new Chart(ctx1, {
                 type: 'line',
@@ -243,9 +265,48 @@
             });
         });
 
-        // Function to export reports (to be implemented)
+        // Function to export reports
         function exportReport(format) {
-            // Implement export logic here
-            console.log(`Exporting report as ${format}...`);
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            const shopId = document.getElementById('shopFilter').value;
+            const serviceId = document.getElementById('serviceFilter').value;
+
+            const params = new URLSearchParams({
+                start_date: startDate,
+                end_date: endDate,
+                shop_id: shopId,
+                service_id: serviceId
+            });
+
+            window.location.href = `{{ route('admin.reports.export', '') }}/${format}?${params.toString()}`;
+        }
+
+        // Function to update charts with new data
+        function updateCharts(data) {
+            // Update revenue chart
+            revenueChart.data.labels = data.revenueChartData.labels;
+            revenueChart.data.datasets[0].data = data.revenueChartData.data;
+            revenueChart.update();
+
+            // Update appointment chart
+            appointmentChart.data.labels = data.appointmentChartData.labels;
+            appointmentChart.data.datasets[0].data = data.appointmentChartData.completed;
+            appointmentChart.data.datasets[1].data = data.appointmentChartData.canceled;
+            appointmentChart.update();
+        }
+
+        // Function to update statistics
+        function updateStats(data) {
+            document.querySelector('.total-revenue').textContent = `₱${data.totalRevenue.toLocaleString()}`;
+            document.querySelector('.platform-commission').textContent = `₱${data.platformCommission.toLocaleString()}`;
+            document.querySelector('.total-refunds').textContent = `₱${data.totalRefunds.toLocaleString()}`;
+            document.querySelector('.net-profit').textContent = `₱${data.netProfit.toLocaleString()}`;
+            
+            document.querySelector('.completed-appointments').textContent = data.completedAppointments;
+            document.querySelector('.pending-appointments').textContent = data.pendingAppointments;
+            document.querySelector('.canceled-appointments').textContent = data.canceledAppointments;
         }
     </script>
+</body>
+</html>

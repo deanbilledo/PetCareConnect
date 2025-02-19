@@ -142,8 +142,13 @@ class Shop extends Model
     /**
      * Get the subscriptions for the shop.
      */
-    public function subscriptions(): HasMany
+    public function subscriptions()
     {
         return $this->hasMany(Subscription::class);
+    }
+
+    public function latestSubscription()
+    {
+        return $this->hasOne(Subscription::class)->latest();
     }
 } 

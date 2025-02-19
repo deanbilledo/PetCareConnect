@@ -130,4 +130,47 @@ class User extends Authenticatable
     {
         return $this->hasMany(Rating::class);
     }
+
+    /**
+     * Get all notifications for the user.
+     */
+    public function notifications()
+    {
+        return $this->morphMany(Notification::class, 'notifiable')->latest();
+    }
+
+    /**
+     * Get unread notifications for the user.
+     */
+    public function unreadNotifications()
+    {
+        return $this->notifications()->unread();
+    }
+
+    /**
+     * Create a new notification for the user.
+     */
+    public function notify($type, $title, $message, $actionUrl = null, $actionText = null, $icon = null)
+    {
+        return $this->notifications()->create([
+            'type' => $type,
+            'title' => $title,
+            'message' => $message,
+            'action_url' => $actionUrl,
+            'action_text' => $actionText,
+            'icon' => $icon,
+            'status' => 'unread'
+        ]);
+    }
+
+    /**
+     * Mark all notifications as read.
+     */
+    public function markAllNotificationsAsRead()
+    {
+        $this->unreadNotifications()->update([
+            'status' => 'read',
+            'read_at' => now()
+        ]);
+    }
 }

@@ -12,6 +12,7 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('shop_id');
             $table->string('status')->default('trial'); // trial, active, expired, cancelled
+            $table->timestamp('trial_starts_at')->nullable();
             $table->timestamp('trial_ends_at')->nullable();
             $table->timestamp('subscription_starts_at')->nullable();
             $table->timestamp('subscription_ends_at')->nullable();
@@ -21,19 +22,12 @@ return new class extends Migration
             $table->string('payment_status')->default('pending'); // pending, verified, rejected
             $table->timestamps();
 
-            // Add index first
-            $table->index('shop_id');
+            // Add index and foreign key in the same statement
+            $table->foreign('shop_id')
+                ->references('id')
+                ->on('shops')
+                ->onDelete('cascade');
         });
-
-        // Add foreign key in a separate statement
-        if (Schema::hasTable('shops')) {
-            Schema::table('subscriptions', function (Blueprint $table) {
-                $table->foreign('shop_id')
-                    ->references('id')
-                    ->on('shops')
-                    ->onDelete('cascade');
-            });
-        }
     }
 
     public function down()

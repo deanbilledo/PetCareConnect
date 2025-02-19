@@ -12,6 +12,7 @@ class Subscription extends Model
     protected $fillable = [
         'shop_id',
         'status',
+        'trial_starts_at',
         'trial_ends_at',
         'subscription_ends_at',
         'subscription_starts_at',
@@ -22,6 +23,7 @@ class Subscription extends Model
     ];
 
     protected $casts = [
+        'trial_starts_at' => 'datetime',
         'trial_ends_at' => 'datetime',
         'subscription_ends_at' => 'datetime',
         'subscription_starts_at' => 'datetime',
