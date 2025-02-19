@@ -95,49 +95,58 @@
 
     <!-- Schedule & Availability Tab -->
     <div x-show="currentTab === 'schedule'" x-cloak>
-        <div class="bg-white rounded-lg shadow-md p-6">
-            <div class="grid grid-cols-12 gap-6">
-                <!-- Calendar Section (9 columns) -->
-                <div class="col-span-9">
-                    <div class="mb-4 flex justify-between items-center">
-                        <div>
-                            <h2 class="text-lg font-semibold">Work Schedule</h2>
-                            <p class="text-sm text-gray-600">Manage shifts and view appointments</p>
-                        </div>
-                        <div class="flex items-center space-x-4">
-                            <select x-model="selectedEmployee" @change="loadEvents" class="rounded-md border-gray-300">
-                                <option value="">All Employees</option>
-                                @foreach($employees as $employee)
-                                    <option value="{{ $employee->id }}">{{ $employee->name }}</option>
-                                @endforeach
-                            </select>
-                            <div class="flex space-x-2">
-                                <button @click="calendarView = 'timeGridWeek'" 
-                                        :class="{'bg-blue-500 text-white': calendarView === 'timeGridWeek', 'bg-gray-100': calendarView !== 'timeGridWeek'}"
-                                        class="px-3 py-1 rounded">
-                                    Week
-                                </button>
-                                <button @click="calendarView = 'dayGridMonth'" 
-                                        :class="{'bg-blue-500 text-white': calendarView === 'dayGridMonth', 'bg-gray-100': calendarView !== 'dayGridMonth'}"
-                                        class="px-3 py-1 rounded">
-                                    Month
-                                </button>
-                            </div>
+        <div class="bg-white rounded-lg shadow-md">
+            <!-- Header Section with Controls -->
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
+                    <div>
+                        <h2 class="text-xl font-semibold text-gray-900">Work Schedule</h2>
+                        <p class="text-sm text-gray-600">Manage employee shifts and availability</p>
+                    </div>
+                    <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
+                        <select x-model="selectedEmployee" 
+                                @change="loadEvents" 
+                                class="rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">All Employees</option>
+                            @foreach($employees as $employee)
+                                <option value="{{ $employee->id }}">{{ $employee->name }}</option>
+                            @endforeach
+                        </select>
+                        <div class="flex space-x-2">
+                            <button @click="calendarView = 'timeGridWeek'" 
+                                    :class="{'bg-blue-600 text-white': calendarView === 'timeGridWeek', 
+                                            'bg-gray-100 text-gray-700': calendarView !== 'timeGridWeek'}"
+                                    class="px-4 py-2 rounded-md transition-colors duration-150">
+                                Week
+                            </button>
+                            <button @click="calendarView = 'dayGridMonth'" 
+                                    :class="{'bg-blue-600 text-white': calendarView === 'dayGridMonth', 
+                                            'bg-gray-100 text-gray-700': calendarView !== 'dayGridMonth'}"
+                                    class="px-4 py-2 rounded-md transition-colors duration-150">
+                                Month
+                            </button>
                         </div>
                     </div>
-                    <div id="calendar" class="min-h-[600px]"></div>
+                </div>
+            </div>
+
+            <!-- Main Content Grid -->
+            <div class="grid grid-cols-12 gap-6 p-6">
+                <!-- Calendar Section (8 columns) -->
+                <div class="col-span-12 lg:col-span-8">
+                    <div id="calendar" class="bg-white rounded-lg shadow-sm p-4 min-h-[600px]"></div>
                 </div>
 
-                <!-- Sidebar (3 columns) -->
-                <div class="col-span-3 border-l pl-6">
-                    <!-- Employee Availability Section -->
-                    <div class="mb-6">
-                        <h3 class="text-lg font-semibold mb-4">Availability Settings</h3>
+                <!-- Sidebar Settings (4 columns) -->
+                <div class="col-span-12 lg:col-span-4 space-y-6">
+                    <!-- Availability Settings Card -->
+                    <div class="bg-white rounded-lg shadow-sm p-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Availability Settings</h3>
                         <div class="space-y-4">
-                            @foreach(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] as $index => $day)
-                            <div class="border-b pb-2">
-                                <div class="flex justify-between items-center mb-2">
-                                    <span class="font-medium">{{ $day }}</span>
+                            @foreach(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] as $day)
+                            <div class="p-4 bg-gray-50 rounded-lg">
+                                <div class="flex justify-between items-center mb-3">
+                                    <span class="font-medium text-gray-900">{{ $day }}</span>
                                     <label class="flex items-center">
                                         <input type="checkbox" 
                                                data-day="{{ strtolower($day) }}"
@@ -146,10 +155,10 @@
                                         <span class="ml-2 text-sm text-gray-600">Available</span>
                                     </label>
                                 </div>
-                                <div class="flex space-x-2 items-center text-sm">
+                                <div class="flex items-center space-x-3">
                                     <select data-day="{{ strtolower($day) }}" 
                                             data-type="start"
-                                            class="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                            class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
                                         @foreach(range(6, 22) as $hour)
                                             <option value="{{ sprintf('%02d:00', $hour) }}">{{ sprintf('%02d:00', $hour) }}</option>
                                         @endforeach
@@ -157,7 +166,7 @@
                                     <span class="text-gray-500">to</span>
                                     <select data-day="{{ strtolower($day) }}" 
                                             data-type="end"
-                                            class="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                            class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
                                         @foreach(range(6, 22) as $hour)
                                             <option value="{{ sprintf('%02d:00', $hour) }}" 
                                                     {{ $hour === 17 ? 'selected' : '' }}>
@@ -170,34 +179,65 @@
                             @endforeach
                         </div>
                         <button @click="saveAvailability()" 
-                                class="mt-4 w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                                class="mt-6 w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-150">
                             Save Availability
                         </button>
                     </div>
 
-                    <!-- Time Off Section -->
-                    <div>
-                        <h3 class="text-lg font-semibold mb-4">Employee Time Off</h3>
-                        <button @click="showTimeOffModal = true" 
-                                class="w-full flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-                            Set Employee Time Off
-                        </button>
-                        <div class="mt-4 space-y-3">
-                            <template x-for="timeOff in timeOffList" :key="timeOff.id">
-                                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-md">
-                                    <div>
-                                        <p class="text-sm font-medium">
-                                            <span x-text="timeOff.employee_name"></span>
-                                        </p>
-                                        <p class="text-xs text-gray-600" x-text="timeOff.dates"></p>
-                                        <p class="text-xs text-gray-500" x-text="timeOff.reason"></p>
-                                    </div>
-                                    <button @click="deleteTimeOff(timeOff.id)" 
-                                            class="text-xs text-red-600 hover:text-red-800">
-                                        Delete
-                                    </button>
-                                </div>
-                            </template>
+                    <!-- Time Off Management Card -->
+                    <div class="bg-white rounded-lg shadow-sm p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-semibold text-gray-900">Time Off Management</h3>
+                            <button @click="showTimeOffModal = true" 
+                                    class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-150">
+                                Add Time Off
+                            </button>
+                        </div>
+                        
+                        <div class="overflow-hidden rounded-lg border border-gray-200">
+                            <!-- Debug info -->
+                            <div class="p-2 space-y-1 text-sm text-gray-500 border-b border-gray-200">
+                                <div x-text="'Total entries: ' + timeOffList.length"></div>
+                                <div x-text="'Current tab: ' + currentTab"></div>
+                                <div x-text="'Data loaded: ' + (timeOffList ? 'Yes' : 'No')"></div>
+                            </div>
+                            
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Employee</th>
+                                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Dates</th>
+                                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    <template x-for="(timeOff, index) in timeOffList" :key="timeOff.id || index">
+                                        <tr class="hover:bg-gray-50">
+                                            <td class="px-4 py-3 whitespace-nowrap">
+                                                <div class="text-sm font-medium text-gray-900" x-text="timeOff.employee_name || 'Unknown'"></div>
+                                            </td>
+                                            <td class="px-4 py-3 whitespace-nowrap">
+                                                <div class="text-sm text-gray-900">
+                                                    <div x-text="timeOff.start_date ? new Date(timeOff.start_date).toLocaleDateString() : 'Invalid date'"></div>
+                                                    <div class="text-gray-500" x-text="timeOff.end_date ? 'to ' + new Date(timeOff.end_date).toLocaleDateString() : ''"></div>
+                                                </div>
+                                            </td>
+                                            <td class="px-4 py-3 whitespace-nowrap text-right text-sm">
+                                                <button @click="deleteTimeOff(timeOff.id)" 
+                                                        class="text-red-600 hover:text-red-900 focus:outline-none"
+                                                        x-show="timeOff.id">
+                                                    Delete
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    </template>
+                                    <tr x-show="timeOffList.length === 0">
+                                        <td colspan="3" class="px-4 py-3 text-center text-sm text-gray-500">
+                                            No time off entries found. Click "Add Time Off" to create one.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -451,6 +491,9 @@ function employeeManager() {
         },
 
         init() {
+            console.log('Component initialized'); // Debug log
+            this.loadTimeOffList(); // Ensure timeOffList is loaded on initialization
+            
             if (this.currentTab === 'schedule') {
                 this.$nextTick(() => {
                     if (!this.calendar && document.getElementById('calendar')) {
@@ -474,8 +517,6 @@ function employeeManager() {
                     this.calendar.changeView(value);
                 }
             });
-
-            this.loadTimeOffList();
         },
 
         initializeCalendar() {
@@ -748,19 +789,33 @@ function employeeManager() {
 
         async loadTimeOffList() {
             try {
+                console.log('Fetching time off list...'); // Debug log
                 const response = await fetch('/shop/schedule/time-off');
-                if (!response.ok) {
-                    throw new Error('Failed to load time off list');
-                }
+                
+                console.log('Response status:', response.status); // Debug log
                 const data = await response.json();
-                this.timeOffList = data.timeOff.map(item => ({
-                    id: item.id,
-                    employee_name: item.employee.name,
-                    dates: `${new Date(item.start_date).toLocaleDateString()} - ${new Date(item.end_date).toLocaleDateString()}`,
-                    reason: item.reason
-                }));
+                console.log('Raw API response:', data); // Debug log
+
+                if (!data.timeOff || !Array.isArray(data.timeOff)) {
+                    console.error('Invalid data format received:', data);
+                    return;
+                }
+
+                this.timeOffList = data.timeOff.map(item => {
+                    console.log('Processing item:', item); // Debug log
+                    return {
+                        id: item.id,
+                        employee_name: item.employee?.name || 'Unknown Employee',
+                        start_date: item.start,
+                        end_date: item.end,
+                        reason: item.reason || ''
+                    };
+                });
+                
+                console.log('Final timeOffList:', this.timeOffList); // Debug log
             } catch (error) {
-                console.error('Error loading time off list:', error);
+                console.error('Error in loadTimeOffList:', error);
+                this.timeOffList = []; // Ensure timeOffList is initialized even on error
             }
         },
 

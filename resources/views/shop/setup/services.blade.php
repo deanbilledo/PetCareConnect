@@ -133,6 +133,32 @@
                                                class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
                                     </div>
                                 </div>
+
+                                <!-- Variable Pricing -->
+                                <div class="mt-4">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <label class="block text-gray-700 text-sm font-bold">Variable Pricing</label>
+                                        <button type="button" 
+                                                onclick="addVariablePricing(0)" 
+                                                class="text-sm text-blue-600 hover:text-blue-800">
+                                            + Add Price
+                                        </button>
+                                    </div>
+                                    <div class="variable-pricing-container"></div>
+                                </div>
+
+                                <!-- Add-ons -->
+                                <div class="mt-4">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <label class="block text-gray-700 text-sm font-bold">Add-ons</label>
+                                        <button type="button" 
+                                                onclick="addAddOn(0)" 
+                                                class="text-sm text-blue-600 hover:text-blue-800">
+                                            + Add Service
+                                        </button>
+                                    </div>
+                                    <div class="add-ons-container"></div>
+                                </div>
                             </div>
 
                             <!-- Employee Assignment Section -->
@@ -220,25 +246,106 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Handle form submission
     document.getElementById('servicesForm').addEventListener('submit', function(e) {
-        // Remove exotic pet species inputs for unchecked exotic pet services
-        document.querySelectorAll('.service-item').forEach(serviceItem => {
-            const exoticPetCheckbox = serviceItem.querySelector('.exotic-pet-checkbox');
-            const exoticSpeciesInputs = serviceItem.querySelectorAll('input[name*="exotic_pet_species"]');
+        e.preventDefault();
+        
+        let isValid = true;
+        const services = document.querySelectorAll('.service-item');
+        
+        services.forEach((service, serviceIndex) => {
+            // Exotic Pet Service Validation
+            const exoticPetCheckbox = service.querySelector('.exotic-pet-checkbox');
+            const exoticSpeciesContainer = service.querySelector('.exotic-species-container');
             
-            if (!exoticPetCheckbox.checked) {
-                exoticSpeciesInputs.forEach(input => {
-                    input.disabled = true;
+            if (exoticPetCheckbox) {
+                if (exoticPetCheckbox.checked) {
+                    // Validate and enable exotic pet species inputs
+                    const speciesInputs = exoticSpeciesContainer.querySelectorAll('input[type="text"]');
+                    let hasValidSpecies = false;
+                    
+                    speciesInputs.forEach(input => {
+                        input.disabled = false;
+                        if (input.value.trim()) {
+                            hasValidSpecies = true;
+                            input.classList.remove('border-red-500');
+                        } else {
+                            input.classList.add('border-red-500');
+                        }
+                    });
+                    
+                    if (!hasValidSpecies) {
+                        isValid = false;
+                        alert('Please enter at least one exotic pet species');
+                    }
+                } else {
+                    // Disable all exotic pet species inputs when checkbox is unchecked
+                    exoticSpeciesContainer.querySelectorAll('input[type="text"]').forEach(input => {
+                        input.disabled = true;
+                    });
+                }
+            }
+
+            // Variable Pricing Validation
+            const variablePricingContainer = service.querySelector('.variable-pricing-container');
+            const variablePricingRows = variablePricingContainer.querySelectorAll('.variable-pricing-row');
+            
+            if (variablePricingRows.length > 0) {
+                const variablePricing = [];
+                const usedSizes = new Set();
+                
+                variablePricingRows.forEach((row, index) => {
+                    const sizeSelect = row.querySelector('select[name*="variable_pricing"][name*="size"]');
+                    const priceInput = row.querySelector('input[name*="variable_pricing"][name*="price"]');
+                    
+                    // Reset error states
+                    sizeSelect.classList.remove('border-red-500');
+                    priceInput.classList.remove('border-red-500');
+                    
+                    // Validate size
+                    if (!sizeSelect.value) {
+                        isValid = false;
+                        sizeSelect.classList.add('border-red-500');
+                        alert(`Please select a size for variable pricing row ${index + 1}`);
+                    } else if (usedSizes.has(sizeSelect.value)) {
+                        isValid = false;
+                        sizeSelect.classList.add('border-red-500');
+                        alert(`Size ${sizeSelect.value} is already used in variable pricing`);
+                    } else {
+                        usedSizes.add(sizeSelect.value);
+                    }
+                    
+                    // Validate price
+                    if (!priceInput.value || parseFloat(priceInput.value) <= 0) {
+                        isValid = false;
+                        priceInput.classList.add('border-red-500');
+                        alert(`Please enter a valid price for ${sizeSelect.value || 'selected'} size`);
+                    }
+                    
+                    // Update input names to ensure proper array structure
+                    sizeSelect.name = `services[${serviceIndex}][variable_pricing][${index}][size]`;
+                    priceInput.name = `services[${serviceIndex}][variable_pricing][${index}][price]`;
                 });
             }
         });
+        
+        if (isValid) {
+            this.submit();
+        }
     });
 
     // Handle exotic pet service checkboxes
     document.addEventListener('change', function(e) {
         if (e.target.matches('.exotic-pet-checkbox')) {
             const section = e.target.closest('.service-item').querySelector('.exotic-species-section');
+            const inputs = section.querySelectorAll('input[type="text"]');
+            
             if (section) {
                 section.style.display = e.target.checked ? 'block' : 'none';
+                inputs.forEach(input => {
+                    input.disabled = !e.target.checked;
+                    if (!e.target.checked) {
+                        input.value = ''; // Clear values when unchecked
+                    }
+                });
             }
         }
     });
@@ -255,6 +362,108 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize remove buttons
     updateRemoveButtons();
 });
+
+function addVariablePricing(serviceIndex) {
+    const container = event.target.closest('.service-item').querySelector('.variable-pricing-container');
+    
+    // Get selected size ranges
+    const selectedSizes = Array.from(
+        event.target.closest('.service-item').querySelectorAll('input[name*="size_ranges"]:checked')
+    ).map(input => input.value);
+    
+    if (selectedSizes.length === 0) {
+        alert('Please select at least one size range before adding variable pricing');
+        return;
+    }
+    
+    // Get already used sizes
+    const usedSizes = Array.from(
+        container.querySelectorAll('select[name*="variable_pricing"][name*="size"]')
+    ).map(select => select.value);
+    
+    // Filter out already used sizes
+    const availableSizes = selectedSizes.filter(size => !usedSizes.includes(size));
+    
+    if (availableSizes.length === 0) {
+        alert('All selected sizes already have pricing set');
+        return;
+    }
+    
+    const rowIndex = container.children.length;
+    const newRow = document.createElement('div');
+    newRow.className = 'variable-pricing-row flex items-center space-x-2 mb-2';
+    newRow.innerHTML = `
+        <select name="services[${serviceIndex}][variable_pricing][${rowIndex}][size]"
+                required
+                class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            <option value="">Select Size</option>
+            ${availableSizes.map(size => 
+                `<option value="${size}">${size.charAt(0).toUpperCase() + size.slice(1)}</option>`
+            ).join('')}
+        </select>
+        <input type="number" 
+               name="services[${serviceIndex}][variable_pricing][${rowIndex}][price]"
+               required
+               step="0.01" 
+               min="0" 
+               placeholder="Price" 
+               class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+        <button type="button" 
+                onclick="removeVariablePricing(this)" 
+                class="text-red-600 hover:text-red-800">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+            </svg>
+        </button>
+    `;
+    container.appendChild(newRow);
+}
+
+function removeVariablePricing(button) {
+    const row = button.closest('.variable-pricing-row');
+    const container = row.parentElement;
+    row.remove();
+    
+    // Reindex remaining rows
+    container.querySelectorAll('.variable-pricing-row').forEach((row, index) => {
+        const sizeSelect = row.querySelector('select[name*="variable_pricing"]');
+        const priceInput = row.querySelector('input[name*="variable_pricing"]');
+        const serviceIndex = row.closest('.service-item').getAttribute('data-index') || 0;
+        
+        sizeSelect.name = `services[${serviceIndex}][variable_pricing][${index}][size]`;
+        priceInput.name = `services[${serviceIndex}][variable_pricing][${index}][price]`;
+    });
+}
+
+function addAddOn(serviceIndex) {
+    const container = event.target.closest('.service-item').querySelector('.add-ons-container');
+    const newRow = document.createElement('div');
+    newRow.className = 'add-on-row flex items-center space-x-2 mb-2';
+    newRow.innerHTML = `
+        <input type="text" 
+               name="services[${serviceIndex}][add_ons][][name]"
+               placeholder="Add-on Name"
+               class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+        <input type="number" 
+               name="services[${serviceIndex}][add_ons][][price]"
+               step="0.01" 
+               min="0" 
+               placeholder="Price" 
+               class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+        <button type="button" 
+                onclick="removeAddOn(this)" 
+                class="text-red-600 hover:text-red-800">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+            </svg>
+        </button>
+    `;
+    container.appendChild(newRow);
+}
+
+function removeAddOn(button) {
+    button.closest('.add-on-row').remove();
+}
 
 function addService() {
     const container = document.getElementById('servicesContainer');
@@ -287,6 +496,10 @@ function addService() {
         }
     }
 
+    // Reset variable pricing and add-ons containers
+    template.querySelector('.variable-pricing-container').innerHTML = '';
+    template.querySelector('.add-ons-container').innerHTML = '';
+
     // Set data-index attribute
     template.setAttribute('data-index', serviceCount);
 
@@ -296,14 +509,19 @@ function addService() {
 
 function addSpeciesField(container, serviceIndex) {
     const newField = document.createElement('div');
-    newField.className = 'flex items-center space-x-2';
+    newField.className = 'flex items-center space-x-2 mt-2';
     newField.innerHTML = `
         <input type="text" 
                name="services[${serviceIndex}][exotic_pet_species][]" 
                class="shadow appearance-none border rounded py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-               placeholder="Enter species name">
-        <button type="button" onclick="removeSpeciesField(this)" class="text-red-600 hover:text-red-800">
-            Remove
+               placeholder="Enter species name"
+               ${container.closest('.service-item').querySelector('.exotic-pet-checkbox').checked ? '' : 'disabled'}>
+        <button type="button" 
+                onclick="removeSpeciesField(this)" 
+                class="text-red-600 hover:text-red-800">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
         </button>
     `;
     container.appendChild(newField);

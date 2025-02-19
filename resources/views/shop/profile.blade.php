@@ -274,41 +274,54 @@
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-xl font-semibold">Photo Gallery</h2>
                 <!-- Add Photo Button -->
-                <button type="button"
-                        class="inline-flex items-center px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                    </svg>
-                    Add Photo
-                </button>
+                <form action="{{ route('shop.gallery.upload') }}" 
+                      method="POST" 
+                      enctype="multipart/form-data" 
+                      class="inline">
+                    @csrf
+                    <label class="inline-flex items-center px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors cursor-pointer">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        Add Photo
+                        <input type="file" 
+                               name="gallery_photo" 
+                               accept="image/*" 
+                               class="hidden"
+                               onchange="this.form.submit()">
+                    </label>
+                </form>
             </div>
             
             <!-- Gallery Grid -->
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                <!-- Image 1 -->
-                <div class="relative group cursor-pointer" onclick="openGalleryModal(0)">
-                    <img src="{{ asset('images/gallery/grooming1.jpg') }}" 
-                         alt="Gallery Image 1" 
-                         class="w-full h-48 object-cover rounded-lg transition-transform duration-300 group-hover:scale-105">
-                    <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity duration-300 rounded-lg"></div>
-                </div>
-
-                <!-- Image 2 -->
-                <div class="relative group cursor-pointer" onclick="openGalleryModal(1)">
-                    <img src="{{ asset('images/gallery/grooming2.jpg') }}" 
-                         alt="Gallery Image 2" 
-                         class="w-full h-48 object-cover rounded-lg transition-transform duration-300 group-hover:scale-105">
-                    <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity duration-300 rounded-lg"></div>
-                </div>
-
-                <!-- Image 3 -->
-                <div class="relative group cursor-pointer" onclick="openGalleryModal(2)">
-                    <img src="{{ asset('images/gallery/grooming3.jpg') }}" 
-                         alt="Gallery Image 3" 
-                         class="w-full h-48 object-cover rounded-lg transition-transform duration-300 group-hover:scale-105">
-                    <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity duration-300 rounded-lg"></div>
-                </div>
+                @forelse($shop->gallery as $image)
+                    @if($image->image_path)
+                        <div class="relative group">
+                            <img src="{{ Storage::disk('public')->exists($image->image_path) ? asset('storage/' . $image->image_path) : asset('images/default-shop.png') }}" 
+                                 alt="Gallery Image" 
+                                 class="w-full h-48 object-cover rounded-lg transition-transform duration-300 group-hover:scale-105"
+                                 onerror="this.src='{{ asset('images/default-shop.png') }}'">
+                            <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity duration-300 rounded-lg"></div>
+                            <!-- Delete Button -->
+                            <button onclick="deleteGalleryPhoto({{ $image->id }})"
+                                    class="absolute top-2 right-2 hidden group-hover:block p-1 bg-red-500 text-white rounded-full hover:bg-red-600 focus:outline-none">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                            </button>
+                        </div>
+                    @endif
+                @empty
+                    <div class="col-span-3 text-center py-8">
+                        <p class="text-gray-500">No gallery images available</p>
+                    </div>
+                @endforelse
             </div>
+
+            @error('gallery_photo')
+                <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+            @enderror
         </div>
     </div>
 
@@ -323,7 +336,10 @@
                      day: {{ $hour->day }},
                      is_open: {{ $hour->is_open ? 'true' : 'false' }},
                      open_time: '{{ $hour->open_time }}',
-                     close_time: '{{ $hour->close_time }}'
+                     close_time: '{{ $hour->close_time }}',
+                     has_lunch_break: {{ $hour->has_lunch_break ? 'true' : 'false' }},
+                     lunch_start: '{{ $hour->lunch_start }}',
+                     lunch_end: '{{ $hour->lunch_end }}'
                  },
                  @endforeach
              ]
@@ -344,9 +360,14 @@
                 <div class="flex items-center justify-between py-3 border-b last:border-0">
                     <span class="font-medium" x-text="day.name"></span>
                     <template x-if="day.is_open">
-                        <span class="text-gray-600">
+                        <div class="text-gray-600">
                             <span x-text="day.open_time"></span> - <span x-text="day.close_time"></span>
-                        </span>
+                            <template x-if="day.has_lunch_break">
+                                <span class="ml-2 text-gray-500">
+                                    (Lunch: <span x-text="day.lunch_start"></span> - <span x-text="day.lunch_end"></span>)
+                                </span>
+                            </template>
+                        </div>
                     </template>
                     <template x-if="!day.is_open">
                         <span class="text-gray-500">Closed</span>
@@ -358,12 +379,9 @@
         <!-- Edit Operating Hours -->
         <div x-show="isEditing" class="space-y-6">
             <template x-for="(day, index) in days" :key="index">
-                <div class="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
-                    <div class="w-1/4">
+                <div class="flex flex-col space-y-4 p-4 bg-gray-50 rounded-lg">
+                    <div class="flex items-center justify-between">
                         <span class="font-medium" x-text="day.name"></span>
-                    </div>
-
-                    <div class="flex items-center">
                         <label class="inline-flex items-center">
                             <input type="checkbox" 
                                    x-model="day.is_open"
@@ -372,19 +390,46 @@
                         </label>
                     </div>
 
-                    <div class="flex-1 grid grid-cols-2 gap-4" x-show="day.is_open">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Opening Time</label>
-                            <input type="time" 
-                                   x-model="day.open_time"
-                                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    <div x-show="day.is_open" class="space-y-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Opening Time</label>
+                                <input type="time" 
+                                       x-model="day.open_time"
+                                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Closing Time</label>
+                                <input type="time" 
+                                       x-model="day.close_time"
+                                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            </div>
                         </div>
 
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Closing Time</label>
-                            <input type="time" 
-                                   x-model="day.close_time"
-                                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <div class="border-t pt-4">
+                            <label class="inline-flex items-center mb-4">
+                                <input type="checkbox" 
+                                       x-model="day.has_lunch_break"
+                                       class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+                                <span class="ml-2 text-sm text-gray-600">Include Lunch Break</span>
+                            </label>
+
+                            <div x-show="day.has_lunch_break" class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Lunch Break Start</label>
+                                    <input type="time" 
+                                           x-model="day.lunch_start"
+                                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                           :required="day.has_lunch_break">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Lunch Break End</label>
+                                    <input type="time" 
+                                           x-model="day.lunch_end"
+                                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                           :required="day.has_lunch_break">
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -393,6 +438,7 @@
             <!-- Save Button -->
             <div class="flex justify-end pt-4">
                 <button type="button"
+                        @click="updateHours"
                         class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                     Save Changes
                 </button>
@@ -444,4 +490,33 @@
         </div>
     </div>
 </div>
+
+<script>
+function deleteGalleryPhoto(photoId) {
+    if (!confirm('Are you sure you want to delete this photo?')) {
+        return;
+    }
+
+    fetch(`{{ route('shop.gallery.delete', '') }}/${photoId}`, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+            'Accept': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            window.location.reload();
+        } else {
+            alert('Failed to delete photo. Please try again.');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to delete photo. Please try again.');
+    });
+}
+</script>
 @endsection 

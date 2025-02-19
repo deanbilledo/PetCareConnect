@@ -165,7 +165,8 @@ class BookingController extends Controller
                 'pet_ids' => 'required|array',
                 'pet_ids.*' => 'exists:pets,id',
                 'services' => 'required|array',
-                'services.*' => 'exists:services,id'
+                'services.*' => 'exists:services,id',
+                'add_ons' => 'nullable|array'
             ]);
 
             // Load shop's operating hours
@@ -202,7 +203,8 @@ class BookingController extends Controller
                 'pet_ids' => $validated['pet_ids'],
                 'pet_services' => $petServices,
                 'pets' => $pets,
-                'appointment_type' => $existingBookingData['appointment_type'] ?? 'single' // Default to single if not set
+                'appointment_type' => $existingBookingData['appointment_type'] ?? 'single', // Default to single if not set
+                'add_ons' => $request->input('add_ons', []) // Store add-ons data
             ];
             
             session(['booking' => $bookingData]);
@@ -210,7 +212,8 @@ class BookingController extends Controller
             // Debug log
             Log::info('Booking data stored in session:', [
                 'booking_data' => $bookingData,
-                'session_data' => session('booking')
+                'session_data' => session('booking'),
+                'add_ons' => $bookingData['add_ons']
             ]);
 
             // Pass session data directly to view
@@ -263,43 +266,7 @@ class BookingController extends Controller
             // Create pet services mapping
             $petServices = array_combine($validated['pet_ids'], $validated['services']);
 
-            // Calculate total amount
-            $totalAmount = 0;
-            $servicesBreakdown = [];
-
-            foreach ($pets as $pet) {
-                $serviceId = $petServices[$pet->id] ?? null;
-                $service = $services->firstWhere('id', $serviceId);
-                
-                if ($service) {
-                    // Get base price
-                    $price = $service->base_price;
-                    
-                    // Apply size-based pricing if available
-                    if (!empty($service->variable_pricing)) {
-                        $variablePricing = is_string($service->variable_pricing) ? 
-                            json_decode($service->variable_pricing, true) : 
-                            $service->variable_pricing;
-                        
-                        $sizePrice = collect($variablePricing)->firstWhere('size', $pet->size_category);
-                        if ($sizePrice && isset($sizePrice['price'])) {
-                            $price = $sizePrice['price'];
-                        }
-                    }
-
-                    $totalAmount += $price;
-
-                    // Add to services breakdown
-                    $servicesBreakdown[] = [
-                        'pet_name' => $pet->name,
-                        'service_name' => $service->name,
-                        'size' => $pet->size_category,
-                        'price' => $price
-                    ];
-                }
-            }
-
-            // Get existing booking data to preserve appointment_type
+            // Get existing booking data to preserve appointment_type and add-ons
             $existingBookingData = session('booking', []);
             
             // Store booking data
@@ -309,21 +276,22 @@ class BookingController extends Controller
                 'pets' => $pets,
                 'appointment_date' => $validated['appointment_date'],
                 'appointment_time' => $validated['appointment_time'],
-                'total_amount' => $totalAmount,
-                'services' => $servicesBreakdown,
                 'appointment_type' => $existingBookingData['appointment_type'] ?? 'single',
                 'employee_id' => $employee->id,
                 'employee' => [
                     'name' => $employee->name,
                     'position' => $employee->position,
                     'profile_photo_url' => $employee->profile_photo_url
-                ]
+                ],
+                // Preserve add-ons data from the previous step
+                'add_ons' => $request->input('add_ons', $existingBookingData['add_ons'] ?? [])
             ];
 
             // Debug log the booking data
             Log::info('Booking data in showConfirm:', [
                 'booking_data' => $bookingData,
-                'appointment_type' => $bookingData['appointment_type']
+                'appointment_type' => $bookingData['appointment_type'],
+                'add_ons' => $bookingData['add_ons']
             ]);
 
             session(['booking' => $bookingData]);
@@ -406,7 +374,8 @@ class BookingController extends Controller
                 'notes' => 'nullable|string|max:500',
                 'voucher_code' => 'nullable|string',
                 'discount_amount' => 'nullable|numeric',
-                'final_total' => 'nullable|numeric'
+                'final_total' => 'nullable|numeric',
+                'add_ons' => 'nullable|array'
             ]);
 
             $appointmentDateTime = Carbon::parse($request->appointment_date . ' ' . $request->appointment_time);
@@ -428,7 +397,8 @@ class BookingController extends Controller
             
             Log::info('Session booking data:', [
                 'booking_data' => $bookingData,
-                'appointment_type' => $bookingData['appointment_type']
+                'appointment_type' => $bookingData['appointment_type'],
+                'add_ons' => $bookingData['add_ons'] ?? []
             ]);
 
             // Get all selected services with their prices
@@ -470,13 +440,32 @@ class BookingController extends Controller
                     // Calculate price based on pet size
                     $price = $service->getPriceForSize($pet->size_category);
 
-                    // Apply discount if voucher code is present
-                    if ($request->filled('voucher_code')) {
-                        $discountedPrice = $service->getDiscountedPrice($price, $request->voucher_code);
-                        $price = $discountedPrice;
+                    // Calculate add-ons total
+                    $addOnTotal = 0;
+                    $selectedAddOns = $bookingData['add_ons'][$petId][$serviceId] ?? [];
+                    $addOnDetails = [];
+                    
+                    if (!empty($selectedAddOns) && !empty($service->add_ons)) {
+                        foreach ($selectedAddOns as $selectedAddOn) {
+                            foreach ($service->add_ons as $addOn) {
+                                if ($addOn['name'] === $selectedAddOn) {
+                                    $addOnTotal += (float) $addOn['price'];
+                                    $addOnDetails[] = $addOn;
+                                }
+                            }
+                        }
                     }
 
-                    $total += $price;
+                    // Apply discount if voucher code is present
+                    $originalPrice = $price + $addOnTotal;
+                    $finalPrice = $originalPrice;
+                    
+                    if ($request->filled('voucher_code')) {
+                        $discountedPrice = $service->getDiscountedPrice($originalPrice, $request->voucher_code);
+                        $finalPrice = $discountedPrice;
+                    }
+
+                    $total += $finalPrice;
 
                     $appointment = Appointment::create([
                         'user_id' => auth()->id(),
@@ -484,11 +473,13 @@ class BookingController extends Controller
                         'pet_id' => $petId,
                         'employee_id' => $employee->id,
                         'service_type' => $service->name,
-                        'service_price' => $price,
-                        'original_price' => $service->getPriceForSize($pet->size_category),
+                        'service_price' => $finalPrice,
+                        'original_price' => $originalPrice,
+                        'add_ons' => !empty($addOnDetails) ? json_encode($addOnDetails) : null,
+                        'add_ons_total' => $addOnTotal,
                         'voucher_code' => $request->voucher_code,
                         'discount_amount' => $request->filled('voucher_code') ? 
-                            ($service->getPriceForSize($pet->size_category) - $price) : null,
+                            ($originalPrice - $finalPrice) : null,
                         'appointment_date' => $currentDateTime,
                         'notes' => $request->notes,
                         'status' => 'pending'
@@ -499,7 +490,10 @@ class BookingController extends Controller
                         'pet_name' => $pet->name,
                         'service_name' => $service->name,
                         'size' => $pet->size_category,
-                        'price' => $price
+                        'price' => $price,
+                        'add_ons' => $addOnDetails,
+                        'add_ons_total' => $addOnTotal,
+                        'final_price' => $finalPrice
                     ];
                     
                     // For multiple appointments, add service duration
@@ -517,7 +511,7 @@ class BookingController extends Controller
                     'time' => $appointmentDateTime->format('g:i A'),
                     'services' => $servicesBreakdown,
                     'total_amount' => $total,
-                    'original_total' => array_sum(array_column($servicesBreakdown, 'price')),
+                    'original_total' => array_sum(array_column($servicesBreakdown, 'final_price')),
                     'discount_amount' => $request->discount_amount,
                     'voucher_code' => $request->voucher_code,
                     'appointment_type' => $bookingData['appointment_type'] ?? 'single',

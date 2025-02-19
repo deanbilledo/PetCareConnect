@@ -197,8 +197,62 @@ use Illuminate\Support\Facades\Log;
                                                     <p class="text-sm text-gray-500 mt-2">Duration: {{ $service->duration }} minutes</p>
                                                 </div>
                                                 <div class="text-right">
-                                                    <span class="font-medium text-lg">₱{{ number_format($service->base_price, 2) }}</span>
-                                                    <p class="text-xs text-gray-500">Base price</p>
+                                                    @php
+                                                        $petSize = strtolower($pet->size_category ?? 'medium');
+                                                        $price = $service->base_price;
+                                                        
+                                                        if ($service->variable_pricing) {
+                                                            foreach ($service->variable_pricing as $pricing) {
+                                                                if (strtolower($pricing['size']) === $petSize) {
+                                                                    $price = $pricing['price'];
+                                                                    break;
+                                                                }
+                                                            }
+                                                        }
+                                                    @endphp
+                                                    <span class="font-medium text-lg">₱{{ number_format($price, 2) }}</span>
+                                                    <p class="text-xs text-gray-500">
+                                                        @if($service->variable_pricing)
+                                                            Price for {{ ucfirst($petSize) }} size
+                                                        @else
+                                                            Base price
+                                                        @endif
+                                                    </p>
+                                                    
+                                                    @if($service->variable_pricing)
+                                                        <div class="mt-2 text-xs text-gray-500">
+                                                            <span class="font-medium">Other sizes:</span>
+                                                            <ul class="mt-1">
+                                                                @foreach($service->variable_pricing as $pricing)
+                                                                    @if(strtolower($pricing['size']) !== $petSize)
+                                                                        <li>{{ ucfirst($pricing['size']) }}: ₱{{ number_format($pricing['price'], 2) }}</li>
+                                                                    @endif
+                                                                @endforeach
+                                                            </ul>
+                                                        </div>
+                                                    @endif
+
+                                                    @if(!empty($service->add_ons))
+                                                        <div class="mt-3 text-xs text-gray-500">
+                                                            <span class="font-medium">Available Add-ons:</span>
+                                                            <ul class="mt-1">
+                                                                @foreach($service->add_ons as $addOn)
+                                                                    <li class="flex items-center mt-1">
+                                                                        <input type="checkbox" 
+                                                                               name="add_ons[{{ $pet->id }}][{{ $service->id }}][]" 
+                                                                               value="{{ $addOn['name'] }}"
+                                                                               class="mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                                                        <span>{{ $addOn['name'] }}: ₱{{ number_format($addOn['price'], 2) }}</span>
+                                                                    </li>
+                                                                @endforeach
+                                                            </ul>
+                                                        </div>
+                                                    @else
+                                                        <div class="mt-3 text-xs text-gray-500">
+                                                            <span class="font-medium">Add-ons:</span>
+                                                            <span class="ml-1">None available</span>
+                                                        </div>
+                                                    @endif
                                                 </div>
                                             </div>
                                         </label>

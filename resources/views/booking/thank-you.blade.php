@@ -60,12 +60,29 @@ use Illuminate\Support\Facades\Log;
                 <div class="border-t border-gray-200 pt-3 mt-3">
                     <h3 class="font-medium mb-2">Services Breakdown</h3>
                     @foreach($booking_details['services'] as $service)
-                    <div class="flex justify-between text-sm mb-1">
-                        <span>
-                            {{ $service['pet_name'] }} - {{ $service['service_name'] }}
-                            <span class="text-gray-500">({{ ucfirst($service['size']) }})</span>
-                        </span>
-                        <span>₱{{ number_format($service['price'], 2) }}</span>
+                    <div class="flex flex-col mb-3">
+                        <div class="flex justify-between text-sm">
+                            <span>
+                                {{ $service['pet_name'] }} - {{ $service['service_name'] }}
+                                <span class="text-gray-500">({{ ucfirst($service['size']) }})</span>
+                            </span>
+                            <span>₱{{ number_format($service['price'], 2) }}</span>
+                        </div>
+                        @if(!empty($service['add_ons']))
+                            <div class="ml-4 mt-1">
+                                <p class="text-xs text-gray-600 font-medium">Add-ons:</p>
+                                @foreach($service['add_ons'] as $addOn)
+                                    <div class="flex justify-between text-xs text-gray-500">
+                                        <span>• {{ $addOn['name'] }}</span>
+                                        <span>₱{{ number_format($addOn['price'], 2) }}</span>
+                                    </div>
+                                @endforeach
+                                <div class="flex justify-between text-xs font-medium mt-1">
+                                    <span>Service Total:</span>
+                                    <span>₱{{ number_format($service['price'] + collect($service['add_ons'])->sum('price'), 2) }}</span>
+                                </div>
+                            </div>
+                        @endif
                     </div>
                     @endforeach
                 </div>

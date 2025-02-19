@@ -5,6 +5,7 @@
     showFilters: false,
     currentFilter: 'all',
     dateFilter: '',
+    serviceTypeFilter: 'all',
     showNoteModal: false,
     currentAppointmentId: null,
     currentShopType: null,
@@ -12,9 +13,10 @@
     noteImage: null,
     activeTab: 'appointments',
     
-    isAppointmentVisible(status, date) {
+    isAppointmentVisible(status, date, serviceType) {
         if (this.currentFilter !== 'all' && status !== this.currentFilter) return false;
         if (this.dateFilter && date !== this.dateFilter) return false;
+        if (this.serviceTypeFilter !== 'all' && serviceType !== this.serviceTypeFilter) return false;
         return true;
     },
 
@@ -69,7 +71,7 @@
          x-transition:enter-start="opacity-0 transform -translate-y-2"
          x-transition:enter-end="opacity-100 transform translate-y-0"
          class="bg-white rounded-lg shadow-md p-6 mb-6">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <!-- Status Filter -->
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
@@ -79,6 +81,17 @@
                     <option value="pending">Pending</option>
                     <option value="completed">Completed</option>
                     <option value="cancelled">Cancelled</option>
+                </select>
+            </div>
+
+            <!-- Service Type Filter -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Service Type</label>
+                <select x-model="serviceTypeFilter"
+                        class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    <option value="all">All Services</option>
+                    <option value="veterinary">Veterinary</option>
+                    <option value="grooming">Grooming</option>
                 </select>
             </div>
 

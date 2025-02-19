@@ -122,20 +122,21 @@
                 </div>
 
                 <!-- Services List -->
-                <div class="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
-                <div class="overflow-x-auto">
+                <div class="w-full">
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
                             <tr>
-                                    <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">Name</th>
-                                    <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Category</th>
-                                    <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Base Price</th>
-                                    <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Duration</th>
-                                    <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Pet Types</th>
-                                    <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Exotic Pets</th>
-                                    <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Assigned Employees</th>
-                                    <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Status</th>
-                                    <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-6">
+                                <th scope="col" class="w-1/12 py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">Name</th>
+                                <th scope="col" class="w-1/12 px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Category</th>
+                                <th scope="col" class="w-1/12 px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Base Price</th>
+                                <th scope="col" class="w-1/12 px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Duration</th>
+                                <th scope="col" class="w-1/12 px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Pet Types</th>
+                                <th scope="col" class="w-2/12 px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Variable Pricing</th>
+                                <th scope="col" class="w-1/12 px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Add-ons</th>
+                                <th scope="col" class="w-1/12 px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Exotic Pets</th>
+                                <th scope="col" class="w-1/12 px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Assigned Employees</th>
+                                <th scope="col" class="w-1/12 px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Status</th>
+                                <th scope="col" class="w-1/12 relative py-3.5 pl-3 pr-4 sm:pr-6">
                                         <span class="sr-only">Actions</span>
                                     </th>
                             </tr>
@@ -143,20 +144,12 @@
                             <tbody class="divide-y divide-gray-200 bg-white">
                             @foreach($services as $service)
                             <tr>
-                                    <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
-                                        {{ $service->name }}
-                                    </td>
-                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                        {{ ucfirst($service->category) }}
-                                    </td>
-                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                        ₱{{ number_format($service->base_price, 2) }}
-                                    </td>
-                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                        {{ $service->duration }} mins
-                                    </td>
+                                <td class="py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">{{ $service->name }}</td>
+                                <td class="px-3 py-4 text-sm text-gray-500">{{ ucfirst($service->category) }}</td>
+                                <td class="px-3 py-4 text-sm text-gray-500">₱{{ number_format($service->base_price, 2) }}</td>
+                                <td class="px-3 py-4 text-sm text-gray-500">{{ $service->duration }} mins</td>
                                     <td class="px-3 py-4 text-sm text-gray-500">
-                                        <div class="flex flex-wrap gap-1 max-w-xs">
+                                    <div class="flex flex-wrap gap-1">
                                             @foreach($service->pet_types as $type)
                                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $type === 'Exotic' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800' }}">
                                                     {{ $type }}
@@ -169,9 +162,33 @@
                                             @endif
                                         </div>
                                     </td>
+                                <td class="px-3 py-4 text-sm text-gray-500">
+                                    @if($service->variable_pricing)
+                                        @foreach($service->variable_pricing as $pricing)
+                                            <div class="mb-1">
+                                                <span class="font-medium">{{ ucfirst($pricing['size']) }}:</span>
+                                                ₱{{ number_format($pricing['price'], 2) }}
+                                            </div>
+                                        @endforeach
+                                    @else
+                                        <span class="text-gray-400">None</span>
+                                    @endif
+                                </td>
+                                <td class="px-3 py-4 text-sm text-gray-500">
+                                    @if($service->add_ons)
+                                        @foreach($service->add_ons as $addon)
+                                            <div class="mb-1">
+                                                <span class="font-medium">{{ $addon['name'] }}:</span>
+                                                ₱{{ number_format($addon['price'], 2) }}
+                                            </div>
+                                        @endforeach
+                                    @else
+                                        <span class="text-gray-400">None</span>
+                                    @endif
+                                </td>
                                     <td class="px-3 py-4 text-sm text-gray-500">
                                         @if($service->exotic_pet_service)
-                                            <div class="flex flex-wrap gap-1 max-w-xs">
+                                        <div class="flex flex-wrap gap-1">
                                                 @foreach($service->exotic_pet_species as $species)
                                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                                                         {{ $species }}
@@ -183,7 +200,7 @@
                                         @endif
                                     </td>
                                     <td class="px-3 py-4 text-sm text-gray-500">
-                                        <div class="flex flex-wrap gap-1 max-w-xs">
+                                    <div class="flex flex-wrap gap-1">
                                             @foreach($service->employees as $employee)
                                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
                                                     {{ $employee->name }}
@@ -194,36 +211,29 @@
                                             @endif
                                         </div>
                                     </td>
-                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                <td class="px-3 py-4 text-sm text-gray-500">
                                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $service->status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
                                         {{ ucfirst($service->status) }}
                                     </span>
                                 </td>
-                                    <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+                                <td class="relative py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                                         <div class="flex justify-end space-x-2">
                                             <button onclick="openEditModal({{ $service->id }})" 
-                                                    class="text-blue-600 hover:text-blue-900">
-                                                Edit
-                                            </button>
+                                                class="text-blue-600 hover:text-blue-900">Edit</button>
                                             <button onclick="openDiscountModal({{ $service->id }})" 
-                                                    class="text-green-600 hover:text-green-900">
-                                                Add Discount
-                                            </button>
+                                                class="text-green-600 hover:text-green-900">Add Discount</button>
                                             <button onclick="openDeactivateModal({{ $service->id }})" 
                                                     class="text-yellow-600 hover:text-yellow-900">
                                         {{ $service->status === 'active' ? 'Deactivate' : 'Activate' }}
                                     </button>
                                             <button onclick="openDeleteModal({{ $service->id }})" 
-                                                    class="text-red-600 hover:text-red-900">
-                                                Delete
-                                            </button>
+                                                class="text-red-600 hover:text-red-900">Delete</button>
                                         </div>
                                 </td>
                             </tr>
                             @endforeach
                         </tbody>
                     </table>
-                    </div>
                 </div>
             </div>
         </div>
@@ -647,40 +657,54 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     window.openEditModal = function(serviceId) {
+        console.log('Opening edit modal for service:', serviceId);
         currentServiceId = serviceId;
         const form = document.getElementById('serviceForm');
         const modal = document.getElementById('serviceModal');
         
         if (!form || !modal) {
-            console.error('Required modal elements not found');
+            console.error('Required modal elements not found:', {
+                form: !!form,
+                modal: !!modal
+            });
             return;
         }
         
+        // Reset form and show modal first
+        form.reset();
+        modal.classList.remove('hidden');
+        
+        // Set loading state
         form.classList.add('opacity-50', 'pointer-events-none');
         
+        console.log('Fetching service details...');
         fetch(`/shop/services/${serviceId}`)
-            .then(response => response.json())
+            .then(response => {
+                console.log('Received response:', response.status);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch service details');
+                }
+                return response.json();
+            })
             .then(data => {
+                console.log('Received service data:', data);
                 if (data.success) {
                     const service = data.data;
-
-                    // Safely set form values
-                    const setElementValue = (id, value) => {
-                        const element = document.getElementById(id);
-                        if (element) {
-                            element.value = value;
-                        }
-                    };
-
-                    // Set basic fields
+                    console.log('Service data:', service);
+                    
+                    // Remove loading state
+                    form.classList.remove('opacity-50', 'pointer-events-none');
+                    
+                    // Set modal title
                     document.getElementById('modalTitle').textContent = 'Edit Service';
-                    setElementValue('serviceId', service.id);
-                    setElementValue('name', service.name);
-                    setElementValue('category', service.category);
-                    setElementValue('description', service.description || '');
-                    setElementValue('base_price', service.base_price);
-                    setElementValue('duration', service.duration);
-                    setElementValue('special_requirements', service.special_requirements || '');
+                    
+                    // Set form values
+                    document.getElementById('serviceId').value = service.id;
+                    document.getElementById('name').value = service.name || '';
+                    document.getElementById('category').value = service.category || '';
+                    document.getElementById('description').value = service.description || '';
+                    document.getElementById('base_price').value = service.base_price || '';
+                    document.getElementById('duration').value = service.duration || '';
 
                     // Set checkboxes
                     const petTypeCheckboxes = document.querySelectorAll('input[name="pet_types[]"]');
@@ -697,16 +721,27 @@ document.addEventListener('DOMContentLoaded', function() {
                         });
                     }
 
-                    // Handle exotic pet service
-                    if (exoticPetServiceCheckbox && exoticPetSpeciesSection) {
-                        exoticPetServiceCheckbox.checked = service.exotic_pet_service;
-                        exoticPetSpeciesSection.style.display = service.exotic_pet_service ? 'block' : 'none';
+                    // Set employee selections
+                    const employeeCheckboxes = document.querySelectorAll('input[name="employee_ids[]"]');
+                    if (employeeCheckboxes.length) {
+                        employeeCheckboxes.forEach(cb => {
+                            cb.checked = service.employee_ids.includes(parseInt(cb.value));
+                        });
+                    }
 
-                        // Clear and populate exotic pet species
+                    // Handle exotic pet service
+                    const exoticServiceCheckbox = document.getElementById('exotic_pet_service');
+                    if (exoticServiceCheckbox) {
+                        exoticServiceCheckbox.checked = service.exotic_pet_service;
+                        const speciesSection = document.getElementById('exotic_pet_species_section');
+                        if (speciesSection) {
+                            speciesSection.style.display = service.exotic_pet_service ? 'block' : 'none';
+                        }
+                        
+                        if (service.exotic_pet_service && service.exotic_pet_species) {
                         const container = document.getElementById('exotic_pet_species_container');
                         if (container) {
                             container.innerHTML = '';
-                            if (service.exotic_pet_species && service.exotic_pet_species.length > 0) {
                                 service.exotic_pet_species.forEach(species => {
                                     addExoticPetSpecies(species);
                                 });
@@ -714,21 +749,59 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     }
 
-                    // Set employee assignments
-                    const employeeCheckboxes = document.querySelectorAll('input[name="employee_ids[]"]');
-                    employeeCheckboxes.forEach(cb => {
-                        cb.checked = service.employee_ids.includes(parseInt(cb.value));
-                    });
+                    // Clear and populate variable pricing
+                    const variablePricingContainer = document.getElementById('variablePricingContainer');
+                    if (variablePricingContainer) {
+                        variablePricingContainer.innerHTML = '';
+                        if (service.variable_pricing && service.variable_pricing.length > 0) {
+                            service.variable_pricing.forEach(pricing => {
+                                const newRow = document.createElement('div');
+                                newRow.className = 'variable-pricing-row flex items-center space-x-2 mb-2';
+                                newRow.innerHTML = `
+                                    <select class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                        <option value="">Select Size</option>
+                                        <option value="small" ${pricing.size === 'small' ? 'selected' : ''}>Small</option>
+                                        <option value="medium" ${pricing.size === 'medium' ? 'selected' : ''}>Medium</option>
+                                        <option value="large" ${pricing.size === 'large' ? 'selected' : ''}>Large</option>
+                                        <option value="extra_large" ${pricing.size === 'extra_large' ? 'selected' : ''}>Extra Large</option>
+                                    </select>
+                                    <input type="number" 
+                                           step="0.01" 
+                                           min="0" 
+                                           placeholder="Price" 
+                                           value="${pricing.price}"
+                                           class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                    <button type="button" 
+                                            onclick="this.closest('.variable-pricing-row').remove()" 
+                                            class="text-red-600 hover:text-red-800">
+                                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                        </svg>
+                                    </button>
+                                `;
+                                variablePricingContainer.appendChild(newRow);
+                            });
+                        }
+                    }
 
-                    modal.classList.remove('hidden');
+                    // Clear and populate add-ons
+                    const addOnsContainer = document.getElementById('addOnsContainer');
+                    if (addOnsContainer) {
+                        addOnsContainer.innerHTML = '';
+                        if (service.add_ons && service.add_ons.length > 0) {
+                            service.add_ons.forEach(addon => {
+                                addAddOn(addon.name, addon.price);
+                            });
+                        }
+                    }
+                } else {
+                    throw new Error(data.message || 'Failed to load service details');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('Failed to load service details');
-            })
-            .finally(() => {
-                form.classList.remove('opacity-50', 'pointer-events-none');
+                alert('Failed to load service details. Please try again.');
+                closeServiceModal();
             });
     };
 
@@ -765,23 +838,32 @@ document.addEventListener('DOMContentLoaded', function() {
         const modal = document.getElementById('serviceModal');
         if (modal) {
             modal.classList.add('hidden');
-            // Reset form
             const form = document.getElementById('serviceForm');
-            if (form) {
-                form.reset();
-                // Clear exotic pet species
-                const container = document.getElementById('exotic_pet_species_container');
-                if (container) {
-                    container.innerHTML = '';
-                }
-                // Hide exotic pet species section
-                const section = document.getElementById('exotic_pet_species_section');
-                if (section) {
-                    section.style.display = 'none';
-                }
-            }
+            if (form) form.reset();
+            document.getElementById('serviceId').value = '';
+            
+            // Reset containers
+            const variablePricingContainer = document.getElementById('variablePricingContainer');
+            const addOnsContainer = document.getElementById('addOnsContainer');
+            if (variablePricingContainer) variablePricingContainer.innerHTML = '';
+            if (addOnsContainer) addOnsContainer.innerHTML = '';
+            
+            // Reset exotic pet section
+            const exoticPetServiceCheckbox = document.getElementById('exotic_pet_service');
+            const exoticPetSpeciesSection = document.getElementById('exotic_pet_species_section');
+            if (exoticPetServiceCheckbox) exoticPetServiceCheckbox.checked = false;
+            if (exoticPetSpeciesSection) exoticPetSpeciesSection.style.display = 'none';
         }
     };
+
+    // Add click handler for modal backdrop
+    document.addEventListener('click', function(event) {
+        const modal = document.getElementById('serviceModal');
+        const modalContent = modal?.querySelector('.relative');
+        if (modal && !modal.classList.contains('hidden') && modalContent && !modalContent.contains(event.target) && event.target.closest('.fixed.inset-0.bg-black')) {
+            closeServiceModal();
+        }
+    });
 
     // Add these helper functions for variable pricing and add-ons
     function getVariablePricing() {
@@ -794,6 +876,66 @@ document.addEventListener('DOMContentLoaded', function() {
             price: parseFloat(row.querySelector('input[type="number"]').value)
         })).filter(item => item.size && !isNaN(item.price));
     }
+
+    // Add the missing addVariablePricing function
+    window.addVariablePricing = function() {
+        const container = document.getElementById('variablePricingContainer');
+        if (!container) return;
+
+        const newRow = document.createElement('div');
+        newRow.className = 'variable-pricing-row flex items-center space-x-2 mb-2';
+        newRow.innerHTML = `
+            <select class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                <option value="">Select Size</option>
+                <option value="small">Small</option>
+                <option value="medium">Medium</option>
+                <option value="large">Large</option>
+                <option value="extra_large">Extra Large</option>
+            </select>
+            <input type="number" 
+                   step="0.01" 
+                   min="0" 
+                   placeholder="Price" 
+                   class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            <button type="button" 
+                    onclick="this.closest('.variable-pricing-row').remove()" 
+                    class="text-red-600 hover:text-red-800">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                </svg>
+            </button>
+        `;
+        container.appendChild(newRow);
+    };
+
+    // Add the missing addAddOn function
+    window.addAddOn = function(name = '', price = '') {
+        const container = document.getElementById('addOnsContainer');
+        if (!container) return;
+
+        const newRow = document.createElement('div');
+        newRow.className = 'add-on-row flex items-center space-x-2 mb-2';
+        newRow.innerHTML = `
+            <input type="text" 
+                   value="${name}"
+                   placeholder="Add-on Name"
+                   class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            <input type="number" 
+                   value="${price}"
+                   step="0.01" 
+                   min="0" 
+                   placeholder="Price" 
+                   class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            <button type="button" 
+                    onclick="this.closest('.add-on-row').remove()" 
+                    class="text-red-600 hover:text-red-800">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                </svg>
+            </button>
+        `;
+        container.appendChild(newRow);
+    };
 
     function getAddOns() {
         const container = document.getElementById('addOnsContainer');

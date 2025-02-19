@@ -116,9 +116,12 @@ class Shop extends Model
         }
     }
 
+    /**
+     * Get the gallery images for the shop.
+     */
     public function gallery()
     {
-        return $this->hasMany(ShopGallery::class);
+        return $this->hasMany(ShopGallery::class)->orderBy('display_order');
     }
 
     public function employees()

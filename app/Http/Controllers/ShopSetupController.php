@@ -30,6 +30,65 @@ class ShopSetupController extends Controller
         return view('shop.setup.welcome');
     }
 
+    public function details()
+    {
+        $user = auth()->user();
+        
+        // If setup is already completed, redirect to dashboard
+        if ($user->setup_completed) {
+            return redirect()->route('shop.dashboard')
+                ->with('info', 'Shop setup has already been completed.');
+        }
+        
+        return view('shop.setup.details');
+    }
+
+    public function storeDetails(Request $request)
+    {
+        $user = auth()->user();
+        
+        // If setup is already completed, redirect to dashboard
+        if ($user->setup_completed) {
+            return redirect()->route('shop.dashboard')
+                ->with('info', 'Shop setup has already been completed.');
+        }
+        
+        $validated = $request->validate([
+            'description' => 'required|string|max:1000',
+            'contact_email' => 'required|email',
+            'gallery.*' => 'required|image|mimes:jpeg,png|max:5120', // 5MB max
+            'gallery' => 'array|max:6' // Maximum 6 images
+        ]);
+
+        try {
+            DB::transaction(function () use ($request, $user) {
+                $shop = $user->shop;
+                
+                // Update shop details
+                $shop->update([
+                    'description' => $request->description,
+                    'contact_email' => $request->contact_email
+                ]);
+
+                // Handle gallery images
+                if ($request->hasFile('gallery')) {
+                    foreach ($request->file('gallery') as $image) {
+                        $path = $image->store('shop-gallery', 'public');
+                        $shop->gallery()->create([
+                            'image_path' => $path
+                        ]);
+                    }
+                }
+            });
+
+            return redirect()->route('shop.setup.employees');
+        } catch (\Exception $e) {
+            Log::error('Error storing shop details: ' . $e->getMessage());
+            return back()->with('error', 'Failed to save shop details. Please try again.')
+                        ->withInput();
+        }
+    }
+
     public function services()
     {
         $user = auth()->user();

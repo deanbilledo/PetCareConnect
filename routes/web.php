@@ -23,6 +23,7 @@ use App\Http\Controllers\ShopAnalyticsController;
 use App\Http\Controllers\RatingController;
 use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\AdminServicesController;
+use App\Http\Controllers\ShopSettingsController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -137,6 +138,7 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/{pet}/details', [ProfileController::class, 'showPetDetails'])->name('details');
             Route::get('/{pet}/health-record', [ProfileController::class, 'showHealthRecord'])->name('health-record');
             Route::get('/{pet}/add-health-record', [ProfileController::class, 'showAddHealthRecord'])->name('add-health-record');
+            Route::get('/{pet}/user-add-health-record', [ProfileController::class, 'showUserAddHealthRecord'])->name('user-add-health-record');
             
             // New health record routes
             Route::post('/{pet}/vaccination', [PetController::class, 'storeVaccination'])->name('vaccination.store');
@@ -262,6 +264,10 @@ Route::middleware(['auth', 'has-shop'])->group(function () {
 Route::prefix('shop/setup')->name('shop.setup.')->middleware(['auth', 'has-shop'])->group(function () {
     Route::get('/welcome', [ShopSetupController::class, 'welcome'])->name('welcome');
     
+    // Details setup routes
+    Route::get('/details', [ShopSetupController::class, 'details'])->name('details');
+    Route::post('/details', [ShopSetupController::class, 'storeDetails'])->name('details.store');
+    
     // Employee setup routes
     Route::get('/employees', [ShopEmployeeSetupController::class, 'index'])->name('employees');
     Route::post('/employees', [ShopEmployeeSetupController::class, 'store'])->name('employees.store');
@@ -276,4 +282,14 @@ Route::prefix('shop/setup')->name('shop.setup.')->middleware(['auth', 'has-shop'
     // Hours setup routes
     Route::get('/hours', [ShopSetupController::class, 'hours'])->name('hours');
     Route::post('/hours', [ShopSetupController::class, 'storeHours'])->name('hours.store');
+});
+
+// Shop Settings Routes
+Route::middleware(['auth', 'verified', 'has-shop'])->group(function () {
+    Route::prefix('shop/settings')->name('shop.settings.')->group(function () {
+        Route::post('/profile', [ShopSettingsController::class, 'updateProfile'])->name('profile.update');
+        Route::post('/hours', [ShopSettingsController::class, 'updateHours'])->name('hours.update');
+        Route::post('/notifications', [ShopSettingsController::class, 'updateNotifications'])->name('notifications.update');
+        Route::post('/security', [ShopSettingsController::class, 'updatePassword'])->name('security.update');
+    });
 });

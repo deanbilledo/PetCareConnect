@@ -450,4 +450,14 @@ class ProfileController extends Controller
             'upcomingTasks'
         ));
     }
+
+    public function showUserAddHealthRecord(Pet $pet)
+    {
+        // Ensure the user owns the pet
+        if ($pet->user_id !== auth()->id()) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        return view('profile.pets.user-add-health-record', compact('pet'));
+    }
 }
