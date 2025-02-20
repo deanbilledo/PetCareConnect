@@ -81,7 +81,7 @@ class ShopSetupController extends Controller
                 }
             });
 
-            return redirect()->route('shop.setup.employees');
+            return redirect()->route('shop.setup.employees.index');
         } catch (\Exception $e) {
             Log::error('Error storing shop details: ' . $e->getMessage());
             return back()->with('error', 'Failed to save shop details. Please try again.')

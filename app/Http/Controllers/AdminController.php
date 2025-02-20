@@ -6,6 +6,7 @@ use App\Models\Shop;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 
 class AdminController extends Controller
 {
@@ -33,8 +34,34 @@ class AdminController extends Controller
 
     public function approveShop(Shop $shop)
     {
-        $shop->update(['status' => 'active']);
-        return back()->with('success', 'Shop has been approved successfully.');
+        try {
+            // Start a database transaction
+            DB::beginTransaction();
+
+            // Update shop status to active
+            $shop->update(['status' => 'active']);
+
+            // Create a free trial subscription
+            $trialDays = 30; // Set trial period (30 days)
+            $shop->subscriptions()->create([
+                'status' => 'trial',
+                'trial_starts_at' => now(),
+                'trial_ends_at' => now()->addDays($trialDays),
+                'amount' => 0, // Free trial
+                'payment_status' => 'verified', // Auto-verified for trial
+                'reference_number' => 'TRIAL-' . strtoupper(uniqid()),
+            ]);
+
+            // Commit the transaction
+            DB::commit();
+
+            return back()->with('success', 'Shop has been approved and 30-day free trial has been activated.');
+        } catch (\Exception $e) {
+            // If there's an error, rollback the transaction
+            DB::rollBack();
+            \Log::error('Error in approveShop: ' . $e->getMessage());
+            return back()->with('error', 'Failed to approve shop. Please try again.');
+        }
     }
 
     public function rejectShop(Shop $shop)
@@ -281,5 +308,10 @@ class AdminController extends Controller
                 'error' => 'Failed to fetch shop registration details'
             ], 500);
         }
+    }
+
+    public function show(Shop $shop)
+    {
+        return view('admin.shops.show', compact('shop'));
     }
 } 

@@ -4,14 +4,7 @@
     </div>
 @else
     <div class="bg-white rounded-lg shadow-md overflow-hidden">
-        <!-- Debug Info -->
-        @if(config('app.debug'))
-            <div class="bg-gray-100 p-4 text-sm">
-                <p>Debug Info:</p>
-                <p>Number of requests: {{ $rescheduleRequests->count() }}</p>
-                <p>Request statuses: {{ $rescheduleRequests->pluck('status')->implode(', ') }}</p>
-            </div>
-        @endif
+        
 
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200">
