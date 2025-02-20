@@ -249,83 +249,129 @@ document.addEventListener('DOMContentLoaded', function() {
         e.preventDefault();
         
         let isValid = true;
+        let errors = [];
         const services = document.querySelectorAll('.service-item');
         
         services.forEach((service, serviceIndex) => {
-            // Exotic Pet Service Validation
-            const exoticPetCheckbox = service.querySelector('.exotic-pet-checkbox');
-            const exoticSpeciesContainer = service.querySelector('.exotic-species-container');
-            
-            if (exoticPetCheckbox) {
-                if (exoticPetCheckbox.checked) {
-                    // Validate and enable exotic pet species inputs
-                    const speciesInputs = exoticSpeciesContainer.querySelectorAll('input[type="text"]');
-                    let hasValidSpecies = false;
-                    
-                    speciesInputs.forEach(input => {
-                        input.disabled = false;
-                        if (input.value.trim()) {
-                            hasValidSpecies = true;
-                            input.classList.remove('border-red-500');
-                        } else {
-                            input.classList.add('border-red-500');
-                        }
-                    });
-                    
-                    if (!hasValidSpecies) {
-                        isValid = false;
-                        alert('Please enter at least one exotic pet species');
-                    }
-                } else {
-                    // Disable all exotic pet species inputs when checkbox is unchecked
-                    exoticSpeciesContainer.querySelectorAll('input[type="text"]').forEach(input => {
-                        input.disabled = true;
-                    });
+            // Update name attributes to use correct array indices
+            service.querySelectorAll('[name*="services[0]"]').forEach(input => {
+                const newName = input.getAttribute('name').replace('services[0]', `services[${serviceIndex}]`);
+                input.setAttribute('name', newName);
+            });
+
+            // Basic Information Validation
+            const serviceName = service.querySelector(`input[name="services[${serviceIndex}][name]"]`);
+            const serviceCategory = service.querySelector(`select[name="services[${serviceIndex}][category]"]`);
+            const petTypes = service.querySelectorAll(`input[name="services[${serviceIndex}][pet_types][]"]:checked`);
+            const sizeRanges = service.querySelectorAll(`input[name="services[${serviceIndex}][size_ranges][]"]:checked`);
+            const basePrice = service.querySelector(`input[name="services[${serviceIndex}][base_price]"]`);
+            const duration = service.querySelector(`input[name="services[${serviceIndex}][duration]"]`);
+
+            // Reset error states
+            [serviceName, serviceCategory, basePrice, duration].forEach(field => {
+                if (field) {
+                    field.classList.remove('border-red-500');
+                    field.classList.add('border-gray-300');
                 }
+            });
+
+            // Validate required fields
+            if (!serviceName?.value?.trim()) {
+                isValid = false;
+                serviceName?.classList.add('border-red-500');
+                errors.push(`Service #${serviceIndex + 1}: Service Name is required`);
             }
 
-            // Variable Pricing Validation
-            const variablePricingContainer = service.querySelector('.variable-pricing-container');
-            const variablePricingRows = variablePricingContainer.querySelectorAll('.variable-pricing-row');
-            
-            if (variablePricingRows.length > 0) {
-                const variablePricing = [];
-                const usedSizes = new Set();
+            if (!serviceCategory?.value) {
+                isValid = false;
+                serviceCategory?.classList.add('border-red-500');
+                errors.push(`Service #${serviceIndex + 1}: Category is required`);
+            }
+
+            if (petTypes.length === 0) {
+                isValid = false;
+                errors.push(`Service #${serviceIndex + 1}: At least one Pet Type must be selected`);
+            }
+
+            if (sizeRanges.length === 0) {
+                isValid = false;
+                errors.push(`Service #${serviceIndex + 1}: At least one Size Range must be selected`);
+            }
+
+            if (!basePrice?.value || parseFloat(basePrice.value) <= 0) {
+                isValid = false;
+                basePrice?.classList.add('border-red-500');
+                errors.push(`Service #${serviceIndex + 1}: Base Price is required and must be greater than 0`);
+            }
+
+            if (!duration?.value || parseInt(duration.value) < 15) {
+                isValid = false;
+                duration?.classList.add('border-red-500');
+                errors.push(`Service #${serviceIndex + 1}: Duration is required and must be at least 15 minutes`);
+            }
+
+            // Exotic Pet Service Validation
+            const exoticPetCheckbox = service.querySelector('.exotic-pet-checkbox');
+            if (exoticPetCheckbox?.checked) {
+                const exoticSpeciesContainer = service.querySelector('.exotic-species-container');
+                const speciesInputs = exoticSpeciesContainer.querySelectorAll('input[type="text"]');
                 
-                variablePricingRows.forEach((row, index) => {
-                    const sizeSelect = row.querySelector('select[name*="variable_pricing"][name*="size"]');
-                    const priceInput = row.querySelector('input[name*="variable_pricing"][name*="price"]');
-                    
-                    // Reset error states
-                    sizeSelect.classList.remove('border-red-500');
-                    priceInput.classList.remove('border-red-500');
-                    
-                    // Validate size
-                    if (!sizeSelect.value) {
-                        isValid = false;
-                        sizeSelect.classList.add('border-red-500');
-                        alert(`Please select a size for variable pricing row ${index + 1}`);
-                    } else if (usedSizes.has(sizeSelect.value)) {
-                        isValid = false;
-                        sizeSelect.classList.add('border-red-500');
-                        alert(`Size ${sizeSelect.value} is already used in variable pricing`);
-                    } else {
-                        usedSizes.add(sizeSelect.value);
-                    }
-                    
-                    // Validate price
-                    if (!priceInput.value || parseFloat(priceInput.value) <= 0) {
-                        isValid = false;
-                        priceInput.classList.add('border-red-500');
-                        alert(`Please enter a valid price for ${sizeSelect.value || 'selected'} size`);
-                    }
-                    
-                    // Update input names to ensure proper array structure
-                    sizeSelect.name = `services[${serviceIndex}][variable_pricing][${index}][size]`;
-                    priceInput.name = `services[${serviceIndex}][variable_pricing][${index}][price]`;
+                // Update species input names to use correct array index
+                speciesInputs.forEach((input, speciesIndex) => {
+                    input.name = `services[${serviceIndex}][exotic_pet_species][${speciesIndex}]`;
                 });
+
+                let hasValidSpecies = false;
+                speciesInputs.forEach(input => {
+                    if (input.value.trim()) {
+                        hasValidSpecies = true;
+                    }
+                });
+                
+                if (!hasValidSpecies) {
+                    isValid = false;
+                    errors.push(`Service #${serviceIndex + 1}: Please enter at least one exotic pet species`);
+                }
             }
         });
+
+        // Display errors if any
+        const errorContainer = document.querySelector('.validation-errors');
+        if (errors.length > 0) {
+            let errorHtml = `
+                <div class="bg-red-50 border-l-4 border-red-400 p-4 mb-4">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm text-red-700">Please fix the following errors:</p>
+                            <ul class="mt-2 text-sm text-red-700 list-disc list-inside">
+                                ${errors.map(error => `<li>${error}</li>`).join('')}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            if (errorContainer) {
+                errorContainer.innerHTML = errorHtml;
+            } else {
+                const newErrorContainer = document.createElement('div');
+                newErrorContainer.className = 'validation-errors';
+                newErrorContainer.innerHTML = errorHtml;
+                const form = document.getElementById('servicesForm');
+                form.insertBefore(newErrorContainer, form.firstChild);
+            }
+            
+            return false;
+        }
+        
+        if (errorContainer) {
+            errorContainer.remove();
+        }
         
         if (isValid) {
             this.submit();
@@ -508,11 +554,12 @@ function addService() {
 }
 
 function addSpeciesField(container, serviceIndex) {
+    const speciesCount = container.querySelectorAll('input[type="text"]').length;
     const newField = document.createElement('div');
     newField.className = 'flex items-center space-x-2 mt-2';
     newField.innerHTML = `
         <input type="text" 
-               name="services[${serviceIndex}][exotic_pet_species][]" 
+               name="services[${serviceIndex}][exotic_pet_species][${speciesCount}]" 
                class="shadow appearance-none border rounded py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                placeholder="Enter species name"
                ${container.closest('.service-item').querySelector('.exotic-pet-checkbox').checked ? '' : 'disabled'}>

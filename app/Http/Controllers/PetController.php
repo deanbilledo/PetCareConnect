@@ -8,6 +8,7 @@ use App\Models\PetParasiteControl;
 use App\Models\PetHealthIssue;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class PetController extends Controller
 {
@@ -171,22 +172,92 @@ class PetController extends Controller
         }
     }
 
+    public function show(Pet $pet)
+    {
+        // Check if the authenticated user owns this pet
+        if ($pet->user_id !== auth()->id()) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        // Load the necessary relationships
+        $pet->load([
+            'vaccinations' => function ($query) {
+                $query->latest('administered_date');
+            },
+            'parasiteControls' => function ($query) {
+                $query->latest('treatment_date');
+            },
+            'healthIssues' => function ($query) {
+                $query->latest('identified_date');
+            },
+            'appointments' => function ($query) {
+                $query->with('shop')
+                      ->latest('appointment_date')
+                      ->take(5);
+            }
+        ]);
+
+        return view('profile.pets.show', compact('pet'));
+    }
+
+    public function updatePhoto(Request $request, Pet $pet)
+    {
+        if ($pet->user_id !== auth()->id()) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $request->validate([
+            'pet_photo' => 'required|image|mimes:jpeg,png,jpg|max:2048'
+        ]);
+
+        if ($request->hasFile('pet_photo')) {
+            // Delete old photo if exists
+            if ($pet->profile_photo && Storage::exists($pet->profile_photo)) {
+                Storage::delete($pet->profile_photo);
+            }
+
+            // Store new photo
+            $path = $request->file('pet_photo')->store('pets', 'public');
+            $pet->update(['profile_photo' => $path]);
+        }
+
+        return back()->with('success', 'Pet photo updated successfully');
+    }
+
     public function markDeceased(Request $request, Pet $pet)
     {
-        try {
-            $validated = $request->validate([
-                'death_date' => 'required|date|before_or_equal:today',
-                'death_reason' => 'nullable|string|max:500',
-            ]);
-
-            $pet->markAsDeceased($validated['death_date'], $validated['death_reason']);
-
-            return redirect()->back()->with('success', 'Pet status updated successfully.');
-        } catch (\Exception $e) {
-            Log::error('Failed to update pet status: ' . $e->getMessage());
-            return redirect()->back()
-                ->withInput()
-                ->withErrors(['error' => 'Failed to update pet status. Please try again.']);
+        if ($pet->user_id !== auth()->id()) {
+            abort(403, 'Unauthorized action.');
         }
+
+        $validated = $request->validate([
+            'death_date' => 'required|date|before_or_equal:today',
+            'death_reason' => 'nullable|string|max:500'
+        ]);
+
+        $pet->update([
+            'death_date' => $validated['death_date'],
+            'death_reason' => $validated['death_reason']
+        ]);
+
+        return back()->with('success', 'Pet status updated successfully');
+    }
+
+    public function showHealthRecord(Pet $pet)
+    {
+        if ($pet->user_id !== auth()->id()) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        return view('profile.pets.health-record', compact('pet'));
+    }
+
+    public function createHealthRecord(Pet $pet)
+    {
+        if ($pet->user_id !== auth()->id()) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        return view('profile.pets.add-health-record', compact('pet'));
     }
 } 
