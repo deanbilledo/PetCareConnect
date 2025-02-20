@@ -1,5 +1,6 @@
 @php
 use Illuminate\Support\Str;
+use Carbon\Carbon;
 @endphp
 
 @extends('layouts.app')
@@ -10,6 +11,7 @@ use Illuminate\Support\Str;
         x-data="appointmentsData()"
         x-init="
             console.log('Alpine component initialized');
+            checkPastDueAppointments();
             $watch('showRatingModal', value => {
                 console.log('Modal state changed:', value);
                 if (value) {
@@ -178,6 +180,9 @@ use Illuminate\Support\Str;
                                     @foreach($dayAppointments as $appointment)
                                         <tr x-show="isAppointmentVisible('{{ $appointment->status }}', '{{ $date }}')"
                                             @click="viewAppointmentDetails({{ $appointment->id }}, $event)"
+                                            data-appointment-id="{{ $appointment->id }}"
+                                            data-appointment-date="{{ $appointment->appointment_date }}"
+                                            data-status="{{ $appointment->status }}"
                                             class="hover:bg-gray-50 cursor-pointer transition-colors">
                                             <td class="px-3 py-4">
                                                 <div class="flex items-center">
@@ -513,6 +518,50 @@ function appointmentsData() {
         staffReview: '',
         ratingError: '',
         
+        async checkPastDueAppointments() {
+            try {
+                const appointments = document.querySelectorAll('[data-appointment-date]');
+                let cancelledCount = 0;
+
+                for (const appointmentEl of appointments) {
+                    const appointmentId = appointmentEl.dataset.appointmentId;
+                    const appointmentDate = new Date(appointmentEl.dataset.appointmentDate);
+                    const status = appointmentEl.dataset.status;
+                    const now = new Date();
+                    
+                    // Check if appointment is more than 24 hours past due
+                    if (status === 'pending' && (now - appointmentDate) > (24 * 60 * 60 * 1000)) {
+                        try {
+                            const response = await fetch(`/appointments/${appointmentId}/cancel`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                                    'Accept': 'application/json',
+                                    'X-Requested-With': 'XMLHttpRequest'
+                                },
+                                body: JSON.stringify({
+                                    reason: 'Automatically cancelled due to being past due',
+                                    auto_approved: true
+                                })
+                            });
+
+                            if (response.ok) {
+                                cancelledCount++;
+                            }
+                        } catch (error) {
+                            console.error('Error cancelling appointment:', error);
+                        }
+                    }
+                }
+
+                if (cancelledCount > 0) {
+                    window.location.reload();
+                }
+            } catch (error) {
+                console.error('Error checking past due appointments:', error);
+            }
+        },
         async initializeRatingModal(appointmentId) {
             console.log('Initializing rating modal for appointment:', appointmentId);
             

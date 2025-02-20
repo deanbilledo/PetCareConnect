@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Carbon\Carbon;
 
 class Pet extends Model
 {
@@ -16,24 +17,25 @@ class Pet extends Model
     protected $fillable = [
         'name',
         'type',
-        'species',
         'breed',
-        'size_category',
+        'date_of_birth',
         'weight',
+        'size_category',
         'color_markings',
         'coat_type',
-        'date_of_birth',
-        'status',
+        'profile_photo',
         'death_date',
         'death_reason',
-        'profile_photo_path',
         'user_id'
     ];
 
     protected $casts = [
-        'date_of_birth' => 'date',
-        'death_date' => 'date',
-        'weight' => 'decimal:2',
+        'date_of_birth' => 'datetime',
+        'death_date' => 'datetime'
+    ];
+
+    protected $appends = [
+        'profile_photo_url'
     ];
 
     public function user(): BelongsTo
@@ -43,9 +45,10 @@ class Pet extends Model
 
     public function getProfilePhotoUrlAttribute()
     {
-        return $this->profile_photo_path
-            ? Storage::disk('public')->url($this->profile_photo_path)
-            : asset('images/default-pet.png');
+        if ($this->profile_photo) {
+            return asset('storage/' . $this->profile_photo);
+        }
+        return asset('images/default-pet.png');
     }
 
     public function healthRecords()
@@ -80,13 +83,12 @@ class Pet extends Model
 
     public function isDeceased(): bool
     {
-        return $this->status === 'deceased';
+        return !is_null($this->death_date);
     }
 
     public function markAsDeceased($deathDate, $reason = null)
     {
         $this->update([
-            'status' => 'deceased',
             'death_date' => $deathDate,
             'death_reason' => $reason,
         ]);

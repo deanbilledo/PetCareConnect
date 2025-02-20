@@ -168,6 +168,15 @@ Route::middleware(['auth'])->group(function () {
         });
     });
 
+    // Pet Profile Routes
+    Route::middleware(['auth'])->prefix('profile')->name('profile.')->group(function () {
+        Route::get('/pets/{pet}', [PetController::class, 'show'])->name('pets.show');
+        Route::post('/pets/{pet}/update-photo', [PetController::class, 'updatePhoto'])->name('pets.update-photo');
+        Route::post('/pets/{pet}/mark-deceased', [PetController::class, 'markDeceased'])->name('pets.mark-deceased');
+        Route::get('/pets/{pet}/health-record', [PetController::class, 'showHealthRecord'])->name('pets.health-record');
+        Route::get('/pets/{pet}/add-health-record', [PetController::class, 'createHealthRecord'])->name('pets.add-health-record');
+    });
+
     // Booking routes
     Route::middleware(['auth', 'web'])->group(function () {
         // Time slots route

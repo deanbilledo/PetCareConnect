@@ -115,6 +115,19 @@ use Illuminate\Support\Facades\Log;
                      this.progress = ((this.currentStep - 1) / 3) * 100;
                  },
                  nextStep() {
+                     // Validate current step
+                     const errors = validateStep(this.currentStep, this.formData);
+                     
+                     if (errors.length > 0) {
+                         showErrors(errors);
+                         return; // Don't proceed if there are errors
+                     }
+                     
+                     // Remove any existing error messages since validation passed
+                     const existingErrors = document.querySelector('.validation-errors');
+                     if (existingErrors) existingErrors.remove();
+                     
+                     // Proceed to next step
                      if (this.currentStep < 4) {
                          this.currentStep++;
                          this.updateProgress();
@@ -125,6 +138,71 @@ use Illuminate\Support\Facades\Log;
                          this.currentStep--;
                          this.updateProgress();
                      }
+                 },
+                 initMap() {
+                     this.$nextTick(() => {
+                         if (!this.map) {
+                             console.log('Initializing map...');
+                             try {
+                                 // Wait for the modal to be fully visible
+                                 setTimeout(() => {
+                                     this.map = L.map('map').setView([6.9214, 122.0790], 13);
+                                     
+                                     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                                         attribution: '© OpenStreetMap contributors'
+                                     }).addTo(this.map);
+
+                                     // Add geocoder control
+                                     const geocoder = L.Control.geocoder({
+                                         defaultMarkGeocode: false
+                                     })
+                                     .on('markgeocode', (e) => {
+                                         const { center, name } = e.geocode;
+                                         if (this.marker) {
+                                             this.marker.setLatLng(center);
+                                         } else {
+                                             this.marker = L.marker(center).addTo(this.map);
+                                         }
+                                         this.map.setView(center, 16);
+                                         this.latitude = center.lat;
+                                         this.longitude = center.lng;
+                                         this.address = name;
+                                     })
+                                     .addTo(this.map);
+
+                                     // Handle map clicks
+                                     this.map.on('click', (e) => {
+                                         const { lat, lng } = e.latlng;
+                                         if (this.marker) {
+                                             this.marker.setLatLng([lat, lng]);
+                                         } else {
+                                             this.marker = L.marker([lat, lng]).addTo(this.map);
+                                         }
+                                         this.latitude = lat;
+                                         this.longitude = lng;
+                                         
+                                         // Reverse geocode the clicked location
+                                         fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
+                                             .then(response => response.json())
+                                             .then(data => {
+                                                 this.address = data.display_name;
+                                             });
+                                     });
+
+                                     // Force map to update its size
+                                     this.map.invalidateSize();
+                                 }, 100);
+                             } catch (error) {
+                                 console.error('Error initializing map:', error);
+                             }
+                         } else {
+                             // If map already exists, just update its size
+                             this.map.invalidateSize();
+                         }
+                     });
+                 },
+                 confirmLocation() {
+                     this.showMap = false;
                  }
              }"
              x-init="$watch('currentStep', value => { 
@@ -169,6 +247,19 @@ use Illuminate\Support\Facades\Log;
                         this.progress = ((this.currentStep - 1) / 3) * 100;
                     },
                     nextStep() {
+                        // Validate current step
+                        const errors = validateStep(this.currentStep, this.formData);
+                        
+                        if (errors.length > 0) {
+                            showErrors(errors);
+                            return; // Don't proceed if there are errors
+                        }
+                        
+                        // Remove any existing error messages since validation passed
+                        const existingErrors = document.querySelector('.validation-errors');
+                        if (existingErrors) existingErrors.remove();
+                        
+                        // Proceed to next step
                         if (this.currentStep < 4) {
                             this.currentStep++;
                             this.updateProgress();
@@ -404,6 +495,7 @@ use Illuminate\Support\Facades\Log;
                                     <input type="tel" 
                                         name="phone" 
                                         placeholder="Contact Number"
+                                        x-model="formData.phone"
                                         class="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-custom-blue focus:border-custom-blue">
                                 </div>
                                 <div class="relative">
@@ -488,6 +580,7 @@ use Illuminate\Support\Facades\Log;
                                     <input type="text" 
                                         name="tin" 
                                         placeholder="Tax Identification Number (TIN)"
+                                        x-model="formData.tin"
                                         class="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-custom-blue focus:border-custom-blue">
                                 </div>
                                 
@@ -644,6 +737,65 @@ use Illuminate\Support\Facades\Log;
             document.addEventListener('DOMContentLoaded', function() {
                 console.log('Leaflet loaded:', typeof L !== 'undefined');
             });
+
+            // Add this validation function before the appointmentsData function
+            function validateStep(step, formData) {
+                const errors = [];
+                
+                switch(step) {
+                    case 1:
+                        if (!formData.shop_name.trim()) errors.push("Shop Name is required");
+                        if (!formData.shop_type) errors.push("Shop Type is required");
+                        break;
+                        
+                    case 2:
+                        const phoneInput = document.querySelector('input[name="phone"]');
+                        const addressInput = document.querySelector('input[name="address"]');
+                        
+                        if (!phoneInput.value.trim()) errors.push("Contact Number is required");
+                        if (!addressInput.value.trim()) errors.push("Shop Address is required");
+                        break;
+                        
+                    case 3:
+                        const tinInput = document.querySelector('input[name="tin"]');
+                        const vatStatus = document.querySelector('input[name="vat_status"]:checked');
+                        const birCertificate = document.querySelector('input[name="bir_certificate"]');
+                        
+                        if (!tinInput.value.trim()) errors.push("TIN is required");
+                        if (!vatStatus) errors.push("VAT Registration Status is required");
+                        if (!birCertificate.files.length) errors.push("BIR Certificate is required");
+                        break;
+                }
+                
+                return errors;
+            }
+
+            function showErrors(errors) {
+                // Remove any existing error messages
+                const existingErrors = document.querySelector('.validation-errors');
+                if (existingErrors) existingErrors.remove();
+                
+                // Create and show new error messages
+                if (errors.length > 0) {
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'validation-errors bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4';
+                    
+                    const errorList = document.createElement('ul');
+                    errorList.className = 'list-disc pl-4';
+                    
+                    errors.forEach(error => {
+                        const li = document.createElement('li');
+                        li.textContent = error;
+                        errorList.appendChild(li);
+                    });
+                    
+                    errorDiv.appendChild(errorList);
+                    
+                    // Insert error messages at the top of the form
+                    const form = document.querySelector('form');
+                    form.insertBefore(errorDiv, form.firstChild);
+                }
+            }
         </script>
     </body>
 </html>    

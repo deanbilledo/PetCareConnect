@@ -18,18 +18,26 @@ class AppointmentController extends Controller
 
     public function index()
     {
-        $user = auth()->user();
-        $appointments = $user->appointments()
+        // Get appointments
+        $appointments = auth()->user()->appointments()
             ->with(['shop', 'pet', 'employee'])
-            ->orderBy('appointment_date', 'desc')
+            ->orderBy('appointment_date', 'asc')
             ->get();
-        
-        // Add debugging
-        Log::info('User ID: ' . $user->id);
-        Log::info('Appointments count: ' . $appointments->count());
-        Log::info('Raw appointments:', $appointments->toArray());
 
-        $groupedAppointments = $appointments->groupBy(function($appointment) {
+        // Auto-cancel past due appointments
+        $appointments->each(function ($appointment) {
+            $isPastDue = \Carbon\Carbon::parse($appointment->appointment_date)->addDay()->isPast();
+            if ($isPastDue && $appointment->status === 'pending') {
+                $appointment->update([
+                    'status' => 'cancelled',
+                    'cancellation_reason' => 'Automatically cancelled due to being past due',
+                    'cancelled_at' => now()
+                ]);
+            }
+        });
+
+        // Group appointments by date
+        $groupedAppointments = $appointments->groupBy(function ($appointment) {
             return $appointment->appointment_date->format('Y-m-d');
         });
 
