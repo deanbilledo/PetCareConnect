@@ -7,6 +7,11 @@ use Illuminate\Support\Str;
 @section('content')
 <div class="container mx-auto px-4 py-6">
     <div class="bg-white rounded-lg shadow-md p-6">
+        <!-- Success Message -->
+        <div id="success-message" class="hidden bg-green-50 text-green-600 p-4 rounded-lg mb-4">
+            Health record added successfully
+        </div>
+
         <!-- Back Button -->
         <div class="mb-6">
             @if(auth()->user()->shop && auth()->user()->shop->status === 'active')
@@ -39,16 +44,10 @@ use Illuminate\Support\Str;
             <!-- Vaccination Record Form -->
             <div class="border-b pb-8">
                 <h2 class="text-xl font-semibold mb-4">Vaccination Record</h2>
-                @if ($errors->vaccination->any())
-                    <div class="bg-red-50 text-red-500 p-4 rounded-lg mb-4">
-                        <ul class="list-disc pl-5">
-                            @foreach ($errors->vaccination->all() as $error)
-                                <li>{{ $error }}</li>
-                            @endforeach
-                        </ul>
-                    </div>
-                @endif
-                <form action="{{ route('profile.pets.vaccination.store', $pet->id) }}" method="POST" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div id="vaccination-errors" class="hidden bg-red-50 text-red-500 p-4 rounded-lg mb-4">
+                    <ul class="list-disc pl-5"></ul>
+                </div>
+                <form id="vaccination-form" action="{{ route('profile.pets.vaccination.store', $pet->id) }}" method="POST" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     @csrf
                     @if(auth()->user()->shop && auth()->user()->shop->status === 'active')
                         <input type="hidden" name="redirect_to" value="{{ route('shop.appointments') }}">
@@ -88,16 +87,10 @@ use Illuminate\Support\Str;
             <!-- Parasite Control Form -->
             <div class="border-b pb-8">
                 <h2 class="text-xl font-semibold mb-4">Parasite Control</h2>
-                @if ($errors->parasite->any())
-                    <div class="bg-red-50 text-red-500 p-4 rounded-lg mb-4">
-                        <ul class="list-disc pl-5">
-                            @foreach ($errors->parasite->all() as $error)
-                                <li>{{ $error }}</li>
-                            @endforeach
-                        </ul>
-                    </div>
-                @endif
-                <form action="{{ route('profile.pets.parasite-control.store', $pet->id) }}" method="POST" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div id="parasite-errors" class="hidden bg-red-50 text-red-500 p-4 rounded-lg mb-4">
+                    <ul class="list-disc pl-5"></ul>
+                </div>
+                <form id="parasite-form" action="{{ route('profile.pets.parasite-control.store', $pet->id) }}" method="POST" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     @csrf
                     @if(auth()->user()->shop && auth()->user()->shop->status === 'active')
                         <input type="hidden" name="redirect_to" value="{{ route('shop.appointments') }}">
@@ -140,16 +133,10 @@ use Illuminate\Support\Str;
             <!-- Health Issues Form -->
             <div>
                 <h2 class="text-xl font-semibold mb-4">Health Issue</h2>
-                @if ($errors->health->any())
-                    <div class="bg-red-50 text-red-500 p-4 rounded-lg mb-4">
-                        <ul class="list-disc pl-5">
-                            @foreach ($errors->health->all() as $error)
-                                <li>{{ $error }}</li>
-                            @endforeach
-                        </ul>
-                    </div>
-                @endif
-                <form action="{{ route('profile.pets.health-issue.store', $pet->id) }}" method="POST" class="grid grid-cols-1 gap-4">
+                <div id="health-errors" class="hidden bg-red-50 text-red-500 p-4 rounded-lg mb-4">
+                    <ul class="list-disc pl-5"></ul>
+                </div>
+                <form id="health-issue-form" action="{{ route('profile.pets.health-issue.store', $pet->id) }}" method="POST" class="grid grid-cols-1 gap-4">
                     @csrf
                     @if(auth()->user()->shop && auth()->user()->shop->status === 'active')
                         <input type="hidden" name="redirect_to" value="{{ route('shop.appointments') }}">
@@ -198,4 +185,97 @@ use Illuminate\Support\Str;
         </div>
     </div>
 </div>
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const forms = {
+        'vaccination-form': {
+            errorContainer: document.getElementById('vaccination-errors'),
+            errorList: document.getElementById('vaccination-errors').querySelector('ul')
+        },
+        'parasite-form': {
+            errorContainer: document.getElementById('parasite-errors'),
+            errorList: document.getElementById('parasite-errors').querySelector('ul')
+        },
+        'health-issue-form': {
+            errorContainer: document.getElementById('health-errors'),
+            errorList: document.getElementById('health-errors').querySelector('ul')
+        }
+    };
+    const successMessage = document.getElementById('success-message');
+
+    // Function to display errors
+    function displayErrors(formId, errors) {
+        const formElements = forms[formId];
+        formElements.errorList.innerHTML = '';
+        
+        Object.values(errors).forEach(error => {
+            if (Array.isArray(error)) {
+                error.forEach(message => {
+                    const li = document.createElement('li');
+                    li.textContent = message;
+                    formElements.errorList.appendChild(li);
+                });
+            } else {
+                const li = document.createElement('li');
+                li.textContent = error;
+                formElements.errorList.appendChild(li);
+            }
+        });
+        
+        formElements.errorContainer.classList.remove('hidden');
+    }
+
+    // Function to clear errors
+    function clearErrors(formId) {
+        const formElements = forms[formId];
+        formElements.errorList.innerHTML = '';
+        formElements.errorContainer.classList.add('hidden');
+    }
+
+    // Handle form submissions
+    Object.keys(forms).forEach(formId => {
+        const form = document.getElementById(formId);
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            clearErrors(formId);
+            
+            try {
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    body: new FormData(form),
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Show success message
+                    successMessage.classList.remove('hidden');
+                    form.reset();
+
+                    // Hide success message after 3 seconds
+                    setTimeout(() => {
+                        successMessage.classList.add('hidden');
+                    }, 3000);
+                } else {
+                    // Display validation errors
+                    if (data.errors) {
+                        displayErrors(formId, data.errors);
+                    }
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                displayErrors(formId, {'error': ['An unexpected error occurred. Please try again.']});
+            }
+        });
+    });
+});
+</script>
+@endpush
+
 @endsection

@@ -155,11 +155,11 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/{pet}/update-photo', [ProfileController::class, 'updatePetPhoto'])->name('update-photo');
             Route::post('/{pet}/mark-deceased', [PetController::class, 'markDeceased'])->name('mark-deceased');
             
-            // Pet details and health records
-            Route::get('/{pet}/details', [ProfileController::class, 'showPetDetails'])->name('details');
-            Route::get('/{pet}/health-record', [ProfileController::class, 'showHealthRecord'])->name('health-record');
-            Route::get('/{pet}/add-health-record', [ProfileController::class, 'showAddHealthRecord'])->name('add-health-record');
-            Route::get('/{pet}/user-add-health-record', [ProfileController::class, 'showUserAddHealthRecord'])->name('user-add-health-record');
+            // Pet details and health records - consolidated in PetController
+            Route::get('/{pet}/details', [PetController::class, 'show'])->name('details');
+            Route::get('/{pet}/health-record', [PetController::class, 'showHealthRecord'])->name('health-record');
+            Route::get('/{pet}/add-health-record', [PetController::class, 'createHealthRecord'])->name('add-health-record');
+            Route::get('/{pet}/user-add-health-record', [PetController::class, 'showUserAddHealthRecord'])->name('user-add-health-record');
             
             // New health record routes
             Route::post('/{pet}/vaccination', [PetController::class, 'storeVaccination'])->name('vaccination.store');
