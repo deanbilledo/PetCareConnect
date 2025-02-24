@@ -334,109 +334,118 @@ use Illuminate\Support\Facades\Log;
 </div>
 
 <!-- Confirmation Modal -->
-<div id="confirmationModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-    <!-- Background overlay -->
-    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity backdrop-blur-sm"></div>
-
-    <!-- Modal panel -->
-    <div class="fixed inset-0 z-10 overflow-y-auto">
-        <div class="flex min-h-full items-center justify-center p-4">
-            <div class="relative transform overflow-hidden rounded-xl bg-white shadow-2xl transition-all max-w-lg w-full mx-auto">
-                <!-- Modal Header -->
-                <div class="bg-white px-6 py-4 border-b border-gray-200">
-                    <div class="flex items-center space-x-3">
-                        <div class="flex-shrink-0">
-                            <div class="bg-blue-100 rounded-full p-2">
-                                <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                </svg>
-                            </div>
-                        </div>
-                        <h3 class="text-xl font-semibold text-gray-900" id="modal-title">
-                            Confirm Your Booking
-                        </h3>
-                    </div>
+<div id="confirmationModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+        <!-- Normal State -->
+        <div id="modalNormalState">
+            <h3 class="text-lg font-semibold mb-4">Confirm Your Booking</h3>
+            
+            <!-- Booking Summary -->
+            <div class="mb-6 bg-gray-50 p-4 rounded-lg">
+                <h4 class="font-medium text-gray-800 mb-3">Booking Summary</h4>
+                
+                <!-- Date and Time -->
+                <div class="mb-3">
+                    <p class="text-sm text-gray-600">
+                        <span class="font-medium">Schedule:</span> 
+                        {{ $appointmentDateTime->format('l, F j, Y') }} at {{ $appointmentDateTime->format('g:i A') }}
+                    </p>
                 </div>
 
-                <!-- Modal Content -->
-                <div class="px-6 py-4">
-                    <!-- Booking Details Card -->
-                    <div class="bg-gray-50 rounded-lg p-4 mb-4">
-                        <h4 class="font-medium text-gray-900 mb-3">Booking Details</h4>
-                        <div class="space-y-2 text-sm">
-                            <div class="flex justify-between items-center">
-                                <span class="text-gray-600">Date:</span>
-                                <span class="font-medium">{{ $appointmentDateTime->format('l, F j, Y') }}</span>
+                <!-- Services List -->
+                <div class="mb-3">
+                    <p class="text-sm font-medium text-gray-700 mb-2">Services:</p>
+                    @foreach($pets as $pet)
+                        @php
+                            $serviceId = $bookingData['pet_services'][$pet->id] ?? null;
+                            $service = $services->firstWhere('id', $serviceId);
+                            
+                            // Get price based on pet size
+                            $price = $service->base_price;
+                            if ($service && !empty($service->variable_pricing)) {
+                                $variablePricing = is_string($service->variable_pricing) ? 
+                                    json_decode($service->variable_pricing, true) : 
+                                    $service->variable_pricing;
+                                
+                                $sizePrice = collect($variablePricing)->first(function($pricing) use ($pet) {
+                                    return strtolower($pricing['size']) === strtolower($pet->size_category);
+                                });
+                                
+                                if ($sizePrice && isset($sizePrice['price'])) {
+                                    $price = (float) $sizePrice['price'];
+                                }
+                            }
+                        @endphp
+                        @if($service)
+                            <div class="flex justify-between items-start text-sm mb-2">
+                                <div>
+                                    <p class="text-gray-800">{{ $pet->name }} - {{ $service->name }}</p>
+                                    <p class="text-xs text-gray-600">{{ ucfirst($pet->size_category) }} {{ ucfirst($pet->type) }}</p>
+                                </div>
+                                <span class="text-gray-700">₱{{ number_format($price, 2) }}</span>
                             </div>
-                            <div class="flex justify-between items-center">
-                                <span class="text-gray-600">Time:</span>
-                                <span class="font-medium">{{ $appointmentDateTime->format('g:i A') }}</span>
-                            </div>
-                            <div class="flex justify-between items-center">
-                                <span class="text-gray-600">Groomer:</span>
-                                <span class="font-medium">{{ $bookingData['employee']['name'] }}</span>
-                            </div>
-                            <div class="flex justify-between items-center pt-2 border-t border-gray-200">
-                                <span class="text-gray-900 font-medium">Total Amount:</span>
-                                <span class="text-lg font-semibold text-blue-600">₱{{ number_format($total ?? 0, 2) }}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Cancellation Policy Card -->
-                    <div class="bg-yellow-50 rounded-lg p-4 mb-4">
-                        <div class="flex items-start space-x-3">
-                            <div class="flex-shrink-0">
-                                <svg class="h-5 w-5 text-yellow-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                </svg>
-                            </div>
-                            <div>
-                                <h4 class="text-sm font-medium text-yellow-800 mb-2">Cancellation Policy</h4>
-                                <ul class="text-sm text-yellow-700 space-y-1.5">
-                                    <li class="flex items-start">
-                                        <span class="mr-2">•</span>
-                                        <span>You can cancel your appointment up to 2 hours before the scheduled time</span>
-                                    </li>
-                                    <li class="flex items-start">
-                                        <span class="mr-2">•</span>
-                                        <span>Maximum of 2 cancellations allowed per week</span>
-                                    </li>
-                                    <li class="flex items-start">
-                                        <span class="mr-2">•</span>
-                                        <span>Excessive cancellations may result in booking restrictions</span>
-                                    </li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Terms Agreement -->
-                    <div class="flex items-start space-x-3 bg-gray-50 rounded-lg p-4">
-                        <div class="flex items-center h-5">
-                            <input id="terms" name="terms" type="checkbox" 
-                                   class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                        </div>
-                        <label for="terms" class="text-sm text-gray-700">
-                            <span class="font-medium">I agree to the cancellation policy and terms</span>
-                            <p class="mt-1 text-gray-500">By checking this box, you acknowledge that you have read and agree to our cancellation policy and booking terms.</p>
-                        </label>
-                    </div>
+                        @endif
+                    @endforeach
                 </div>
 
-                <!-- Modal Footer -->
-                <div class="bg-gray-50 px-6 py-4 flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2">
-                    <button type="button" 
-                            onclick="hideConfirmationModal()"
-                            class="mt-3 sm:mt-0 w-full sm:w-auto inline-flex justify-center items-center px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
-                        Cancel
-                    </button>
-                    <button type="button" 
-                            onclick="submitBooking()"
-                            class="w-full sm:w-auto inline-flex justify-center items-center px-4 py-2.5 rounded-lg text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
-                        Confirm Booking
-                    </button>
+                <!-- Total Amount -->
+                <div class="border-t border-gray-200 pt-2 mt-2">
+                    <div class="flex justify-between items-center">
+                        <span class="font-medium text-gray-700">Total Amount:</span>
+                        <span class="font-semibold text-blue-600" id="modalTotalAmount">₱{{ number_format($total, 2) }}</span>
+                    </div>
                 </div>
+            </div>
+
+            <p class="text-gray-600 mb-6">Please review and agree to our terms before confirming your booking.</p>
+            
+            <!-- Cancellation and Reschedule Policy -->
+            <div class="mb-6 bg-blue-50 p-4 rounded-lg border border-blue-100">
+                <h4 class="font-medium text-blue-800 mb-2">Cancellation & Reschedule Policy</h4>
+                <ul class="text-sm text-blue-700 space-y-2">
+                    <li class="flex items-start space-x-2">
+                        <svg class="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                        <span>You are allowed to reschedule or cancel your appointment up to 2 times per week.</span>
+                    </li>
+                    <li class="flex items-start space-x-2">
+                        <svg class="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <span>Please note that excessive cancellations or rescheduling may affect your future booking privileges.</span>
+                    </li>
+                </ul>
+            </div>
+            
+            <div class="mb-6">
+                <label class="flex items-start space-x-2">
+                    <input type="checkbox" id="terms" class="mt-1">
+                    <span class="text-sm text-gray-600">
+                        I agree to the cancellation policy and understand that this booking is subject to the shop's terms and conditions.
+                    </span>
+                </label>
+            </div>
+            
+            <div class="flex justify-end space-x-3">
+                <button onclick="hideConfirmationModal()" 
+                        class="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors">
+                    Cancel
+                </button>
+                <button onclick="submitBooking()" 
+                        id="confirmButton"
+                        class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors">
+                    Confirm Booking
+                </button>
+            </div>
+        </div>
+        
+        <!-- Loading State -->
+        <div id="modalLoadingState" class="hidden">
+            <div class="text-center">
+                <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
+                <p class="text-gray-600">Processing your booking...</p>
+                <p class="text-sm text-gray-500 mt-2">Please do not close this window.</p>
             </div>
         </div>
     </div>
@@ -505,6 +514,9 @@ function applyCoupon() {
             document.getElementById('discountLineAmount').textContent = `-₱${discountAmount.toFixed(2)}`;
             document.getElementById('finalTotal').textContent = `₱${newTotal.toFixed(2)}`;
             
+            // Update modal total amount
+            document.getElementById('modalTotalAmount').textContent = `₱${newTotal.toFixed(2)}`;
+            
             // Show success message
             alert(`Voucher ${couponCode} applied successfully!`);
         } else {
@@ -512,6 +524,7 @@ function applyCoupon() {
             document.getElementById('discountDisplay').classList.add('hidden');
             document.getElementById('discountLine').classList.add('hidden');
             document.getElementById('finalTotal').textContent = `₱${subtotal.toFixed(2)}`;
+            document.getElementById('modalTotalAmount').textContent = `₱${subtotal.toFixed(2)}`;
             
             // Show error message
             alert(data.message || 'Invalid voucher code. Please try again.');
@@ -523,6 +536,7 @@ function applyCoupon() {
         document.getElementById('discountDisplay').classList.add('hidden');
         document.getElementById('discountLine').classList.add('hidden');
         document.getElementById('finalTotal').textContent = `₱${subtotal.toFixed(2)}`;
+        document.getElementById('modalTotalAmount').textContent = `₱${subtotal.toFixed(2)}`;
         
         alert('An error occurred while validating the voucher code. Please try again.');
     });
@@ -534,6 +548,15 @@ function submitBooking() {
         alert('Please agree to the cancellation policy and terms before proceeding.');
         return;
     }
+    
+    // Disable the confirm button and show loading state
+    const confirmButton = document.getElementById('confirmButton');
+    const modalNormalState = document.getElementById('modalNormalState');
+    const modalLoadingState = document.getElementById('modalLoadingState');
+    
+    confirmButton.disabled = true;
+    modalNormalState.classList.add('hidden');
+    modalLoadingState.classList.remove('hidden');
     
     // Add the discount information to the form
     const form = document.getElementById('confirmForm');
@@ -566,7 +589,10 @@ function submitBooking() {
         form.appendChild(totalInput);
     }
     
-    form.submit();
+    // Submit the form after a short delay to show loading state
+    setTimeout(() => {
+        form.submit();
+    }, 500);
 }
 
 document.getElementById('confirmForm').addEventListener('submit', function(e) {

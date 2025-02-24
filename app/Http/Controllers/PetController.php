@@ -111,11 +111,27 @@ class PetController extends Controller
 
             $pet->vaccinations()->create($validated);
 
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Vaccination record added successfully!'
+                ]);
+            }
+
             return redirect()
                 ->route('profile.pets.details', $pet->id)
                 ->with('success', 'Vaccination record added successfully!');
         } catch (\Exception $e) {
             Log::error('Failed to add vaccination record: ' . $e->getMessage());
+            
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to add vaccination record. Please try again.',
+                    'errors' => ['vaccination' => 'Failed to add vaccination record. Please try again.']
+                ], 422);
+            }
+
             return redirect()
                 ->back()
                 ->withInput()
@@ -135,11 +151,27 @@ class PetController extends Controller
 
             $pet->parasiteControls()->create($validated);
 
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Parasite control record added successfully!'
+                ]);
+            }
+
             return redirect()
                 ->route('profile.pets.details', $pet->id)
                 ->with('success', 'Parasite control record added successfully!');
         } catch (\Exception $e) {
             Log::error('Failed to add parasite control record: ' . $e->getMessage());
+            
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to add parasite control record. Please try again.',
+                    'errors' => ['parasite' => 'Failed to add parasite control record. Please try again.']
+                ], 422);
+            }
+
             return redirect()
                 ->back()
                 ->withInput()
@@ -160,11 +192,27 @@ class PetController extends Controller
 
             $pet->healthIssues()->create($validated);
 
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Health issue record added successfully!'
+                ]);
+            }
+
             return redirect()
                 ->route('profile.pets.details', $pet->id)
                 ->with('success', 'Health issue record added successfully!');
         } catch (\Exception $e) {
             Log::error('Failed to add health issue record: ' . $e->getMessage());
+            
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to add health issue record. Please try again.',
+                    'errors' => ['health' => 'Failed to add health issue record. Please try again.']
+                ], 422);
+            }
+
             return redirect()
                 ->back()
                 ->withInput()
@@ -245,19 +293,120 @@ class PetController extends Controller
 
     public function showHealthRecord(Pet $pet)
     {
-        if ($pet->user_id !== auth()->id()) {
-            abort(403, 'Unauthorized action.');
-        }
+        try {
+            // Check if pet exists and belongs to authenticated user or if user is a shop owner
+            $user = auth()->user();
+            $isShopOwner = $user->shop && $user->shop->status === 'active';
+            
+            if (!$pet || (!$isShopOwner && $pet->user_id !== $user->id)) {
+                Log::warning('Unauthorized access attempt to view pet health record', [
+                    'pet_id' => $pet->id,
+                    'user_id' => $user->id,
+                    'is_shop_owner' => $isShopOwner,
+                    'actual_owner' => $pet->user_id
+                ]);
+                return redirect()
+                    ->route('profile.pets.index')
+                    ->with('error', 'You are not authorized to view this pet\'s health records.');
+            }
 
-        return view('profile.pets.health-record', compact('pet'));
+            // Load necessary relationships
+            $pet->load([
+                'vaccinations' => function ($query) {
+                    $query->latest('administered_date');
+                },
+                'parasiteControls' => function ($query) {
+                    $query->latest('treatment_date');
+                },
+                'healthIssues' => function ($query) {
+                    $query->latest('identified_date');
+                }
+            ]);
+
+            return view('profile.pets.health-record', [
+                'pet' => $pet,
+                'isShopOwner' => $isShopOwner
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error viewing pet health record: ' . $e->getMessage(), [
+                'pet_id' => $pet->id ?? null,
+                'user_id' => auth()->id()
+            ]);
+            
+            return redirect()
+                ->route('profile.pets.index')
+                ->with('error', 'Unable to view health record. Please try again.');
+        }
     }
 
     public function createHealthRecord(Pet $pet)
     {
-        if ($pet->user_id !== auth()->id()) {
-            abort(403, 'Unauthorized action.');
-        }
+        try {
+            // Check if pet exists and belongs to authenticated user or if user is a shop owner
+            $user = auth()->user();
+            $isShopOwner = $user->shop && $user->shop->status === 'active';
+            
+            if (!$pet || (!$isShopOwner && $pet->user_id !== $user->id)) {
+                Log::warning('Unauthorized access attempt to pet health record', [
+                    'pet_id' => $pet->id,
+                    'user_id' => $user->id,
+                    'is_shop_owner' => $isShopOwner,
+                    'actual_owner' => $pet->user_id
+                ]);
+                return redirect()
+                    ->route('profile.pets.index')
+                    ->with('error', 'You are not authorized to access this pet\'s health records.');
+            }
 
-        return view('profile.pets.add-health-record', compact('pet'));
+            // Load necessary relationships
+            $pet->load(['vaccinations', 'parasiteControls', 'healthIssues']);
+
+            return view('profile.pets.add-health-record', [
+                'pet' => $pet,
+                'isShopOwner' => $isShopOwner
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error accessing pet health record: ' . $e->getMessage(), [
+                'pet_id' => $pet->id ?? null,
+                'user_id' => auth()->id()
+            ]);
+            
+            return redirect()
+                ->route('profile.pets.index')
+                ->with('error', 'Unable to access health record. Please try again.');
+        }
+    }
+
+    public function showUserAddHealthRecord(Pet $pet)
+    {
+        try {
+            // Check if pet exists and belongs to authenticated user
+            if (!$pet || $pet->user_id !== auth()->id()) {
+                Log::warning('Unauthorized access attempt to pet health record', [
+                    'pet_id' => $pet->id,
+                    'user_id' => auth()->id(),
+                    'actual_owner' => $pet->user_id
+                ]);
+                return redirect()
+                    ->route('profile.pets.index')
+                    ->with('error', 'You are not authorized to access this pet\'s health records.');
+            }
+
+            // Load necessary relationships
+            $pet->load(['vaccinations', 'parasiteControls', 'healthIssues']);
+
+            return view('profile.pets.user-add-health-record', [
+                'pet' => $pet
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error accessing pet health record: ' . $e->getMessage(), [
+                'pet_id' => $pet->id ?? null,
+                'user_id' => auth()->id()
+            ]);
+            
+            return redirect()
+                ->route('profile.pets.index')
+                ->with('error', 'Unable to access health record. Please try again.');
+        }
     }
 } 
