@@ -91,6 +91,16 @@ class AppointmentController extends Controller
             $appointment->cancellation_reason = $request->reason;
             $appointment->save();
 
+            // Create notification for cancelled appointment
+            $appointment->user->notifications()->create([
+                'type' => 'appointment_cancelled',
+                'title' => 'Appointment Cancelled',
+                'message' => "Your appointment at {$appointment->shop->name} for {$appointment->appointment_date->format('F j, Y g:i A')} has been cancelled.",
+                'action_url' => route('appointments.show', $appointment),
+                'action_text' => 'View Details',
+                'status' => 'unread'
+            ]);
+
             Log::info('Appointment cancelled successfully');
 
             return response()->json([
@@ -223,6 +233,16 @@ class AppointmentController extends Controller
                 'reschedule_approved_at' => now()
             ]);
 
+            // Create notification for approved reschedule
+            $appointment->user->notifications()->create([
+                'type' => 'reschedule_approved',
+                'title' => 'Reschedule Request Approved',
+                'message' => "Your reschedule request for {$appointment->shop->name} has been approved. Your new appointment is on {$appointment->appointment_date->format('F j, Y g:i A')}.",
+                'action_url' => route('appointments.show', $appointment),
+                'action_text' => 'View Appointment',
+                'status' => 'unread'
+            ]);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Reschedule request approved successfully'
@@ -305,6 +325,16 @@ class AppointmentController extends Controller
                 'accepted_at' => now()
             ]);
 
+            // Create notification for accepted appointment
+            $appointment->user->notifications()->create([
+                'type' => 'appointment_accepted',
+                'title' => 'Appointment Accepted',
+                'message' => "Your appointment at {$appointment->shop->name} for {$appointment->appointment_date->format('F j, Y g:i A')} has been accepted.",
+                'action_url' => route('appointments.show', $appointment),
+                'action_text' => 'View Appointment',
+                'status' => 'unread'
+            ]);
+
             Log::info('Appointment accepted successfully', [
                 'appointment_id' => $appointment->id
             ]);
@@ -339,6 +369,16 @@ class AppointmentController extends Controller
                 'status' => 'completed',
                 'payment_status' => 'paid',
                 'paid_at' => now()
+            ]);
+
+            // Create notification for completed appointment
+            $appointment->user->notifications()->create([
+                'type' => 'appointment_completed',
+                'title' => 'Appointment Completed',
+                'message' => "Your appointment at {$appointment->shop->name} has been completed. Thank you for your business!",
+                'action_url' => route('appointments.show', $appointment),
+                'action_text' => 'View Details',
+                'status' => 'unread'
             ]);
 
             return response()->json([
@@ -502,6 +542,43 @@ class AppointmentController extends Controller
             return response()->json([
                 'success' => false,
                 'error' => 'Failed to retrieve note'
+            ], 500);
+        }
+    }
+
+    // Add method to check for upcoming appointments
+    public function checkUpcomingAppointments()
+    {
+        try {
+            $upcomingAppointments = Appointment::where('status', 'accepted')
+                ->where('appointment_date', '>', now())
+                ->where('appointment_date', '<=', now()->addHour())
+                ->where('reminder_sent', false)
+                ->get();
+
+            foreach ($upcomingAppointments as $appointment) {
+                // Create notification for upcoming appointment
+                $appointment->user->notifications()->create([
+                    'type' => 'appointment_reminder',
+                    'title' => 'Upcoming Appointment Reminder',
+                    'message' => "Your appointment at {$appointment->shop->name} is in less than an hour! Please be ready for your {$appointment->service_type} appointment at {$appointment->appointment_date->format('g:i A')}.",
+                    'action_url' => route('appointments.show', $appointment),
+                    'action_text' => 'View Appointment',
+                    'status' => 'unread'
+                ]);
+
+                // Mark reminder as sent
+                $appointment->update(['reminder_sent' => true]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Upcoming appointments checked successfully'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error checking upcoming appointments: ' . $e->getMessage());
+            return response()->json([
+                'error' => 'Failed to check upcoming appointments'
             ], 500);
         }
     }

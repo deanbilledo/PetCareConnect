@@ -35,15 +35,14 @@ class AdminController extends Controller
     public function approveShop(Shop $shop)
     {
         try {
-            // Start a database transaction
             DB::beginTransaction();
 
-            // Update shop status to active
-            $shop->update(['status' => 'active']);
-
+            // Update shop status to approved
+            $shop->update(['status' => 'approved']);
+            
             // Create a free trial subscription
             $trialDays = 30; // Set trial period (30 days)
-            $shop->subscriptions()->create([
+            $subscription = $shop->subscriptions()->create([
                 'status' => 'trial',
                 'trial_starts_at' => now(),
                 'trial_ends_at' => now()->addDays($trialDays),
@@ -52,22 +51,44 @@ class AdminController extends Controller
                 'reference_number' => 'TRIAL-' . strtoupper(uniqid()),
             ]);
 
-            // Commit the transaction
-            DB::commit();
+            \Log::info('Free trial subscription created', [
+                'shop_id' => $shop->id,
+                'shop_name' => $shop->name,
+                'subscription_id' => $subscription->id,
+                'trial_ends_at' => $subscription->trial_ends_at
+            ]);
+            
+            // Call the notification handler
+            app(ShopRegistrationController::class)->handleApproval($shop);
 
-            return back()->with('success', 'Shop has been approved and 30-day free trial has been activated.');
+            DB::commit();
+            return redirect()->back()->with('success', 'Shop has been approved and 30-day free trial has been activated.');
         } catch (\Exception $e) {
-            // If there's an error, rollback the transaction
             DB::rollBack();
-            \Log::error('Error in approveShop: ' . $e->getMessage());
-            return back()->with('error', 'Failed to approve shop. Please try again.');
+            \Log::error('Error in approveShop: ' . $e->getMessage(), [
+                'shop_id' => $shop->id,
+                'shop_name' => $shop->name
+            ]);
+            return redirect()->back()->with('error', 'Failed to approve shop: ' . $e->getMessage());
         }
     }
 
-    public function rejectShop(Shop $shop)
+    public function rejectShop(Request $request, Shop $shop)
     {
-        $shop->update(['status' => 'rejected']);
-        return back()->with('success', 'Shop has been rejected.');
+        try {
+            DB::beginTransaction();
+
+            $shop->update(['status' => 'rejected']);
+            
+            // Call the notification handler with rejection reason
+            app(ShopRegistrationController::class)->handleRejection($shop, $request->reason);
+
+            DB::commit();
+            return redirect()->back()->with('success', 'Shop has been rejected successfully.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->with('error', 'Failed to reject shop: ' . $e->getMessage());
+        }
     }
 
     public function toggleShopStatus(Shop $shop)

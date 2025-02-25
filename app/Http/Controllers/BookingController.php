@@ -525,6 +525,16 @@ class BookingController extends Controller
                 // Clear booking session data
                 session()->forget('booking');
 
+                // Create notification for successful booking
+                auth()->user()->notifications()->create([
+                    'type' => 'appointment',
+                    'title' => 'Booking Successful',
+                    'message' => "Your appointment with {$shop->name} has been scheduled for {$appointmentDateTime->format('F j, Y')} at {$appointmentDateTime->format('g:i A')}.",
+                    'action_url' => route('appointments.index'),
+                    'action_text' => 'View Appointment',
+                    'status' => 'unread'
+                ]);
+
                 return redirect()->route('booking.thank-you', $shop)
                     ->with('success', 'Your appointment has been booked successfully!');
 

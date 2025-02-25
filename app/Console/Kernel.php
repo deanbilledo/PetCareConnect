@@ -31,6 +31,11 @@ class Kernel extends ConsoleKernel
                 })
                 ->emailOutputOnFailure(env('ADMIN_EMAIL'))
                 ->runInBackground();
+
+        // Check for upcoming appointments every 5 minutes
+        $schedule->call(function () {
+            app(\App\Http\Controllers\AppointmentController::class)->checkUpcomingAppointments();
+        })->everyFiveMinutes();
     }
 
     /**

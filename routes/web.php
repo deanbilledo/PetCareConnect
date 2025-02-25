@@ -65,6 +65,14 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/register', [ShopRegistrationController::class, 'register'])->name('register');
         Route::get('/registration-pending', [ShopRegistrationController::class, 'showPendingApproval'])->name('registration.pending');
         
+        // Shop approval/rejection notification routes
+        Route::post('/registration/{shop}/approve', [ShopRegistrationController::class, 'handleApproval'])
+            ->name('registration.approve')
+            ->middleware('auth', IsAdmin::class);
+        Route::post('/registration/{shop}/reject', [ShopRegistrationController::class, 'handleRejection'])
+            ->name('registration.reject')
+            ->middleware('auth', IsAdmin::class);
+        
         // Setup routes (requires shop and checks setup status)
         Route::middleware([HasShop::class])->group(function () {
             // Setup Welcome
@@ -234,13 +242,14 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/favorites/{shop}', [FavoriteController::class, 'toggle'])->name('favorites.toggle');
     Route::post('/shops/{shop}/review', [ShopController::class, 'submitReview'])->name('shops.review')->middleware('auth');
 
-    // Notification routes
-    Route::prefix('notifications')->name('notifications.')->group(function () {
-        Route::get('/', [NotificationController::class, 'index'])->name('index');
-        Route::post('/{notification}/mark-as-read', [NotificationController::class, 'markAsRead'])->name('mark-as-read');
-        Route::post('/mark-all-as-read', [NotificationController::class, 'markAllAsRead'])->name('mark-all-as-read');
-        Route::delete('/{notification}', [NotificationController::class, 'destroy'])->name('destroy');
-    });
+    // Notifications Routes
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('/notifications/{notification}/mark-as-read', [NotificationController::class, 'markAsRead'])->name('notifications.markAsRead');
+    Route::post('/notifications/mark-all-as-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.markAllAsRead');
+    
+    // Add route for checking upcoming appointments
+    Route::get('/appointments/check-upcoming', [AppointmentController::class, 'checkUpcomingAppointments'])
+        ->name('appointments.checkUpcoming');
 });
 
 // Admin routes
