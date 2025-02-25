@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Shop;
 use App\Models\User;
+use App\Models\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -95,8 +96,6 @@ class ShopRegistrationController extends Controller
             'terms' => 'required|accepted'
         ]);
 
-        Log::info('Validation passed', $validated);
-
         try {
             DB::beginTransaction();
 
@@ -125,14 +124,26 @@ class ShopRegistrationController extends Controller
                 'bir_certificate' => $birCertificatePath,
                 'rating' => 0.0,
                 'terms_accepted' => true,
-                'status' => 'pending' // Set initial status to pending
+                'status' => 'pending'
+            ]);
+
+            // Create notification for successful shop registration
+            $user = auth()->user();
+            Notification::create([
+                'notifiable_type' => get_class($user),
+                'notifiable_id' => $user->id,
+                'type' => 'system',
+                'title' => 'Shop Registration Submitted',
+                'message' => "Your shop '{$request->shop_name}' has been successfully registered and is pending approval. We'll notify you once it's reviewed.",
+                'action_url' => route('shop.registration.pending'),
+                'action_text' => 'View Status',
+                'status' => 'unread'
             ]);
 
             Log::info('Shop created successfully', $shop->toArray());
 
             DB::commit();
 
-            // Redirect to a new pending approval page
             return redirect()->route('shop.registration.pending');
 
         } catch (\Exception $e) {
@@ -164,5 +175,56 @@ class ShopRegistrationController extends Controller
         }
 
         return view('shopRegistration.pending-approval');
+    }
+
+    // Add new methods for handling shop approval/rejection notifications
+    public function handleApproval(Shop $shop)
+    {
+        // Create notification for shop approval with trial information
+        Notification::create([
+            'notifiable_type' => get_class($shop->user),
+            'notifiable_id' => $shop->user_id,
+            'type' => 'system',
+            'title' => 'Shop Registration Approved - Free Trial Started',
+            'message' => "Congratulations! Your shop '{$shop->name}' has been approved. Your 30-day free trial has been activated. " .
+                        "After the trial period, you'll need to subscribe to continue using our platform. " .
+                        "Click below to view your subscription details and payment options.",
+            'action_url' => route('shop.subscriptions'),
+            'action_text' => 'View Subscription Details',
+            'status' => 'unread'
+        ]);
+
+        // Create a second notification for shop setup
+        Notification::create([
+            'notifiable_type' => get_class($shop->user),
+            'notifiable_id' => $shop->user_id,
+            'type' => 'system',
+            'title' => 'Set Up Your Shop Profile',
+            'message' => "Start setting up your shop profile to make the most of your trial period. " .
+                        "Add your services, operating hours, and other important details.",
+            'action_url' => route('shop.setup.welcome'),
+            'action_text' => 'Start Shop Setup',
+            'status' => 'unread'
+        ]);
+
+        return redirect()->back()->with('success', 'Shop has been approved and owner notified.');
+    }
+
+    public function handleRejection(Shop $shop, $reason = null)
+    {
+        // Create notification for shop rejection
+        Notification::create([
+            'notifiable_type' => get_class($shop->user),
+            'notifiable_id' => $shop->user_id,
+            'type' => 'system',
+            'title' => 'Shop Registration Rejected',
+            'message' => "We regret to inform you that your shop '{$shop->name}' registration has been rejected." . 
+                        ($reason ? " Reason: {$reason}" : " Please contact support for more information."),
+            'action_url' => route('home'),
+            'action_text' => 'Return to Home',
+            'status' => 'unread'
+        ]);
+
+        return redirect()->back()->with('success', 'Shop has been rejected and owner notified.');
     }
 } 
