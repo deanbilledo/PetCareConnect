@@ -23,13 +23,19 @@ class AdminController extends Controller
             ->latest()
             ->get();
 
-        // Get existing shops
+        // Get existing shops (active and suspended)
         $existingShops = Shop::with('user')
             ->whereIn('status', ['active', 'suspended'])
             ->latest()
             ->get();
 
-        return view('admin.shops', compact('pendingShops', 'existingShops'));
+        // Get rejected shops
+        $rejectedShops = Shop::with('user')
+            ->where('status', 'rejected')
+            ->latest()
+            ->get();
+
+        return view('admin.shops', compact('pendingShops', 'existingShops', 'rejectedShops'));
     }
 
     public function approveShop(Shop $shop)
@@ -104,11 +110,12 @@ class AdminController extends Controller
     {
         // Get shop analytics data
         $analytics = [
-            'total_revenue' => $shop->appointments()->sum('total_amount'),
+            'total_revenue' => $shop->appointments()->where('status', 'completed')->sum('service_price'),
             'total_appointments' => $shop->appointments()->count(),
             'average_rating' => $shop->ratings()->avg('rating') ?? 0,
             'monthly_revenue' => $shop->appointments()
-                ->selectRaw('MONTH(created_at) as month, SUM(total_amount) as revenue')
+                ->where('status', 'completed')
+                ->selectRaw('MONTH(created_at) as month, SUM(service_price) as revenue')
                 ->groupBy('month')
                 ->get(),
             'weekly_appointments' => $shop->appointments()

@@ -129,16 +129,13 @@ class ShopRegistrationController extends Controller
 
             // Create notification for successful shop registration
             $user = auth()->user();
-            Notification::create([
-                'notifiable_type' => get_class($user),
-                'notifiable_id' => $user->id,
-                'type' => 'system',
-                'title' => 'Shop Registration Submitted',
-                'message' => "Your shop '{$request->shop_name}' has been successfully registered and is pending approval. We'll notify you once it's reviewed.",
-                'action_url' => route('shop.registration.pending'),
-                'action_text' => 'View Status',
-                'status' => 'unread'
-            ]);
+            $user->notify(
+                'system',
+                'Shop Registration Submitted',
+                "Your shop '{$request->shop_name}' has been successfully registered and is pending approval. We'll notify you once it's reviewed.",
+                route('shop.registration.pending'),
+                'View Status'
+            );
 
             Log::info('Shop created successfully', $shop->toArray());
 
@@ -180,51 +177,74 @@ class ShopRegistrationController extends Controller
     // Add new methods for handling shop approval/rejection notifications
     public function handleApproval(Shop $shop)
     {
-        // Create notification for shop approval with trial information
-        Notification::create([
-            'notifiable_type' => get_class($shop->user),
-            'notifiable_id' => $shop->user_id,
-            'type' => 'system',
-            'title' => 'Shop Registration Approved - Free Trial Started',
-            'message' => "Congratulations! Your shop '{$shop->name}' has been approved. Your 30-day free trial has been activated. " .
-                        "After the trial period, you'll need to subscribe to continue using our platform. " .
-                        "Click below to view your subscription details and payment options.",
-            'action_url' => route('shop.subscriptions'),
-            'action_text' => 'View Subscription Details',
-            'status' => 'unread'
-        ]);
+        try {
+            DB::beginTransaction();
 
-        // Create a second notification for shop setup
-        Notification::create([
-            'notifiable_type' => get_class($shop->user),
-            'notifiable_id' => $shop->user_id,
-            'type' => 'system',
-            'title' => 'Set Up Your Shop Profile',
-            'message' => "Start setting up your shop profile to make the most of your trial period. " .
-                        "Add your services, operating hours, and other important details.",
-            'action_url' => route('shop.setup.welcome'),
-            'action_text' => 'Start Shop Setup',
-            'status' => 'unread'
-        ]);
+            // Update shop status to approved
+            $shop->update(['status' => 'active']);
 
-        return redirect()->back()->with('success', 'Shop has been approved and owner notified.');
+            // Create notification for shop approval with trial information
+            $shop->user->notify(
+                'system',
+                'Shop Registration Approved - Free Trial Started',
+                "Congratulations! Your shop '{$shop->name}' has been approved. Your 30-day free trial has been activated. " .
+                "After the trial period, you'll need to subscribe to continue using our platform. " .
+                "Click below to view your subscription details and payment options.",
+                route('shop.subscriptions'),
+                'View Subscription Details'
+            );
+
+            // Create a second notification for shop setup
+            $shop->user->notify(
+                'system',
+                'Set Up Your Shop Profile',
+                "Start setting up your shop profile to make the most of your trial period. " .
+                "Add your services, operating hours, and other important details.",
+                route('shop.setup.welcome'),
+                'Start Shop Setup'
+            );
+
+            DB::commit();
+            return redirect()->back()->with('success', 'Shop has been approved and owner notified.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error in approving shop: ' . $e->getMessage(), [
+                'shop_id' => $shop->id,
+                'error' => $e->getMessage()
+            ]);
+            return redirect()->back()->with('error', 'Failed to approve shop. Please try again.');
+        }
     }
 
-    public function handleRejection(Shop $shop, $reason = null)
+    public function handleRejection(Shop $shop, string $reason = null)
     {
-        // Create notification for shop rejection
-        Notification::create([
-            'notifiable_type' => get_class($shop->user),
-            'notifiable_id' => $shop->user_id,
-            'type' => 'system',
-            'title' => 'Shop Registration Rejected',
-            'message' => "We regret to inform you that your shop '{$shop->name}' registration has been rejected." . 
-                        ($reason ? " Reason: {$reason}" : " Please contact support for more information."),
-            'action_url' => route('home'),
-            'action_text' => 'Return to Home',
-            'status' => 'unread'
-        ]);
+        try {
+            DB::beginTransaction();
 
-        return redirect()->back()->with('success', 'Shop has been rejected and owner notified.');
+            // Update shop status to rejected
+            $shop->update(['status' => 'rejected']);
+
+            // Create notification for shop rejection
+            $shop->user->notify(
+                'system',
+                'Shop Registration Rejected',
+                "We regret to inform you that your shop '{$shop->name}' registration has been rejected." . 
+                ($reason ? " Reason: {$reason}" : " Please contact support for more information."),
+                route('home'),
+                'Return to Home'
+            );
+
+            DB::commit();
+            return redirect()->back()->with('success', 'Shop has been rejected and owner notified.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error in rejecting shop: ' . $e->getMessage(), [
+                'shop_id' => $shop->id,
+                'error' => $e->getMessage()
+            ]);
+            return redirect()->back()->with('error', 'Failed to reject shop. Please try again.');
+        }
     }
 } 

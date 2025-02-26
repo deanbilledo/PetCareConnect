@@ -140,7 +140,10 @@
                         .then(response => response.json())
                         .then(data => {
                             this.unreadCount = data.unread_count;
-                            document.querySelector(`#notification-${id}`).classList.remove('border-l-4', 'border-blue-500');
+                            const notificationItem = document.querySelector(`#notification-${id}`);
+                            if (notificationItem) {
+                                notificationItem.classList.remove('border-l-4', 'border-blue-500');
+                            }
                         });
                     }
                 }" 

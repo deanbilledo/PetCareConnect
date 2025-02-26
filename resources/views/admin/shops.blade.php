@@ -52,102 +52,161 @@
 
             <!-- Shop Management Content -->
             <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 dark:bg-gray-900 p-6">
-                <!-- New Shop Registrations -->
-                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 mb-6 transform hover:scale-105 transition-transform duration-300">
-                    <h3 class="text-lg font-semibold mb-4">New Shop Registrations</h3>
-                    <div class="overflow-x-auto rounded-xl">
-                        <table class="w-full table-auto">
-                            <thead>
-                                <tr class="bg-gray-200 dark:bg-gray-700">
-                                    <th class="px-4 py-2 text-left rounded-tl-xl">Shop Name</th>
-                                    <th class="px-4 py-2 text-left">Owner</th>
-                                    <th class="px-4 py-2 text-left">Location</th>
-                                    <th class="px-4 py-2 text-left">Shop Type</th>
-                                    <th class="px-4 py-2 text-left rounded-tr-xl">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @forelse($pendingShops as $shop)
-                                <tr class="border-b dark:border-gray-700">
-                                    <td class="px-4 py-2">{{ $shop->name }}</td>
-                                    <td class="px-4 py-2">{{ $shop->user->name }}</td>
-                                    <td class="px-4 py-2">{{ $shop->address }}</td>
-                                    <td class="px-4 py-2">{{ ucfirst($shop->type) }}</td>
-                                    <td class="px-4 py-2">
-                                        <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded-lg mr-2" onclick="viewRegistrationDetails('{{ $shop->id }}')">View</button>
-                                        <form action="{{ route('admin.shops.approve', $shop) }}" method="POST" class="inline">
-                                            @csrf
-                                            <button type="submit" class="bg-green-500 hover:bg-green-700 text-white font-bold py-1 px-2 rounded-lg mr-2">Approve</button>
-                                        </form>
-                                        <form action="{{ route('admin.shops.reject', $shop) }}" method="POST" class="inline">
-                                            @csrf
-                                            <button type="submit" class="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded-lg">Reject</button>
-                                        </form>
-                                    </td>
-                                </tr>
-                                @empty
-                                <tr>
-                                    <td colspan="5" class="px-4 py-2 text-center">No pending shop registrations</td>
-                                </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
+                <!-- Tabs -->
+                <div class="mb-6" x-data="{ activeTab: 'pending' }">
+                    <div class="flex border-b border-gray-200">
+                        <button @click="activeTab = 'pending'" :class="{'border-b-2 border-blue-500 text-blue-600': activeTab === 'pending'}" class="px-4 py-2 font-medium">
+                            Pending Registrations
+                        </button>
+                        <button @click="activeTab = 'active'" :class="{'border-b-2 border-blue-500 text-blue-600': activeTab === 'active'}" class="px-4 py-2 font-medium">
+                            Active Shops
+                        </button>
+                        <button @click="activeTab = 'rejected'" :class="{'border-b-2 border-blue-500 text-blue-600': activeTab === 'rejected'}" class="px-4 py-2 font-medium">
+                            Rejected Shops
+                        </button>
                     </div>
-                </div>
 
-                <!-- Existing Shops Management -->
-                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 mb-6 transform hover:scale-105 transition-transform duration-300">
-                    <h3 class="text-lg font-semibold mb-4">Existing Shops</h3>
-                    <div class="flex mb-4">
-                        <input type="text" placeholder="Search shops..." class="w-full p-2 border border-gray-300 rounded-l-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        <select class="p-2 border border-gray-300 rounded-r-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                            <option value="">All Status</option>
-                            <option value="active">Active</option>
-                            <option value="suspended">Suspended</option>
-                        </select>
+                    <!-- Pending Registrations Tab -->
+                    <div x-show="activeTab === 'pending'" class="mt-6">
+                        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 mb-6 transform hover:scale-105 transition-transform duration-300">
+                            <h3 class="text-lg font-semibold mb-4">New Shop Registrations</h3>
+                            <div class="overflow-x-auto rounded-xl">
+                                <table class="w-full table-auto">
+                                    <thead>
+                                        <tr class="bg-gray-200 dark:bg-gray-700">
+                                            <th class="px-4 py-2 text-left rounded-tl-xl">Shop Name</th>
+                                            <th class="px-4 py-2 text-left">Owner</th>
+                                            <th class="px-4 py-2 text-left">Location</th>
+                                            <th class="px-4 py-2 text-left">Shop Type</th>
+                                            <th class="px-4 py-2 text-left rounded-tr-xl">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @forelse($pendingShops as $shop)
+                                        <tr class="border-b dark:border-gray-700">
+                                            <td class="px-4 py-2">{{ $shop->name }}</td>
+                                            <td class="px-4 py-2">{{ $shop->user->name }}</td>
+                                            <td class="px-4 py-2">{{ $shop->address }}</td>
+                                            <td class="px-4 py-2">{{ ucfirst($shop->type) }}</td>
+                                            <td class="px-4 py-2">
+                                                <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded-lg mr-2" onclick="viewRegistrationDetails('{{ $shop->id }}')">View</button>
+                                                <form action="{{ route('admin.shops.approve', $shop) }}" method="POST" class="inline">
+                                                    @csrf
+                                                    <button type="submit" class="bg-green-500 hover:bg-green-700 text-white font-bold py-1 px-2 rounded-lg mr-2">Approve</button>
+                                                </form>
+                                                <button onclick="showRejectModal('{{ $shop->id }}')" class="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded-lg">Reject</button>
+                                            </td>
+                                        </tr>
+                                        @empty
+                                        <tr>
+                                            <td colspan="5" class="px-4 py-2 text-center">No pending shop registrations</td>
+                                        </tr>
+                                        @endforelse
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
-                    <div class="overflow-x-auto rounded-xl">
-                        <table class="w-full table-auto">
-                            <thead>
-                                <tr class="bg-gray-200 dark:bg-gray-700">
-                                    <th class="px-4 py-2 text-left rounded-tl-xl">Shop Name</th>
-                                    <th class="px-4 py-2 text-left">Owner</th>
-                                    <th class="px-4 py-2 text-left">Location</th>
-                                    <th class="px-4 py-2 text-left">Status</th>
-                                    <th class="px-4 py-2 text-left">Shop Type</th>
-                                    <th class="px-4 py-2 text-left rounded-tr-xl">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @forelse($existingShops as $shop)
-                                <tr class="border-b dark:border-gray-700">
-                                    <td class="px-4 py-2">{{ $shop->name }}</td>
-                                    <td class="px-4 py-2">{{ $shop->user->name }}</td>
-                                    <td class="px-4 py-2">{{ $shop->address }}</td>
-                                    <td class="px-4 py-2">
-                                        <span class="px-2 py-1 {{ $shop->status === 'active' ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800' }} rounded-full text-sm">
-                                            {{ ucfirst($shop->status) }}
-                                        </span>
-                                    </td>
-                                    <td class="px-4 py-2">{{ ucfirst($shop->type) }}</td>
-                                    <td class="px-4 py-2">
-                                        <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded-lg mr-2" onclick="editShop('{{ $shop->id }}')">Edit</button>
-                                        <form action="{{ route('admin.shops.toggle-status', $shop) }}" method="POST" class="inline">
-                                            @csrf
-                                            <button type="submit" class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-1 px-2 rounded-lg mr-2">
-                                                {{ $shop->status === 'active' ? 'Suspend' : 'Activate' }}
-                                            </button>
-                                        </form>
-                                        <a href="{{ route('admin.shops.analytics', $shop) }}" class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-1 px-2 rounded-lg">Analytics</a>
-                                    </td>
-                                </tr>
-                                @empty
-                                <tr>
-                                    <td colspan="6" class="px-4 py-2 text-center">No shops found</td>
-                                </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
+
+                    <!-- Active Shops Tab -->
+                    <div x-show="activeTab === 'active'" class="mt-6">
+                        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 mb-6 transform hover:scale-105 transition-transform duration-300">
+                            <h3 class="text-lg font-semibold mb-4">Active Shops</h3>
+                            <div class="flex mb-4">
+                                <input type="text" placeholder="Search shops..." class="w-full p-2 border border-gray-300 rounded-l-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <select class="p-2 border border-gray-300 rounded-r-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                    <option value="">All Status</option>
+                                    <option value="active">Active</option>
+                                    <option value="suspended">Suspended</option>
+                                </select>
+                            </div>
+                            <div class="overflow-x-auto rounded-xl">
+                                <table class="w-full table-auto">
+                                    <thead>
+                                        <tr class="bg-gray-200 dark:bg-gray-700">
+                                            <th class="px-4 py-2 text-left rounded-tl-xl">Shop Name</th>
+                                            <th class="px-4 py-2 text-left">Owner</th>
+                                            <th class="px-4 py-2 text-left">Location</th>
+                                            <th class="px-4 py-2 text-left">Status</th>
+                                            <th class="px-4 py-2 text-left">Shop Type</th>
+                                            <th class="px-4 py-2 text-left rounded-tr-xl">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @forelse($existingShops as $shop)
+                                        <tr class="border-b dark:border-gray-700">
+                                            <td class="px-4 py-2">{{ $shop->name }}</td>
+                                            <td class="px-4 py-2">{{ $shop->user->name }}</td>
+                                            <td class="px-4 py-2">{{ $shop->address }}</td>
+                                            <td class="px-4 py-2">
+                                                <span class="px-2 py-1 {{ $shop->status === 'active' ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800' }} rounded-full text-sm">
+                                                    {{ ucfirst($shop->status) }}
+                                                </span>
+                                            </td>
+                                            <td class="px-4 py-2">{{ ucfirst($shop->type) }}</td>
+                                            <td class="px-4 py-2">
+                                                <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded-lg mr-2" onclick="editShop('{{ $shop->id }}')">Edit</button>
+                                                <form action="{{ route('admin.shops.toggle-status', $shop) }}" method="POST" class="inline">
+                                                    @csrf
+                                                    <button type="submit" class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-1 px-2 rounded-lg mr-2">
+                                                        {{ $shop->status === 'active' ? 'Suspend' : 'Activate' }}
+                                                    </button>
+                                                </form>
+                                                <a href="#" onclick="openAnalyticsModal('{{ $shop->id }}')" class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-1 px-2 rounded-lg">Analytics</a>
+                                            </td>
+                                        </tr>
+                                        @empty
+                                        <tr>
+                                            <td colspan="6" class="px-4 py-2 text-center">No active shops found</td>
+                                        </tr>
+                                        @endforelse
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Rejected Shops Tab -->
+                    <div x-show="activeTab === 'rejected'" class="mt-6">
+                        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 mb-6 transform hover:scale-105 transition-transform duration-300">
+                            <h3 class="text-lg font-semibold mb-4">Rejected Shops</h3>
+                            <div class="overflow-x-auto rounded-xl">
+                                <table class="w-full table-auto">
+                                    <thead>
+                                        <tr class="bg-gray-200 dark:bg-gray-700">
+                                            <th class="px-4 py-2 text-left rounded-tl-xl">Shop Name</th>
+                                            <th class="px-4 py-2 text-left">Owner</th>
+                                            <th class="px-4 py-2 text-left">Location</th>
+                                            <th class="px-4 py-2 text-left">Shop Type</th>
+                                            <th class="px-4 py-2 text-left">Rejection Date</th>
+                                            <th class="px-4 py-2 text-left rounded-tr-xl">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @forelse($rejectedShops as $shop)
+                                        <tr class="border-b dark:border-gray-700">
+                                            <td class="px-4 py-2">{{ $shop->name }}</td>
+                                            <td class="px-4 py-2">{{ $shop->user->name }}</td>
+                                            <td class="px-4 py-2">{{ $shop->address }}</td>
+                                            <td class="px-4 py-2">{{ ucfirst($shop->type) }}</td>
+                                            <td class="px-4 py-2">{{ $shop->updated_at->format('M d, Y') }}</td>
+                                            <td class="px-4 py-2">
+                                                <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded-lg mr-2" onclick="viewRegistrationDetails('{{ $shop->id }}')">View Details</button>
+                                                <form action="{{ route('admin.shops.approve', $shop) }}" method="POST" class="inline">
+                                                    @csrf
+                                                    <button type="submit" class="bg-green-500 hover:bg-green-700 text-white font-bold py-1 px-2 rounded-lg">Accept</button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                        @empty
+                                        <tr>
+                                            <td colspan="6" class="px-4 py-2 text-center">No rejected shops found</td>
+                                        </tr>
+                                        @endforelse
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </main>
@@ -630,6 +689,134 @@
                 alert('Failed to update shop. Please try again.');
             });
         });
+
+        function showRejectModal(shopId) {
+            const modal = document.getElementById('rejectModal');
+            const form = document.getElementById('rejectForm');
+            form.action = `/admin/shops/${shopId}/reject`;
+            modal.classList.remove('hidden');
+        }
+
+        function closeRejectModal() {
+            document.getElementById('rejectModal').classList.add('hidden');
+        }
+
+        // Add form submission handler
+        document.getElementById('rejectForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            
+            fetch(this.action, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Accept': 'application/json'
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.reload();
+                } else {
+                    alert(data.message || 'Failed to reject shop');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to reject shop. Please try again.');
+            });
+        });
+
+        let monthlyRevenueChart = null;
+        let weeklyAppointmentsChart = null;
+
+        function openAnalyticsModal(shopId) {
+            document.getElementById('analyticsModal').classList.remove('hidden');
+            
+            // Fetch analytics data
+            fetch(`/admin/shops/${shopId}/analytics`)
+                .then(response => response.json())
+                .then(data => {
+                    // Update summary stats
+                    document.getElementById('analyticsRevenue').textContent = `₱${formatNumber(data.total_revenue)}`;
+                    document.getElementById('analyticsTotalAppointments').textContent = data.total_appointments;
+                    document.getElementById('analyticsRating').textContent = data.average_rating.toFixed(1);
+
+                    // Destroy existing charts if they exist
+                    if (monthlyRevenueChart) monthlyRevenueChart.destroy();
+                    if (weeklyAppointmentsChart) weeklyAppointmentsChart.destroy();
+
+                    // Create Monthly Revenue Chart
+                    const monthlyData = data.monthly_revenue;
+                    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                    
+                    monthlyRevenueChart = new Chart(document.getElementById('monthlyRevenueChart'), {
+                        type: 'bar',
+                        data: {
+                            labels: monthlyData.map(item => monthNames[item.month - 1]),
+                            datasets: [{
+                                label: 'Revenue',
+                                data: monthlyData.map(item => item.revenue),
+                                backgroundColor: 'rgba(59, 130, 246, 0.5)',
+                                borderColor: 'rgb(59, 130, 246)',
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: {
+                                        callback: function(value) {
+                                            return '₱' + formatNumber(value);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+
+                    // Create Weekly Appointments Chart
+                    const weeklyData = data.weekly_appointments;
+                    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                    
+                    weeklyAppointmentsChart = new Chart(document.getElementById('weeklyAppointmentsChart'), {
+                        type: 'line',
+                        data: {
+                            labels: weeklyData.map(item => dayNames[item.day - 1]),
+                            datasets: [{
+                                label: 'Appointments',
+                                data: weeklyData.map(item => item.count),
+                                borderColor: 'rgb(34, 197, 94)',
+                                backgroundColor: 'rgba(34, 197, 94, 0.5)',
+                                tension: 0.1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: {
+                                        stepSize: 1
+                                    }
+                                }
+                            }
+                        }
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching analytics:', error);
+                    alert('Failed to load analytics data. Please try again.');
+                });
+        }
+
+        function closeAnalyticsModal() {
+            document.getElementById('analyticsModal').classList.add('hidden');
+        }
     </script>
 
     <!-- Registration Details Modal -->
@@ -762,6 +949,66 @@
                         <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">Save Changes</button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rejection Modal -->
+    <div id="rejectModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
+            <div class="mt-3">
+                <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-white mb-4">Reject Shop Registration</h3>
+                <form id="rejectForm" method="POST" class="space-y-4">
+                    @csrf
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Rejection Reason</label>
+                        <textarea name="reason" rows="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="Please provide a reason for rejection..." required></textarea>
+                    </div>
+                    <div class="flex justify-end gap-3">
+                        <button type="button" onclick="closeRejectModal()" class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600">Cancel</button>
+                        <button type="submit" class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600">Reject Shop</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analytics Modal -->
+    <div id="analyticsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full">
+        <div class="relative top-10 mx-auto p-5 border w-3/4 shadow-lg rounded-md bg-white dark:bg-gray-800">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-2xl font-bold">Shop Analytics</h3>
+                <button onclick="closeAnalyticsModal()" class="text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-gray-100">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+
+            <!-- Analytics Content -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div class="bg-blue-50 dark:bg-blue-900 p-4 rounded-xl">
+                    <h4 class="text-blue-800 dark:text-blue-200 font-medium mb-2">Total Revenue</h4>
+                    <p class="text-2xl font-bold text-blue-900 dark:text-blue-100" id="analyticsRevenue">₱0</p>
+                </div>
+                <div class="bg-green-50 dark:bg-green-900 p-4 rounded-xl">
+                    <h4 class="text-green-800 dark:text-green-200 font-medium mb-2">Total Appointments</h4>
+                    <p class="text-2xl font-bold text-green-900 dark:text-green-100" id="analyticsTotalAppointments">0</p>
+                </div>
+                <div class="bg-yellow-50 dark:bg-yellow-900 p-4 rounded-xl">
+                    <h4 class="text-yellow-800 dark:text-yellow-200 font-medium mb-2">Average Rating</h4>
+                    <p class="text-2xl font-bold text-yellow-900 dark:text-yellow-100" id="analyticsRating">0</p>
+                </div>
+            </div>
+
+            <!-- Monthly Revenue Chart -->
+            <div class="bg-white dark:bg-gray-700 p-4 rounded-xl shadow mb-6">
+                <h4 class="text-lg font-semibold mb-4">Monthly Revenue</h4>
+                <canvas id="monthlyRevenueChart"></canvas>
+            </div>
+
+            <!-- Weekly Appointments Chart -->
+            <div class="bg-white dark:bg-gray-700 p-4 rounded-xl shadow">
+                <h4 class="text-lg font-semibold mb-4">Weekly Appointments</h4>
+                <canvas id="weeklyAppointmentsChart"></canvas>
             </div>
         </div>
     </div>
