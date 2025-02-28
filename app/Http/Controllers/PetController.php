@@ -50,8 +50,8 @@ class PetController extends Controller
         try {
             $validated = $request->validate([
                 'name' => 'required|string|max:255',
-                'type' => 'required|string|max:255',
-                'species' => 'required_if:type,Exotic|nullable|string|max:255',
+                'type' => 'required|string',
+                'species' => 'required_if:type,Exotic',
                 'breed' => 'required|string|max:255',
                 'size_category' => 'required|string|in:Small,Medium,Large',
                 'weight' => 'required|numeric|min:0.1',
@@ -62,6 +62,7 @@ class PetController extends Controller
 
             $pet = new Pet($validated);
             $pet->user_id = auth()->id();
+            $pet->species = $validated['species'] ?? null;
             $pet->save();
 
             return redirect()->back()->with('success', 'Pet successfully registered!');
