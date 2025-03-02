@@ -763,7 +763,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (submitButton) submitButton.disabled = true;
         
         // Debug: Log the request URL and headers
-        const url = `/shop/services/${serviceId}/show`;
+        const url = `/shop/services/${serviceId}`;
         console.log('Fetching service data from:', url);
         
         // Fetch service data with CSRF token
@@ -792,23 +792,26 @@ document.addEventListener('DOMContentLoaded', function() {
                 throw new Error('No data received');
             }
 
+            // Extract the actual service data from the response
+            const serviceData = data.data || data;
+
             // Fill in basic service information
-            form.querySelector('input[name="name"]').value = data.name || '';
-            form.querySelector('select[name="category"]').value = data.category || '';
-            form.querySelector('textarea[name="description"]').value = data.description || '';
-            form.querySelector('input[name="base_price"]').value = data.base_price || '';
-            form.querySelector('input[name="duration"]').value = data.duration || '';
+            form.querySelector('input[name="name"]').value = serviceData.name || '';
+            form.querySelector('select[name="category"]').value = serviceData.category || '';
+            form.querySelector('textarea[name="description"]').value = serviceData.description || '';
+            form.querySelector('input[name="base_price"]').value = serviceData.base_price || '';
+            form.querySelector('input[name="duration"]').value = serviceData.duration || '';
             
             // Handle pet types
             const petTypeCheckboxes = form.querySelectorAll('input[name="pet_types[]"]');
             petTypeCheckboxes.forEach(checkbox => {
-                checkbox.checked = data.pet_types && data.pet_types.includes(checkbox.value);
+                checkbox.checked = serviceData.pet_types && serviceData.pet_types.includes(checkbox.value);
             });
             
             // Handle size ranges
             const sizeRangeCheckboxes = form.querySelectorAll('input[name="size_ranges[]"]');
             sizeRangeCheckboxes.forEach(checkbox => {
-                checkbox.checked = data.size_ranges && data.size_ranges.includes(checkbox.value);
+                checkbox.checked = serviceData.size_ranges && serviceData.size_ranges.includes(checkbox.value);
             });
 
             // Handle exotic pet service
@@ -816,8 +819,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const exoticPetSpeciesSection = document.querySelector('.exotic-species-section');
             
             if (exoticPetServiceCheckbox && exoticPetSpeciesSection) {
-                exoticPetServiceCheckbox.checked = data.exotic_pet_service || false;
-                exoticPetSpeciesSection.style.display = data.exotic_pet_service ? 'block' : 'none';
+                exoticPetServiceCheckbox.checked = serviceData.exotic_pet_service || false;
+                exoticPetSpeciesSection.style.display = serviceData.exotic_pet_service ? 'block' : 'none';
                 
                 // Initialize TomSelect for exotic pet species
                 const select = form.querySelector('select[name="exotic_pet_species[]"]');
@@ -852,8 +855,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
                     
                     // Set the selected values if they exist
-                    if (data.exotic_pet_species && Array.isArray(data.exotic_pet_species)) {
-                        tomSelect.setValue(data.exotic_pet_species);
+                    if (serviceData.exotic_pet_species && Array.isArray(serviceData.exotic_pet_species)) {
+                        tomSelect.setValue(serviceData.exotic_pet_species);
                     }
                 }
             }
@@ -862,8 +865,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const variablePricingContainer = document.getElementById('variablePricingContainer');
             if (variablePricingContainer) {
                 variablePricingContainer.innerHTML = '';
-                if (data.variable_pricing && Array.isArray(data.variable_pricing)) {
-                    data.variable_pricing.forEach((pricing, index) => {
+                if (serviceData.variable_pricing && Array.isArray(serviceData.variable_pricing)) {
+                    serviceData.variable_pricing.forEach((pricing, index) => {
                         addVariablePricing(); // Add a new row
                         const row = variablePricingContainer.children[index];
                         if (row) {
@@ -878,8 +881,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const addOnsContainer = document.getElementById('addOnsContainer');
             if (addOnsContainer) {
                 addOnsContainer.innerHTML = '';
-                if (data.add_ons && Array.isArray(data.add_ons)) {
-                    data.add_ons.forEach(addOn => {
+                if (serviceData.add_ons && Array.isArray(serviceData.add_ons)) {
+                    serviceData.add_ons.forEach(addOn => {
                         addAddOn(addOn.name || '', addOn.price || '');
                     });
                 }
@@ -888,7 +891,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Handle employee assignments
             const employeeCheckboxes = form.querySelectorAll('input[name="employee_ids[]"]');
             employeeCheckboxes.forEach(checkbox => {
-                checkbox.checked = data.employee_ids && data.employee_ids.includes(parseInt(checkbox.value));
+                checkbox.checked = serviceData.employee_ids && serviceData.employee_ids.includes(parseInt(checkbox.value));
             });
             
             // Show the modal

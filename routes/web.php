@@ -240,6 +240,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings');
     Route::get('/favorites', [FavoriteController::class, 'index'])->name('favorites.index');
     Route::post('/favorites/{shop}', [FavoriteController::class, 'toggle'])->name('favorites.toggle');
+    Route::get('/favorites/{shop}/check', [FavoriteController::class, 'check'])->name('favorites.check');
     Route::post('/shops/{shop}/review', [ShopController::class, 'submitReview'])->name('shops.review')->middleware('auth');
 
     // Notifications Routes
