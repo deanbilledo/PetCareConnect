@@ -1,6 +1,11 @@
 @extends('layouts.app')
 
 @section('content')
+@push('styles')
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.bootstrap5.css" rel="stylesheet">
+@endpush
+
 <div class="py-12">
     <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
         <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
@@ -311,23 +316,45 @@
                                        id="exotic_pet_service"
                                        name="exotic_pet_service" 
                                        class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                                <span class="ml-2">Exotic Pet Service</span>
+                                <span class="ml-2 font-medium text-gray-700">Exotic Pet Service</span>
                             </label>
                             <p class="mt-1 text-sm text-gray-500">Check this if this service is available for exotic pets (e.g., reptiles, amphibians, small mammals, etc.)</p>
                         </div>
-                        <div id="exotic_pet_species_section" class="mt-4" style="display: none;">
-                            <label class="block text-sm font-medium text-gray-700">Exotic Pet Species</label>
-                            <div id="exotic_pet_species_container" class="mt-2 space-y-2">
-                                <!-- Species will be added here dynamically -->
-                            </div>
-                            <button type="button"
-                                    onclick="addExoticPetSpecies()"
-                                    class="mt-2 inline-flex items-center px-3 py-1 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                                <svg class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                                </svg>
-                                Add Species
-                            </button>
+                        <div class="exotic-species-section mt-4" style="display: none;">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Exotic Pet Species</label>
+                            <select name="exotic_pet_species[]" 
+                                    class="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                                    multiple>
+                                <optgroup label="Reptiles">
+                                    <option value="snake">Snake</option>
+                                    <option value="lizard">Lizard</option>
+                                    <option value="turtle">Turtle</option>
+                                    <option value="iguana">Iguana</option>
+                                    <option value="gecko">Gecko</option>
+                                    <option value="bearded_dragon">Bearded Dragon</option>
+                                </optgroup>
+                                <optgroup label="Small Mammals">
+                                    <option value="hamster">Hamster</option>
+                                    <option value="gerbil">Gerbil</option>
+                                    <option value="ferret">Ferret</option>
+                                    <option value="guinea_pig">Guinea Pig</option>
+                                    <option value="chinchilla">Chinchilla</option>
+                                </optgroup>
+                                <optgroup label="Birds">
+                                    <option value="parrot">Parrot</option>
+                                    <option value="cockatiel">Cockatiel</option>
+                                    <option value="macaw">Macaw</option>
+                                    <option value="parakeet">Parakeet</option>
+                                    <option value="lovebird">Lovebird</option>
+                                </optgroup>
+                                <optgroup label="Others">
+                                    <option value="hedgehog">Hedgehog</option>
+                                    <option value="sugar_glider">Sugar Glider</option>
+                                    <option value="tarantula">Tarantula</option>
+                                    <option value="scorpion">Scorpion</option>
+                                </optgroup>
+                            </select>
+                            <p class="mt-1 text-sm text-gray-500">Select the exotic pet species you can provide services for</p>
                         </div>
                     </div>
 
@@ -483,6 +510,7 @@
 @endsection
 
 @push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     let currentServiceId = null;
@@ -490,7 +518,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize form elements only if they exist
     const serviceForm = document.getElementById('serviceForm');
     const exoticPetServiceCheckbox = document.getElementById('exotic_pet_service');
-    const exoticPetSpeciesSection = document.getElementById('exotic_pet_species_section');
+    const exoticPetSpeciesSection = document.querySelector('.exotic-species-section');
 
     if (serviceForm) {
         serviceForm.addEventListener('submit', function(e) {
@@ -529,9 +557,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 base_price: parseFloat(document.getElementById('base_price').value),
                 duration: parseInt(document.getElementById('duration').value),
                 exotic_pet_service: isExoticService,
-                exotic_pet_species: isExoticService ? Array.from(document.getElementsByName('exotic_pet_species[]'))
-                    .map(input => input.value.trim())
-                    .filter(value => value !== '') : [],
+                exotic_pet_species: isExoticService ? document.querySelector('select[name="exotic_pet_species[]"]').tomselect.getValue() : [],
                 special_requirements: document.getElementById('special_requirements')?.value || '',
                 variable_pricing: getVariablePricing(),
                 add_ons: getAddOns(),
@@ -612,7 +638,44 @@ document.addEventListener('DOMContentLoaded', function() {
     if (exoticPetServiceCheckbox && exoticPetSpeciesSection) {
         exoticPetServiceCheckbox.addEventListener('change', function() {
             exoticPetSpeciesSection.style.display = this.checked ? 'block' : 'none';
+            
+            // Clear TomSelect values when unchecking
+            const select = document.querySelector('select[name="exotic_pet_species[]"]');
+            if (select && select.tomselect && !this.checked) {
+                select.tomselect.clear();
+            }
         });
+    }
+
+    // Helper function to get species icon
+    function getSpeciesIcon(species) {
+        const icons = {
+            // Reptiles
+            'snake': '🐍',
+            'lizard': '🦎',
+            'turtle': '🐢',
+            'iguana': '🦎',
+            'gecko': '🦎',
+            'bearded_dragon': '🦎',
+            // Small Mammals
+            'hamster': '🐹',
+            'gerbil': '🐹',
+            'ferret': '🦡',
+            'guinea_pig': '🐹',
+            'chinchilla': '🐹',
+            'hedgehog': '🦔',
+            'sugar_glider': '🦝',
+            // Birds
+            'parrot': '🦜',
+            'cockatiel': '🦜',
+            'macaw': '🦜',
+            'parakeet': '🦜',
+            'lovebird': '🦜',
+            // Others
+            'tarantula': '🕷️',
+            'scorpion': '🦂'
+        };
+        return icons[species] || '🐾';
     }
 
     // Modal functions
@@ -634,16 +697,40 @@ document.addEventListener('DOMContentLoaded', function() {
         // Set modal title for Add
         document.getElementById('modalTitle').textContent = 'Add New Service';
         
-        // Clear exotic pet species
-        const container = document.getElementById('exotic_pet_species_container');
-        if (container) {
-            container.innerHTML = '';
-        }
+        // Reset exotic pet section
+        const exoticPetServiceCheckbox = document.getElementById('exotic_pet_service');
+        const exoticPetSpeciesSection = document.querySelector('.exotic-species-section');
+        if (exoticPetServiceCheckbox) exoticPetServiceCheckbox.checked = false;
+        if (exoticPetSpeciesSection) exoticPetSpeciesSection.style.display = 'none';
         
-        // Hide exotic pet species section
-        const section = document.getElementById('exotic_pet_species_section');
-        if (section) {
-            section.style.display = 'none';
+        // Initialize TomSelect for exotic pet species
+        const select = document.querySelector('select[name="exotic_pet_species[]"]');
+        if (select) {
+            if (select.tomselect) {
+                select.tomselect.destroy();
+            }
+            new TomSelect(select, {
+                plugins: ['remove_button'],
+                maxItems: null,
+                valueField: 'value',
+                labelField: 'text',
+                searchField: ['text'],
+                render: {
+                    item: function(data, escape) {
+                        return '<div class="py-1">' + escape(data.text) + '</div>';
+                    },
+                    option: function(data, escape) {
+                        return '<div class="py-2 px-3">' + escape(data.text) + '</div>';
+                    },
+                    optgroup_header: function(data, escape) {
+                        return '<div class="py-2 px-3 font-medium text-gray-700 bg-gray-100">' + escape(data.label) + '</div>';
+                    }
+                },
+                onItemAdd: function() {
+                    this.setTextboxValue('');
+                    this.refreshOptions(false);
+                }
+            });
         }
         
         // Clear variable pricing and add-ons containers
@@ -657,180 +744,167 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     window.openEditModal = function(serviceId) {
-        console.log('Opening edit modal for service:', serviceId);
-        currentServiceId = serviceId;
         const form = document.getElementById('serviceForm');
         const modal = document.getElementById('serviceModal');
         
         if (!form || !modal) {
-            console.error('Required modal elements not found:', {
-                form: !!form,
-                modal: !!modal
-            });
+            console.error('Required modal elements not found');
             return;
         }
         
-        // Reset form and show modal first
-        form.reset();
-        modal.classList.remove('hidden');
+        // Set modal title for Edit
+        document.getElementById('modalTitle').textContent = 'Edit Service';
         
-        // Set loading state
-        form.classList.add('opacity-50', 'pointer-events-none');
+        // Set the service ID
+        document.getElementById('serviceId').value = serviceId;
         
-        console.log('Fetching service details...');
-        fetch(`/shop/services/${serviceId}`)
-            .then(response => {
-                console.log('Received response:', response.status);
-                if (!response.ok) {
-                    throw new Error('Failed to fetch service details');
-                }
-                return response.json();
-            })
-            .then(data => {
-                console.log('Received service data:', data);
-                if (data.success) {
-                    const service = data.data;
-                    console.log('Service data:', service);
-                    
-                    // Remove loading state
-                    form.classList.remove('opacity-50', 'pointer-events-none');
-                    
-                    // Set modal title
-                    document.getElementById('modalTitle').textContent = 'Edit Service';
-                    
-                    // Set form values
-                    document.getElementById('serviceId').value = service.id;
-                    document.getElementById('name').value = service.name || '';
-                    document.getElementById('category').value = service.category || '';
-                    document.getElementById('description').value = service.description || '';
-                    document.getElementById('base_price').value = service.base_price || '';
-                    document.getElementById('duration').value = service.duration || '';
+        // Show loading state
+        const submitButton = form.querySelector('button[type="submit"]');
+        if (submitButton) submitButton.disabled = true;
+        
+        // Debug: Log the request URL and headers
+        const url = `/shop/services/${serviceId}`;
+        console.log('Fetching service data from:', url);
+        
+        // Fetch service data with CSRF token
+        fetch(url, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            credentials: 'same-origin'
+        })
+        .then(response => {
+            console.log('Response status:', response.status);
+            if (!response.ok) {
+                return response.text().then(text => {
+                    console.error('Error response:', text);
+                    throw new Error(`Network response was not ok: ${response.status}`);
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Received data:', data);
+            if (!data) {
+                throw new Error('No data received');
+            }
 
-                    // Set checkboxes
-                    const petTypeCheckboxes = document.querySelectorAll('input[name="pet_types[]"]');
-                    if (petTypeCheckboxes.length) {
-                        petTypeCheckboxes.forEach(cb => {
-                            cb.checked = (service.pet_types || []).includes(cb.value);
-                        });
-                    }
+            // Extract the actual service data from the response
+            const serviceData = data.data || data;
 
-                    const sizeRangeCheckboxes = document.querySelectorAll('input[name="size_ranges[]"]');
-                    if (sizeRangeCheckboxes.length) {
-                        sizeRangeCheckboxes.forEach(cb => {
-                            cb.checked = (service.size_ranges || []).includes(cb.value);
-                        });
-                    }
-
-                    // Set employee selections
-                    const employeeCheckboxes = document.querySelectorAll('input[name="employee_ids[]"]');
-                    if (employeeCheckboxes.length) {
-                        employeeCheckboxes.forEach(cb => {
-                            cb.checked = service.employee_ids.includes(parseInt(cb.value));
-                        });
-                    }
-
-                    // Handle exotic pet service
-                    const exoticServiceCheckbox = document.getElementById('exotic_pet_service');
-                    if (exoticServiceCheckbox) {
-                        exoticServiceCheckbox.checked = service.exotic_pet_service;
-                        const speciesSection = document.getElementById('exotic_pet_species_section');
-                        if (speciesSection) {
-                            speciesSection.style.display = service.exotic_pet_service ? 'block' : 'none';
-                        }
-                        
-                        if (service.exotic_pet_service && service.exotic_pet_species) {
-                        const container = document.getElementById('exotic_pet_species_container');
-                        if (container) {
-                            container.innerHTML = '';
-                                service.exotic_pet_species.forEach(species => {
-                                    addExoticPetSpecies(species);
-                                });
-                            }
-                        }
-                    }
-
-                    // Clear and populate variable pricing
-                    const variablePricingContainer = document.getElementById('variablePricingContainer');
-                    if (variablePricingContainer) {
-                        variablePricingContainer.innerHTML = '';
-                        if (service.variable_pricing && service.variable_pricing.length > 0) {
-                            service.variable_pricing.forEach(pricing => {
-                                const newRow = document.createElement('div');
-                                newRow.className = 'variable-pricing-row flex items-center space-x-2 mb-2';
-                                newRow.innerHTML = `
-                                    <select class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                                        <option value="">Select Size</option>
-                                        <option value="small" ${pricing.size === 'small' ? 'selected' : ''}>Small</option>
-                                        <option value="medium" ${pricing.size === 'medium' ? 'selected' : ''}>Medium</option>
-                                        <option value="large" ${pricing.size === 'large' ? 'selected' : ''}>Large</option>
-                                        <option value="extra_large" ${pricing.size === 'extra_large' ? 'selected' : ''}>Extra Large</option>
-                                    </select>
-                                    <input type="number" 
-                                           step="0.01" 
-                                           min="0" 
-                                           placeholder="Price" 
-                                           value="${pricing.price}"
-                                           class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                                    <button type="button" 
-                                            onclick="this.closest('.variable-pricing-row').remove()" 
-                                            class="text-red-600 hover:text-red-800">
-                                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                        </svg>
-                                    </button>
-                                `;
-                                variablePricingContainer.appendChild(newRow);
-                            });
-                        }
-                    }
-
-                    // Clear and populate add-ons
-                    const addOnsContainer = document.getElementById('addOnsContainer');
-                    if (addOnsContainer) {
-                        addOnsContainer.innerHTML = '';
-                        if (service.add_ons && service.add_ons.length > 0) {
-                            service.add_ons.forEach(addon => {
-                                addAddOn(addon.name, addon.price);
-                            });
-                        }
-                    }
-                } else {
-                    throw new Error(data.message || 'Failed to load service details');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Failed to load service details. Please try again.');
-                closeServiceModal();
+            // Fill in basic service information
+            form.querySelector('input[name="name"]').value = serviceData.name || '';
+            form.querySelector('select[name="category"]').value = serviceData.category || '';
+            form.querySelector('textarea[name="description"]').value = serviceData.description || '';
+            form.querySelector('input[name="base_price"]').value = serviceData.base_price || '';
+            form.querySelector('input[name="duration"]').value = serviceData.duration || '';
+            
+            // Handle pet types
+            const petTypeCheckboxes = form.querySelectorAll('input[name="pet_types[]"]');
+            petTypeCheckboxes.forEach(checkbox => {
+                checkbox.checked = serviceData.pet_types && serviceData.pet_types.includes(checkbox.value);
             });
-    };
+            
+            // Handle size ranges
+            const sizeRangeCheckboxes = form.querySelectorAll('input[name="size_ranges[]"]');
+            sizeRangeCheckboxes.forEach(checkbox => {
+                checkbox.checked = serviceData.size_ranges && serviceData.size_ranges.includes(checkbox.value);
+            });
 
-    // Helper function to add exotic pet species with optional initial value
-    window.addExoticPetSpecies = function(initialValue = '') {
-        const container = document.getElementById('exotic_pet_species_container');
-        if (!container) return;
+            // Handle exotic pet service
+            const exoticPetServiceCheckbox = form.querySelector('input[name="exotic_pet_service"]');
+            const exoticPetSpeciesSection = document.querySelector('.exotic-species-section');
+            
+            if (exoticPetServiceCheckbox && exoticPetSpeciesSection) {
+                exoticPetServiceCheckbox.checked = serviceData.exotic_pet_service || false;
+                exoticPetSpeciesSection.style.display = serviceData.exotic_pet_service ? 'block' : 'none';
+                
+                // Initialize TomSelect for exotic pet species
+                const select = form.querySelector('select[name="exotic_pet_species[]"]');
+                if (select) {
+                    // Destroy existing instance if it exists
+                    if (select.tomselect) {
+                        select.tomselect.destroy();
+                    }
 
-        const newRow = document.createElement('div');
-        newRow.className = 'flex items-center space-x-2';
-        newRow.innerHTML = `
-            <input type="text" 
-                   name="exotic_pet_species[]" 
-                   value="${initialValue}"
-                   class="shadow appearance-none border rounded py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                   placeholder="Enter species name">
-            <button type="button" onclick="removeExoticPetSpecies(this)" class="text-red-600 hover:text-red-800">
-                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                </svg>
-            </button>
-        `;
-        container.appendChild(newRow);
-    };
+                    // Create new TomSelect instance
+                    const tomSelect = new TomSelect(select, {
+                        plugins: ['remove_button'],
+                        maxItems: null,
+                        valueField: 'value',
+                        labelField: 'text',
+                        searchField: ['text'],
+                        render: {
+                            item: function(data, escape) {
+                                return '<div class="py-1">' + escape(data.text) + '</div>';
+                            },
+                            option: function(data, escape) {
+                                return '<div class="py-2 px-3">' + escape(data.text) + '</div>';
+                            },
+                            optgroup_header: function(data, escape) {
+                                return '<div class="py-2 px-3 font-medium text-gray-700 bg-gray-100">' + escape(data.label) + '</div>';
+                            }
+                        },
+                        onItemAdd: function() {
+                            this.setTextboxValue('');
+                            this.refreshOptions(false);
+                        }
+                    });
+                    
+                    // Set the selected values if they exist
+                    if (serviceData.exotic_pet_species && Array.isArray(serviceData.exotic_pet_species)) {
+                        tomSelect.setValue(serviceData.exotic_pet_species);
+                    }
+                }
+            }
+            
+            // Handle variable pricing
+            const variablePricingContainer = document.getElementById('variablePricingContainer');
+            if (variablePricingContainer) {
+                variablePricingContainer.innerHTML = '';
+                if (serviceData.variable_pricing && Array.isArray(serviceData.variable_pricing)) {
+                    serviceData.variable_pricing.forEach((pricing, index) => {
+                        addVariablePricing(); // Add a new row
+                        const row = variablePricingContainer.children[index];
+                        if (row) {
+                            row.querySelector('select').value = pricing.size || '';
+                            row.querySelector('input[type="number"]').value = pricing.price || '';
+                        }
+                    });
+                }
+            }
 
-    window.removeExoticPetSpecies = function(button) {
-        if (button && button.closest('.flex')) {
-            button.closest('.flex').remove();
-        }
+            // Handle add-ons
+            const addOnsContainer = document.getElementById('addOnsContainer');
+            if (addOnsContainer) {
+                addOnsContainer.innerHTML = '';
+                if (serviceData.add_ons && Array.isArray(serviceData.add_ons)) {
+                    serviceData.add_ons.forEach(addOn => {
+                        addAddOn(addOn.name || '', addOn.price || '');
+                    });
+                }
+            }
+
+            // Handle employee assignments
+            const employeeCheckboxes = form.querySelectorAll('input[name="employee_ids[]"]');
+            employeeCheckboxes.forEach(checkbox => {
+                checkbox.checked = serviceData.employee_ids && serviceData.employee_ids.includes(parseInt(checkbox.value));
+            });
+            
+            // Show the modal
+            modal.classList.remove('hidden');
+        })
+        .catch(error => {
+            console.error('Error fetching service data:', error);
+            alert('Failed to load service data. Please try again. Error: ' + error.message);
+        })
+        .finally(() => {
+            // Re-enable submit button
+            if (submitButton) submitButton.disabled = false;
+        });
     };
 
     // Add modal close function
@@ -850,7 +924,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Reset exotic pet section
             const exoticPetServiceCheckbox = document.getElementById('exotic_pet_service');
-            const exoticPetSpeciesSection = document.getElementById('exotic_pet_species_section');
+            const exoticPetSpeciesSection = document.querySelector('.exotic-species-section');
             if (exoticPetServiceCheckbox) exoticPetServiceCheckbox.checked = false;
             if (exoticPetSpeciesSection) exoticPetSpeciesSection.style.display = 'none';
         }
@@ -1132,7 +1206,12 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert(error.message || 'Failed to add discount. Please try again.');
+                window.dispatchEvent(new CustomEvent('toast', {
+                    detail: {
+                        type: 'error',
+                        message: error.message || 'Failed to add discount. Please try again.'
+                    }
+                }));
             });
         });
     }

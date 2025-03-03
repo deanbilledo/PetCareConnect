@@ -1,6 +1,25 @@
 @extends('layouts.shop')
 
 @section('content')
+<script>
+    // Make appointment action functions globally accessible
+    window.viewAppointment = function(id) {
+        viewAppointment(id);
+    };
+    
+    window.acceptAppointment = function(id) {
+        acceptAppointment(id);
+    };
+    
+    window.cancelAppointment = function(id) {
+        cancelAppointment(id);
+    };
+    
+    window.markAsPaid = function(id) {
+        markAsPaid(id);
+    };
+</script>
+
 <div x-data="{
     showFilters: false,
     currentFilter: 'all',
@@ -12,6 +31,7 @@
     currentNote: '',
     noteImage: null,
     activeTab: 'appointments',
+    dismissNotification: false,
     
     isAppointmentVisible(status, date, serviceType) {
         if (this.currentFilter !== 'all' && status !== this.currentFilter) return false;
@@ -52,6 +72,41 @@
         this.closeNoteModal();
     }
 }" class="container mx-auto px-4 py-6">
+    
+    <!-- New Appointment Notification Alert -->
+    @if(isset($newAppointments) && $newAppointments > 0)
+    <div x-show="!dismissNotification" 
+         class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6 rounded shadow-sm"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0 transform -translate-y-2"
+         x-transition:enter-end="opacity-100 transform translate-y-0"
+         x-transition:leave="transition ease-in duration-100"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0">
+        <div class="flex items-start">
+            <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </div>
+            <div class="ml-3 flex-1 md:flex md:justify-between">
+                <p class="text-sm text-blue-700">
+                    You have <span class="font-bold">{{ $newAppointments }}</span> new customer {{ Str::plural('appointment', $newAppointments) }}!
+                </p>
+                <div class="mt-3 text-sm md:mt-0 md:ml-6">
+                    <button @click="dismissNotification = true" 
+                            class="text-blue-700 hover:text-blue-600 font-medium">
+                        Dismiss
+                    </button>
+                    <a href="#" class="ml-4 text-blue-700 hover:text-blue-600 font-medium">
+                        View all
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-2xl font-bold">Appointments</h1>
         
@@ -265,9 +320,13 @@
 
 @push('scripts')
 <script>
+// Define all functions first
 async function acceptAppointment(id) {
-    if (!confirm('Are you sure you want to accept this appointment?')) return;
-    
+    window.dispatchEvent(new CustomEvent('modal', {
+        detail: {
+            title: 'Accept Appointment',
+            content: 'Are you sure you want to accept this appointment?',
+            onConfirm: async () => {
     try {
         const response = await fetch(`/appointments/${id}/accept`, {
             method: 'POST',
@@ -279,19 +338,41 @@ async function acceptAppointment(id) {
         
         const data = await response.json();
         if (data.success) {
+                        window.dispatchEvent(new CustomEvent('toast', {
+                            detail: {
+                                type: 'success',
+                                message: 'Appointment accepted successfully'
+                            }
+                        }));
             window.location.reload();
         } else {
-            alert(data.error || 'Failed to accept appointment');
+                        window.dispatchEvent(new CustomEvent('toast', {
+                            detail: {
+                                type: 'error',
+                                message: data.error || 'Failed to accept appointment'
+                            }
+                        }));
         }
     } catch (error) {
         console.error('Error:', error);
-        alert('An error occurred while accepting the appointment');
-    }
+                    window.dispatchEvent(new CustomEvent('toast', {
+                        detail: {
+                            type: 'error',
+                            message: 'An error occurred while accepting the appointment'
+                        }
+                    }));
+                }
+            }
+        }
+    }));
 }
 
 async function markAsPaid(id) {
-    if (!confirm('Are you sure you want to mark this appointment as paid?')) return;
-    
+    window.dispatchEvent(new CustomEvent('modal', {
+        detail: {
+            title: 'Mark as Paid',
+            content: 'Are you sure you want to mark this appointment as paid?',
+            onConfirm: async () => {
     try {
         const response = await fetch(`/appointments/${id}/mark-as-paid`, {
             method: 'POST',
@@ -303,45 +384,129 @@ async function markAsPaid(id) {
         
         const data = await response.json();
         if (data.success) {
+                        window.dispatchEvent(new CustomEvent('toast', {
+                            detail: {
+                                type: 'success',
+                                message: 'Appointment marked as paid successfully'
+                            }
+                        }));
             window.location.reload();
         } else {
-            alert(data.error || 'Failed to mark appointment as paid');
+                        window.dispatchEvent(new CustomEvent('toast', {
+                            detail: {
+                                type: 'error',
+                                message: data.error || 'Failed to mark appointment as paid'
+                            }
+                        }));
         }
     } catch (error) {
         console.error('Error:', error);
-        alert('An error occurred while updating the appointment');
-    }
+                    window.dispatchEvent(new CustomEvent('toast', {
+                        detail: {
+                            type: 'error',
+                            message: 'An error occurred while updating the appointment'
+                        }
+                    }));
+                }
+            }
+        }
+    }));
 }
 
 async function cancelAppointment(id) {
-    const reason = prompt('Please provide a reason for cancellation:');
-    if (!reason) return;
+    console.log('cancelAppointment called for ID:', id);
     
-    try {
+    // Create HTML content for the cancel appointment modal with a reason input
+    const modalContent = `
+        <div>
+            <p class="mb-4">Please provide a reason for cancellation:</p>
+            <textarea id="cancellationReason" rows="3" class="w-full px-3 py-2 text-gray-700 border rounded-lg focus:outline-none" placeholder="Enter cancellation reason..."></textarea>
+        </div>
+    `;
+    
+    // Use Promise to handle the modal interaction more reliably
+    new Promise((resolve) => {
+        window.dispatchEvent(new CustomEvent('modal', {
+            detail: {
+                title: 'Cancel Appointment',
+                content: modalContent,
+                onConfirm: () => resolve(document.getElementById('cancellationReason').value)
+            }
+        }));
+    }).then(async (reason) => {
+        if (!reason || !reason.trim()) {
+            window.dispatchEvent(new CustomEvent('toast', {
+                detail: {
+                    type: 'warning',
+                    message: 'Please provide a reason for cancellation'
+                }
+            }));
+            return;
+        }
+        
+        try {
+            console.log('Sending cancellation request for appointment:', id);
+            console.log('Cancellation reason:', reason);
+            
+            // Get the CSRF token from the meta tag
+            const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+            
         const response = await fetch(`/appointments/${id}/shop-cancel`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-            },
-            body: JSON.stringify({ reason })
-        });
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ reason: reason })
+            });
+            
+            console.log('Cancel response status:', response.status);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
         
         const data = await response.json();
+            console.log('Cancel response data:', data);
+            
         if (data.success) {
+                window.dispatchEvent(new CustomEvent('toast', {
+                    detail: {
+                        type: 'success',
+                        message: 'Appointment cancelled successfully'
+                    }
+                }));
+                // Reload the page after a short delay to show the toast
+                setTimeout(() => {
             window.location.reload();
+                }, 1000);
         } else {
-            alert(data.error || 'Failed to cancel appointment');
+                window.dispatchEvent(new CustomEvent('toast', {
+                    detail: {
+                        type: 'error',
+                        message: data.error || 'Failed to cancel appointment'
+                    }
+                }));
         }
     } catch (error) {
-        console.error('Error:', error);
-        alert('An error occurred while cancelling the appointment');
-    }
+            console.error('Error cancelling appointment:', error);
+            window.dispatchEvent(new CustomEvent('toast', {
+                detail: {
+                    type: 'error',
+                    message: 'An error occurred while cancelling the appointment'
+                }
+            }));
+        }
+    });
 }
 
 async function approveCancellation(id) {
-    if (!confirm('Are you sure you want to approve this cancellation request?')) return;
-    
+    window.dispatchEvent(new CustomEvent('modal', {
+        detail: {
+            title: 'Approve Cancellation',
+            content: 'Are you sure you want to approve this cancellation request?',
+            onConfirm: async () => {
     try {
         const response = await fetch(`/appointments/cancellation/${id}/approve`, {
             method: 'POST',
@@ -353,19 +518,59 @@ async function approveCancellation(id) {
         
         const data = await response.json();
         if (data.success) {
+                        window.dispatchEvent(new CustomEvent('toast', {
+                            detail: {
+                                type: 'success',
+                                message: 'Cancellation request approved successfully'
+                            }
+                        }));
             window.location.reload();
         } else {
-            alert(data.error || 'Failed to approve cancellation request');
+                        window.dispatchEvent(new CustomEvent('toast', {
+                            detail: {
+                                type: 'error',
+                                message: data.error || 'Failed to approve cancellation request'
+                            }
+                        }));
         }
     } catch (error) {
         console.error('Error:', error);
-        alert('An error occurred while approving the cancellation request');
-    }
+                    window.dispatchEvent(new CustomEvent('toast', {
+                        detail: {
+                            type: 'error',
+                            message: 'An error occurred while approving the cancellation request'
+                        }
+                    }));
+                }
+            }
+        }
+    }));
 }
 
 async function declineCancellation(id) {
-    const reason = prompt('Please provide a reason for declining the cancellation:');
-    if (!reason) return;
+    // Create HTML content for the modal with a reason input
+    const modalContent = `
+        <div>
+            <p class="mb-4">Please provide a reason for declining the cancellation:</p>
+            <textarea id="declineReason" rows="3" class="w-full px-3 py-2 text-gray-700 border rounded-lg focus:outline-none" placeholder="Enter reason..."></textarea>
+        </div>
+    `;
+    
+    window.dispatchEvent(new CustomEvent('modal', {
+        detail: {
+            title: 'Decline Cancellation',
+            content: modalContent,
+            onConfirm: async () => {
+                const reason = document.getElementById('declineReason').value;
+                if (!reason.trim()) {
+                    window.dispatchEvent(new CustomEvent('toast', {
+                        detail: {
+                            type: 'warning',
+                            message: 'Please provide a reason for declining'
+                        }
+                    }));
+                    return;
+                }
     
     try {
         const response = await fetch(`/appointments/cancellation/${id}/decline`, {
@@ -379,19 +584,41 @@ async function declineCancellation(id) {
         
         const data = await response.json();
         if (data.success) {
+                        window.dispatchEvent(new CustomEvent('toast', {
+                            detail: {
+                                type: 'success',
+                                message: 'Cancellation request declined'
+                            }
+                        }));
             window.location.reload();
         } else {
-            alert(data.error || 'Failed to decline cancellation request');
+                        window.dispatchEvent(new CustomEvent('toast', {
+                            detail: {
+                                type: 'error',
+                                message: data.error || 'Failed to decline cancellation request'
+                            }
+                        }));
         }
     } catch (error) {
         console.error('Error:', error);
-        alert('An error occurred while declining the cancellation request');
-    }
+                    window.dispatchEvent(new CustomEvent('toast', {
+                        detail: {
+                            type: 'error',
+                            message: 'An error occurred while declining the cancellation request'
+                        }
+                    }));
+                }
+            }
+        }
+    }));
 }
 
 async function approveReschedule(id) {
-    if (!confirm('Are you sure you want to approve this reschedule request?')) return;
-    
+    window.dispatchEvent(new CustomEvent('modal', {
+        detail: {
+            title: 'Approve Reschedule',
+            content: 'Are you sure you want to approve this reschedule request?',
+            onConfirm: async () => {
     try {
         const response = await fetch(`/appointments/reschedule/${id}/approve`, {
             method: 'POST',
@@ -403,19 +630,59 @@ async function approveReschedule(id) {
         
         const data = await response.json();
         if (data.success) {
+                        window.dispatchEvent(new CustomEvent('toast', {
+                            detail: {
+                                type: 'success',
+                                message: 'Reschedule request approved successfully'
+                            }
+                        }));
             window.location.reload();
         } else {
-            alert(data.error || 'Failed to approve reschedule request');
+                        window.dispatchEvent(new CustomEvent('toast', {
+                            detail: {
+                                type: 'error',
+                                message: data.error || 'Failed to approve reschedule request'
+                            }
+                        }));
         }
     } catch (error) {
         console.error('Error:', error);
-        alert('An error occurred while approving the reschedule request');
-    }
+                    window.dispatchEvent(new CustomEvent('toast', {
+                        detail: {
+                            type: 'error',
+                            message: 'An error occurred while approving the reschedule request'
+                        }
+                    }));
+                }
+            }
+        }
+    }));
 }
 
 async function declineReschedule(id) {
-    const reason = prompt('Please provide a reason for declining the reschedule:');
-    if (!reason) return;
+    // Create HTML content for the modal with a reason input
+    const modalContent = `
+        <div>
+            <p class="mb-4">Please provide a reason for declining the reschedule:</p>
+            <textarea id="declineRescheduleReason" rows="3" class="w-full px-3 py-2 text-gray-700 border rounded-lg focus:outline-none" placeholder="Enter reason..."></textarea>
+        </div>
+    `;
+    
+    window.dispatchEvent(new CustomEvent('modal', {
+        detail: {
+            title: 'Decline Reschedule',
+            content: modalContent,
+            onConfirm: async () => {
+                const reason = document.getElementById('declineRescheduleReason').value;
+                if (!reason.trim()) {
+                    window.dispatchEvent(new CustomEvent('toast', {
+                        detail: {
+                            type: 'warning',
+                            message: 'Please provide a reason for declining'
+                        }
+                    }));
+                    return;
+                }
     
     try {
         const response = await fetch(`/appointments/reschedule/${id}/decline`, {
@@ -429,14 +696,33 @@ async function declineReschedule(id) {
         
         const data = await response.json();
         if (data.success) {
+                        window.dispatchEvent(new CustomEvent('toast', {
+                            detail: {
+                                type: 'success',
+                                message: 'Reschedule request declined'
+                            }
+                        }));
             window.location.reload();
         } else {
-            alert(data.error || 'Failed to decline reschedule request');
+                        window.dispatchEvent(new CustomEvent('toast', {
+                            detail: {
+                                type: 'error',
+                                message: data.error || 'Failed to decline reschedule request'
+                            }
+                        }));
         }
     } catch (error) {
         console.error('Error:', error);
-        alert('An error occurred while declining the reschedule request');
-    }
+                    window.dispatchEvent(new CustomEvent('toast', {
+                        detail: {
+                            type: 'error',
+                            message: 'An error occurred while declining the reschedule request'
+                        }
+                    }));
+                }
+            }
+        }
+    }));
 }
 
 async function getNoteForAppointment(id) {
@@ -485,20 +771,23 @@ function addNote(id, shopType, note, image) {
 }
 
 function showNotification(message, type = 'success') {
-    const notification = document.createElement('div');
-    notification.className = `fixed bottom-4 right-4 px-6 py-3 rounded-lg text-white ${
-        type === 'success' ? 'bg-green-500' : 'bg-red-500'
-    } transition-opacity duration-500`;
-    notification.textContent = message;
-    document.body.appendChild(notification);
-
-    setTimeout(() => {
-        notification.style.opacity = '0';
-        setTimeout(() => {
-            document.body.removeChild(notification);
-        }, 500);
-    }, 3000);
+    window.dispatchEvent(new CustomEvent('toast', {
+        detail: {
+            type: type,
+            message: message
+        }
+    }));
 }
+
+// Now make the appointment action functions globally available
+window.acceptAppointment = acceptAppointment;
+window.cancelAppointment = cancelAppointment;
+window.markAsPaid = markAsPaid;
+window.viewAppointment = viewAppointment;
+window.approveCancellation = approveCancellation;
+window.declineCancellation = declineCancellation;
+window.approveReschedule = approveReschedule;
+window.declineReschedule = declineReschedule;
 </script>
 @endpush
 @endsection 

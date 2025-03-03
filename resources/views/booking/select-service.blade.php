@@ -97,40 +97,36 @@ use Illuminate\Support\Facades\Log;
                     @php
                         $petType = strtolower($pet->type);
                         
-                        // Debug log for pet and service data
-                        Log::info("Processing services for pet:", [
+                        // Add more detailed logging for the pet data
+                        Log::info("Processing services for pet - Full pet data:", [
                             'pet_name' => $pet->name,
                             'pet_type' => $petType,
-                            'pet_species' => $pet->species ?? 'N/A'
+                            'pet_species' => $pet->species,
+                            'pet_raw' => $pet->toArray()  // This will show all pet attributes
                         ]);
 
                         // Filter available services based on pet type
                         $availableServices = $services->filter(function($service) use ($pet, $petType) {
-                            // Get service pet types and convert to lowercase
-                            $servicePetTypes = collect($service->pet_types)->map(function($type) {
-                                return strtolower(trim($type));
-                            })->toArray();
-
-                            // Debug log the actual values being compared
-                            Log::info("Checking service availability:", [
-                                'service_name' => $service->name,
-                                'service_pet_types' => $servicePetTypes,
-                                'checking_for_pet_type' => $petType,
-                                'raw_pet_types' => $service->pet_types,
-                                'pet_name' => $pet->name,
-                                'pet_type_raw' => $pet->type
-                            ]);
-                            
                             // For exotic pets
                             if ($petType === 'exotic') {
+                                // Convert both the pet's species and service's exotic_pet_species to lowercase for comparison
+                                $petSpecies = strtolower($pet->species ?? '');  // Add null coalescing
+                                $serviceSpecies = collect($service->exotic_pet_species ?? [])->map(function($species) {
+                                    return strtolower($species);
+                                })->toArray();
+
                                 $isAvailable = $service->exotic_pet_service && 
-                                             in_array($pet->species, $service->exotic_pet_species ?? []);
+                                              in_array($petSpecies, $serviceSpecies);
                                 
                                 Log::info("Exotic pet check result:", [
                                     'is_available' => $isAvailable,
                                     'service_name' => $service->name,
                                     'exotic_service' => $service->exotic_pet_service,
-                                    'species_match' => in_array($pet->species, $service->exotic_pet_species ?? [])
+                                    'pet_species' => $petSpecies,
+                                    'pet_species_raw' => $pet->species,  // Add raw species value
+                                    'service_species' => $serviceSpecies,
+                                    'species_match' => in_array($petSpecies, $serviceSpecies),
+                                    'pet_full' => $pet->toArray()  // Add full pet data
                                 ]);
                                 
                                 return $isAvailable;
@@ -141,9 +137,9 @@ use Illuminate\Support\Facades\Log;
                             $singularType = rtrim($petType, 's'); // Remove 's' if present (e.g., "dogs" -> "dog")
                             $pluralType = $petType . 's'; // Add 's' if not present (e.g., "dog" -> "dogs")
                             
-                            $isAvailable = in_array($petType, $servicePetTypes) || 
-                                         in_array($singularType, $servicePetTypes) || 
-                                         in_array($pluralType, $servicePetTypes);
+                            $isAvailable = in_array($petType, $service->pet_types) || 
+                                         in_array($singularType, $service->pet_types) || 
+                                         in_array($pluralType, $service->pet_types);
                             
                             Log::info("Regular pet check result:", [
                                 'is_available' => $isAvailable,
@@ -151,7 +147,7 @@ use Illuminate\Support\Facades\Log;
                                 'pet_type' => $petType,
                                 'singular_type' => $singularType,
                                 'plural_type' => $pluralType,
-                                'service_pet_types' => $servicePetTypes
+                                'service_pet_types' => $service->pet_types
                             ]);
                             
                             return $isAvailable;

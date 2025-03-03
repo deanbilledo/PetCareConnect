@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use App\Models\Service;
+use App\Services\AppointmentNotificationService;
 
 class BookingController extends Controller
 {
@@ -487,6 +488,7 @@ class BookingController extends Controller
 
                     // Add to services breakdown
                     $servicesBreakdown[] = [
+                        'pet_id' => $pet->id,
                         'pet_name' => $pet->name,
                         'service_name' => $service->name,
                         'size' => $pet->size_category,
@@ -525,15 +527,18 @@ class BookingController extends Controller
                 // Clear booking session data
                 session()->forget('booking');
 
-                // Create notification for successful booking
-                auth()->user()->notifications()->create([
-                    'type' => 'appointment',
-                    'title' => 'Booking Successful',
-                    'message' => "Your appointment with {$shop->name} has been scheduled for {$appointmentDateTime->format('F j, Y')} at {$appointmentDateTime->format('g:i A')}.",
-                    'action_url' => route('appointments.index'),
-                    'action_text' => 'View Appointment',
-                    'status' => 'unread'
-                ]);
+                // Create notifications for each appointment
+                $appointments = Appointment::where('user_id', auth()->id())
+                                         ->where('shop_id', $shop->id)
+                                         ->where('status', 'pending')
+                                         ->whereNull('viewed_at')
+                                         ->whereIn('pet_id', array_column($servicesBreakdown, 'pet_id'))
+                                         ->orderBy('created_at', 'desc')
+                                         ->get();
+                
+                foreach($appointments as $appointment) {
+                    AppointmentNotificationService::createNewAppointmentNotification($appointment);
+                }
 
                 return redirect()->route('booking.thank-you', $shop)
                     ->with('success', 'Your appointment has been booked successfully!');

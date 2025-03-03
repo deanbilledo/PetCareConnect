@@ -30,6 +30,7 @@ class Appointment extends Model
         'payment_status',
         'paid_at',
         'accepted_at',
+        'viewed_at',
         'note_image',
         'requested_date',
         'reschedule_approved_at',
@@ -43,7 +44,8 @@ class Appointment extends Model
         'appointment_date' => 'datetime',
         'service_price' => 'decimal:2',
         'accepted_at' => 'datetime',
-        'requested_date' => 'datetime'
+        'requested_date' => 'datetime',
+        'viewed_at' => 'datetime'
     ];
 
     protected $appends = ['duration'];
@@ -52,6 +54,18 @@ class Appointment extends Model
     {
         // Default duration if no service is found
         return $this->service()->exists() ? $this->service->duration : 30;
+    }
+
+    /**
+     * Mark the appointment as viewed
+     *
+     * @return bool
+     */
+    public function markAsViewed()
+    {
+        return $this->update([
+            'viewed_at' => now()
+        ]);
     }
 
     public function user()

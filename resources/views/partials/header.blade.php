@@ -113,6 +113,13 @@
                 <div class="relative" x-data="{ 
                     showNotifications: false,
                     unreadCount: {{ auth()->user()->notifications()->unread()->count() }},
+                    unreadAppointmentCount: {{ auth()->user()->notifications()->where('type', 'appointment')->where('status', 'unread')->count() }},
+                    showAppointmentNotificationsOnly: false,
+                    
+                    toggleAppointmentFilter() {
+                        this.showAppointmentNotificationsOnly = !this.showAppointmentNotificationsOnly;
+                    },
+                    
                     markAllAsRead() {
                         fetch('{{ route('notifications.markAllAsRead') }}', {
                             method: 'POST',
@@ -124,8 +131,9 @@
                         .then(response => response.json())
                         .then(data => {
                             this.unreadCount = 0;
+                            this.unreadAppointmentCount = 0;
                             document.querySelectorAll('.notification-item').forEach(item => {
-                                item.classList.remove('border-l-4', 'border-blue-500');
+                                item.classList.remove('border-l-4', 'border-blue-500', 'bg-blue-50');
                             });
                         });
                     },
@@ -140,7 +148,16 @@
                         .then(response => response.json())
                         .then(data => {
                             this.unreadCount = data.unread_count;
-                            document.querySelector(`#notification-${id}`).classList.remove('border-l-4', 'border-blue-500');
+                            // Recalculate appointment notifications
+                            const notificationElement = document.querySelector(`#notification-${id}`);
+                            if (notificationElement && notificationElement.classList.contains('appointment-notification')) {
+                                this.unreadAppointmentCount--;
+                            }
+                            
+                            const notificationItem = document.querySelector(`#notification-${id}`);
+                            if (notificationItem) {
+                                notificationItem.classList.remove('border-l-4', 'border-blue-500', 'bg-blue-50');
+                            }
                         });
                     }
                 }" 
@@ -152,7 +169,14 @@
                         </svg>
                         <!-- Dynamic Notification Badge -->
                         <template x-if="unreadCount > 0">
-                            <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center" x-text="unreadCount"></span>
+                            <span class="absolute -top-1 -left-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center" x-text="unreadCount">
+                            </span>
+                        </template>
+                        
+                        <!-- Appointment Notification Badge -->
+                        <template x-if="unreadAppointmentCount > 0">
+                            <span class="absolute top-1 -right-1 bg-blue-500 border-2 border-white text-white text-xs rounded-full h-3 w-3 flex items-center justify-center">
+                            </span>
                         </template>
                     </button>
 
@@ -171,19 +195,59 @@
                         <div class="px-4 py-2 border-b border-gray-200">
                             <div class="flex justify-between items-center">
                                 <h3 class="text-sm font-semibold text-gray-900">Notifications</h3>
-                                <button @click="markAllAsRead()" 
-                                        x-show="unreadCount > 0"
-                                        class="text-xs text-blue-500 hover:text-blue-600">
-                                    Mark all as read
-                                </button>
+                                <div class="flex space-x-2">
+                                    <button @click="toggleAppointmentFilter()" 
+                                            x-show="unreadAppointmentCount > 0"
+                                            class="text-xs text-blue-500 hover:text-blue-600"
+                                            :class="{'font-bold underline': showAppointmentNotificationsOnly}">
+                                        <span x-text="showAppointmentNotificationsOnly ? 'Show All' : 'Appointments Only'"></span>
+                                    </button>
+                                    <button @click="markAllAsRead()" 
+                                            x-show="unreadCount > 0"
+                                            class="text-xs text-blue-500 hover:text-blue-600">
+                                        Mark all as read
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
                         <!-- Notification Items -->
                         <div class="max-h-64 overflow-y-auto">
+                            @php
+                                $hasNewAppointments = false;
+                                $isShopOwner = auth()->user()->isShopOwner() || auth()->user()->shop()->exists();
+                                
+                                // Check if there are any new appointment notifications
+                                foreach(auth()->user()->notifications()->latest()->take(5)->get() as $notification) {
+                                    // Only show the "You have new appointment requests" banner for shop owners
+                                    // Customers will see individual notifications but not the banner
+                                    if ($notification->type === 'appointment' && $notification->status === 'unread' && $isShopOwner) {
+                                        $hasNewAppointments = true;
+                                        break;
+                                    }
+                                }
+                            @endphp
+
+                            @if($hasNewAppointments)
+                                <div class="px-4 py-2 bg-blue-50 border-l-4 border-blue-500">
+                                    <div class="flex items-center">
+                                        <div class="flex-shrink-0">
+                                            <svg class="h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                            </svg>
+                                        </div>
+                                        <div class="ml-3">
+                                            <p class="text-sm font-medium text-blue-800">New Appointments!</p>
+                                            <p class="mt-1 text-xs text-blue-600">You have new appointment requests</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
+
                             @forelse(auth()->user()->notifications()->latest()->take(5)->get() as $notification)
                                 <div id="notification-{{ $notification->id }}"
-                                     class="notification-item px-4 py-3 hover:bg-gray-50 {{ $notification->status === 'unread' ? 'border-l-4 border-blue-500' : '' }}">
+                                     x-show="!showAppointmentNotificationsOnly || '{{ $notification->type }}' === 'appointment'"
+                                     class="notification-item px-4 py-3 hover:bg-gray-50 {{ $notification->status === 'unread' ? 'border-l-4 border-blue-500' : '' }} {{ $notification->type === 'appointment' && $notification->status === 'unread' ? 'bg-blue-50' : '' }} {{ $notification->type === 'appointment' ? 'appointment-notification' : '' }}">
                                     <div class="flex items-start">
                                         <div class="flex-shrink-0">
                                             {!! $notification->getIconHtml() !!}

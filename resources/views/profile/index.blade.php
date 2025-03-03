@@ -8,12 +8,15 @@ use Illuminate\Support\Str;
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
       integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
       crossorigin="anonymous"/>
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.bootstrap5.css" rel="stylesheet">
 @endsection
 
 @section('scripts')
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
         crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
 @endsection
 
 @section('content')
@@ -335,11 +338,39 @@ use Illuminate\Support\Str;
                     <!-- Add species field for exotic pets -->
                     <div x-show="petType === 'Exotic'">
                         <label class="block text-sm font-medium text-gray-700 mb-1">Species</label>
-                        <input type="text" 
-                               name="species" 
-                               x-bind:required="petType === 'Exotic'"
-                               placeholder="e.g., Hamster, Snake, Iguana"
-                               class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
+                        <select name="species" 
+                                x-bind:required="petType === 'Exotic'"
+                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
+                            <option value="">Select Species</option>
+                            <optgroup label="Reptiles">
+                                <option value="snake">Snake</option>
+                                <option value="lizard">Lizard</option>
+                                <option value="turtle">Turtle</option>
+                                <option value="iguana">Iguana</option>
+                                <option value="gecko">Gecko</option>
+                                <option value="bearded_dragon">Bearded Dragon</option>
+                            </optgroup>
+                            <optgroup label="Small Mammals">
+                                <option value="hamster">Hamster</option>
+                                <option value="gerbil">Gerbil</option>
+                                <option value="ferret">Ferret</option>
+                                <option value="guinea_pig">Guinea Pig</option>
+                                <option value="chinchilla">Chinchilla</option>
+                                <option value="hedgehog">Hedgehog</option>
+                                <option value="sugar_glider">Sugar Glider</option>
+                            </optgroup>
+                            <optgroup label="Birds">
+                                <option value="parrot">Parrot</option>
+                                <option value="cockatiel">Cockatiel</option>
+                                <option value="macaw">Macaw</option>
+                                <option value="parakeet">Parakeet</option>
+                                <option value="lovebird">Lovebird</option>
+                            </optgroup>
+                            <optgroup label="Others">
+                                <option value="tarantula">Tarantula</option>
+                                <option value="scorpion">Scorpion</option>
+                            </optgroup>
+                        </select>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Breed</label>
@@ -522,12 +553,39 @@ use Illuminate\Support\Str;
                                         <!-- Add species field for exotic pets -->
                                         <div x-show="petType === 'Exotic'">
                                             <label class="block text-sm font-medium text-gray-700 mb-1">Species</label>
-                                            <input type="text" 
-                                                   name="species" 
-                                                   value="{{ $pet->species }}"
-                                                   x-bind:required="petType === 'Exotic'"
-                                                   placeholder="e.g., Hamster, Snake, Iguana"
-                                                   class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
+                                            <select name="species" 
+                                                    x-bind:required="petType === 'Exotic'"
+                                                    class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
+                                                <option value="">Select Species</option>
+                                                <optgroup label="Reptiles">
+                                                    <option value="snake" {{ $pet->species == 'snake' ? 'selected' : '' }}>Snake</option>
+                                                    <option value="lizard" {{ $pet->species == 'lizard' ? 'selected' : '' }}>Lizard</option>
+                                                    <option value="turtle" {{ $pet->species == 'turtle' ? 'selected' : '' }}>Turtle</option>
+                                                    <option value="iguana" {{ $pet->species == 'iguana' ? 'selected' : '' }}>Iguana</option>
+                                                    <option value="gecko" {{ $pet->species == 'gecko' ? 'selected' : '' }}>Gecko</option>
+                                                    <option value="bearded_dragon" {{ $pet->species == 'bearded_dragon' ? 'selected' : '' }}>Bearded Dragon</option>
+                                                </optgroup>
+                                                <optgroup label="Small Mammals">
+                                                    <option value="hamster" {{ $pet->species == 'hamster' ? 'selected' : '' }}>Hamster</option>
+                                                    <option value="gerbil" {{ $pet->species == 'gerbil' ? 'selected' : '' }}>Gerbil</option>
+                                                    <option value="ferret" {{ $pet->species == 'ferret' ? 'selected' : '' }}>Ferret</option>
+                                                    <option value="guinea_pig" {{ $pet->species == 'guinea_pig' ? 'selected' : '' }}>Guinea Pig</option>
+                                                    <option value="chinchilla" {{ $pet->species == 'chinchilla' ? 'selected' : '' }}>Chinchilla</option>
+                                                    <option value="hedgehog" {{ $pet->species == 'hedgehog' ? 'selected' : '' }}>Hedgehog</option>
+                                                    <option value="sugar_glider" {{ $pet->species == 'sugar_glider' ? 'selected' : '' }}>Sugar Glider</option>
+                                                </optgroup>
+                                                <optgroup label="Birds">
+                                                    <option value="parrot" {{ $pet->species == 'parrot' ? 'selected' : '' }}>Parrot</option>
+                                                    <option value="cockatiel" {{ $pet->species == 'cockatiel' ? 'selected' : '' }}>Cockatiel</option>
+                                                    <option value="macaw" {{ $pet->species == 'macaw' ? 'selected' : '' }}>Macaw</option>
+                                                    <option value="parakeet" {{ $pet->species == 'parakeet' ? 'selected' : '' }}>Parakeet</option>
+                                                    <option value="lovebird" {{ $pet->species == 'lovebird' ? 'selected' : '' }}>Lovebird</option>
+                                                </optgroup>
+                                                <optgroup label="Others">
+                                                    <option value="tarantula" {{ $pet->species == 'tarantula' ? 'selected' : '' }}>Tarantula</option>
+                                                    <option value="scorpion" {{ $pet->species == 'scorpion' ? 'selected' : '' }}>Scorpion</option>
+                                                </optgroup>
+                                            </select>
                                         </div>
                                         <div>
                                             <label class="block text-sm font-medium text-gray-700 mb-1">Breed</label>
@@ -812,5 +870,47 @@ function deleteModal() {
         }
     }
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize TomSelect for species select
+    const speciesSelect = document.querySelector('select[name="species"]');
+    if (speciesSelect) {
+        new TomSelect(speciesSelect, {
+            plugins: ['remove_button'],
+            maxItems: 1,
+            valueField: 'value',
+            labelField: 'text',
+            searchField: ['text'],
+            render: {
+                item: function(data, escape) {
+                    return '<div>' + escape(data.text) + '</div>';
+                },
+                option: function(data, escape) {
+                    return '<div class="d-flex flex-column">' +
+                           '<span class="font-weight-bold">' + escape(data.text) + '</span>' +
+                           '</div>';
+                }
+            }
+        });
+    }
+
+    // Handle pet type change
+    const petTypeSelect = document.querySelector('select[name="type"]');
+    if (petTypeSelect) {
+        petTypeSelect.addEventListener('change', function() {
+            const speciesField = document.querySelector('div[x-show="petType === \'Exotic\'"]');
+            if (speciesField) {
+                if (this.value === 'Exotic') {
+                    speciesField.style.display = 'block';
+                    speciesSelect.tomselect.enable();
+                } else {
+                    speciesField.style.display = 'none';
+                    speciesSelect.tomselect.clear();
+                    speciesSelect.tomselect.disable();
+                }
+            }
+        });
+    }
+});
 </script>
 @endpush

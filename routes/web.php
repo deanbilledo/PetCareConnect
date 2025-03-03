@@ -112,6 +112,8 @@ Route::middleware(['auth'])->group(function () {
             Route::put('/profile', [ShopProfileController::class, 'update'])->name('profile.update');
             Route::post('/profile/image', [ShopProfileController::class, 'updateImage'])->name('profile.update-image');
             Route::get('/appointments', [ShopAppointmentController::class, 'index'])->name('appointments');
+            Route::get('/appointments/{appointment}', [ShopAppointmentController::class, 'show'])->name('appointments.show');
+            Route::post('/appointments/{appointment}/mark-viewed', [ShopAppointmentController::class, 'markAsViewed'])->name('appointments.mark-viewed');
             Route::post('/mode/customer', [ShopDashboardController::class, 'switchToCustomerMode'])->name('mode.customer');
             
             // Reviews routes
@@ -240,6 +242,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings');
     Route::get('/favorites', [FavoriteController::class, 'index'])->name('favorites.index');
     Route::post('/favorites/{shop}', [FavoriteController::class, 'toggle'])->name('favorites.toggle');
+    Route::get('/favorites/{shop}/check', [FavoriteController::class, 'check'])->name('favorites.check');
     Route::post('/shops/{shop}/review', [ShopController::class, 'submitReview'])->name('shops.review')->middleware('auth');
 
     // Notifications Routes
