@@ -1206,7 +1206,12 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert(error.message || 'Failed to add discount. Please try again.');
+                window.dispatchEvent(new CustomEvent('toast', {
+                    detail: {
+                        type: 'error',
+                        message: error.message || 'Failed to add discount. Please try again.'
+                    }
+                }));
             });
         });
     }

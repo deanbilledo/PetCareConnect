@@ -112,6 +112,8 @@ Route::middleware(['auth'])->group(function () {
             Route::put('/profile', [ShopProfileController::class, 'update'])->name('profile.update');
             Route::post('/profile/image', [ShopProfileController::class, 'updateImage'])->name('profile.update-image');
             Route::get('/appointments', [ShopAppointmentController::class, 'index'])->name('appointments');
+            Route::get('/appointments/{appointment}', [ShopAppointmentController::class, 'show'])->name('appointments.show');
+            Route::post('/appointments/{appointment}/mark-viewed', [ShopAppointmentController::class, 'markAsViewed'])->name('appointments.mark-viewed');
             Route::post('/mode/customer', [ShopDashboardController::class, 'switchToCustomerMode'])->name('mode.customer');
             
             // Reviews routes

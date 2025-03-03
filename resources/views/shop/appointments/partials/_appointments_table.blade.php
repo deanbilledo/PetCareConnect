@@ -30,7 +30,9 @@
                         }" x-init="debug()">
                         </div>
                         <tr x-show="isAppointmentVisible('{{ $appointment->status }}', '{{ $date }}', '{{ $appointment->shop->type }}')"
-                            class="hover:bg-gray-50">
+                            class="hover:bg-gray-50 {{ is_null($appointment->viewed_at) && $appointment->status === 'pending' ? 'bg-blue-50' : '' }}"
+                            onclick="viewAppointment({{ $appointment->id }})"
+                            style="cursor: pointer;">
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="flex items-center">
                                     <div class="flex-shrink-0 h-10 w-10">
@@ -80,9 +82,9 @@
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                <div class="flex space-x-2">
+                                <div class="flex space-x-2" onclick="event.stopPropagation()">
                                     @if($appointment->status === 'pending')
-                                        <button onclick="window.location.href='{{ route('appointments.show', $appointment) }}'"
+                                        <button onclick="viewAppointment({{ $appointment->id }})"
                                                 class="text-blue-600 hover:text-blue-800">
                                             View
                                         </button>
@@ -90,7 +92,8 @@
                                                 class="text-green-600 hover:text-green-800">
                                             Accept
                                         </button>
-                                        <button onclick="cancelAppointment({{ $appointment->id }})"
+                                        <button onclick="window.cancelAppointment({{ $appointment->id }})"
+                                                type="button"
                                                 class="text-red-600 hover:text-red-800">
                                             Cancel
                                         </button>
@@ -131,4 +134,30 @@
     <div class="bg-white rounded-lg shadow-md p-6 text-center">
         <p class="text-gray-600">No appointments found</p>
     </div>
-@endforelse 
+@endforelse
+
+<script>
+// Function to mark an appointment as viewed and then navigate to the appointment details
+function viewAppointment(appointmentId) {
+    // Mark the appointment as viewed using AJAX
+    fetch(`/shop/appointments/${appointmentId}/mark-viewed`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        credentials: 'same-origin'
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Appointment marked as viewed:', data);
+        // Navigate to the appointment details page
+        window.location.href = `{{ route('shop.appointments.show', '') }}/${appointmentId}`;
+    })
+    .catch(error => {
+        console.error('Error marking appointment as viewed:', error);
+        // Still navigate to the appointment details page even if the marking failed
+        window.location.href = `{{ route('shop.appointments.show', '') }}/${appointmentId}`;
+    });
+}
+</script> 
