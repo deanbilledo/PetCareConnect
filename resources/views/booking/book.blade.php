@@ -160,15 +160,21 @@
             <!-- Gallery Grid -->
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 @forelse($shop->gallery as $image)
-                    <div class="relative group cursor-pointer" onclick="openGalleryModal({{ $loop->index }})">
+                    <div class="relative group cursor-pointer overflow-hidden rounded-lg shadow-sm hover:shadow-md transition-all duration-300" 
+                         onclick="openGalleryModal({{ $loop->index }})">
                         <img src="{{ asset('storage/' . $image->image_path) }}" 
                              alt="Gallery Image {{ $loop->iteration }}" 
-                             class="w-full h-48 object-cover rounded-lg transition-transform duration-300 group-hover:scale-105">
-                        <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity duration-300 rounded-lg"></div>
+                             class="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-110">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
+                            <span class="text-white text-sm font-medium">View Image</span>
+                        </div>
                     </div>
                 @empty
-                    <div class="col-span-3 text-center py-8">
-                        <p class="text-gray-500">No gallery images available</p>
+                    <div class="col-span-3 py-12 text-center">
+                        <svg class="w-16 h-16 mx-auto text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                        <p class="text-gray-500 mt-4">No gallery images available</p>
                     </div>
                 @endforelse
             </div>
@@ -176,45 +182,47 @@
     </div>
 
     <!-- Gallery Modal -->
-    <div id="galleryModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
-        <!-- Backdrop -->
-        <div class="fixed inset-0 bg-black bg-opacity-75 transition-opacity"></div>
-        
+    <div id="galleryModal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-black/90 backdrop-blur-sm transition-opacity duration-300">
         <!-- Modal Content -->
         <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div class="relative max-w-4xl w-full">
-                <!-- Close Button -->
-                <button onclick="closeGalleryModal()" 
-                        class="absolute top-4 right-4 text-white hover:text-gray-300 z-10">
+            <!-- Close Button -->
+            <button onclick="closeGalleryModal()" 
+                    class="absolute top-4 right-4 text-white/80 hover:text-white z-10 bg-black/30 backdrop-blur-sm p-2 rounded-full transition-all hover:bg-black/50">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+
+            <!-- Image Container -->
+            <div class="relative max-w-5xl w-full">
+                <!-- Image Counter -->
+                <div class="absolute top-4 left-4 bg-black/30 backdrop-blur-sm text-white px-4 py-2 rounded-full text-sm z-10">
+                    <span id="imageCounter"></span>
+                </div>
+
+                <!-- Previous Button -->
+                <button onclick="changeImage(-1)" 
+                        class="absolute left-4 top-1/2 transform -translate-y-1/2 text-white/80 hover:text-white bg-black/30 backdrop-blur-sm p-3 rounded-full transition-all hover:bg-black/50">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
                     </svg>
                 </button>
 
-                <!-- Image Container -->
-                <div class="relative">
-                    <!-- Previous Button -->
-                    <button onclick="changeImage(-1)" 
-                            class="absolute left-4 top-1/2 transform -translate-y-1/2 text-white hover:text-gray-300">
-                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-                        </svg>
-                    </button>
-
-                    <!-- Image -->
+                <!-- Image -->
+                <div class="relative overflow-hidden rounded-lg shadow-2xl">
                     <img id="modalImage" 
-                         src="" 
-                         alt="Gallery Image" 
-                         class="w-full h-auto max-h-[80vh] object-contain rounded-lg">
-
-                    <!-- Next Button -->
-                    <button onclick="changeImage(1)" 
-                            class="absolute right-4 top-1/2 transform -translate-y-1/2 text-white hover:text-gray-300">
-                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                        </svg>
-                    </button>
+                        src="" 
+                        alt="Gallery Image" 
+                        class="w-full h-auto max-h-[80vh] object-contain transition-opacity duration-300 opacity-0">
                 </div>
+
+                <!-- Next Button -->
+                <button onclick="changeImage(1)" 
+                        class="absolute right-4 top-1/2 transform -translate-y-1/2 text-white/80 hover:text-white bg-black/30 backdrop-blur-sm p-3 rounded-full transition-all hover:bg-black/50">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
+                </button>
             </div>
         </div>
     </div>
@@ -763,28 +771,70 @@
         function openGalleryModal(index) {
             currentImageIndex = index;
             const modal = document.getElementById('galleryModal');
-            const modalImage = document.getElementById('modalImage');
             
             modal.classList.remove('hidden');
-            updateModalImage();
+            // Small delay to allow for fade-in effect
+            setTimeout(() => {
+                updateModalImage();
+            }, 50);
+            
+            // Add keyboard navigation
+            document.addEventListener('keydown', handleKeyNavigation);
         }
 
         function closeGalleryModal() {
-            document.getElementById('galleryModal').classList.add('hidden');
+            const modal = document.getElementById('galleryModal');
+            const modalImage = document.getElementById('modalImage');
+            
+            // Fade out effect
+            modalImage.classList.add('opacity-0');
+            
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                // Remove keyboard event listener when modal is closed
+                document.removeEventListener('keydown', handleKeyNavigation);
+            }, 300);
         }
 
         function changeImage(direction) {
-            currentImageIndex = (currentImageIndex + direction + galleryImages.length) % galleryImages.length;
-            updateModalImage();
+            // Fade out current image
+            const modalImage = document.getElementById('modalImage');
+            modalImage.classList.add('opacity-0');
+            
+            setTimeout(() => {
+                currentImageIndex = (currentImageIndex + direction + galleryImages.length) % galleryImages.length;
+                updateModalImage();
+            }, 200);
+        }
+
+        function handleKeyNavigation(e) {
+            if (e.key === 'ArrowLeft') {
+                changeImage(-1);
+            } else if (e.key === 'ArrowRight') {
+                changeImage(1);
+            } else if (e.key === 'Escape') {
+                closeGalleryModal();
+            }
         }
 
         function updateModalImage() {
             const modalImage = document.getElementById('modalImage');
+            const imageCounter = document.getElementById('imageCounter');
+            
+            // Update image source
             modalImage.src = galleryImages[currentImageIndex].url;
             modalImage.alt = galleryImages[currentImageIndex].alt;
+            
+            // Update counter
+            imageCounter.textContent = `${currentImageIndex + 1} / ${galleryImages.length}`;
+            
+            // Add loading event to ensure image is loaded before showing
+            modalImage.onload = function() {
+                modalImage.classList.remove('opacity-0');
+            };
         }
 
-        // Close modal when clicking outside
+        // Close modal when clicking outside the image
         document.getElementById('galleryModal').addEventListener('click', function(e) {
             if (e.target === this) {
                 closeGalleryModal();

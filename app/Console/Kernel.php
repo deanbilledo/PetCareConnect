@@ -36,6 +36,11 @@ class Kernel extends ConsoleKernel
         $schedule->call(function () {
             app(\App\Http\Controllers\AppointmentController::class)->checkUpcomingAppointments();
         })->everyFiveMinutes();
+
+        // Check pet health due dates daily at 8 AM
+        $schedule->command('pets:check-health-due-dates')
+                ->dailyAt('08:00')
+                ->withoutOverlapping();
     }
 
     /**

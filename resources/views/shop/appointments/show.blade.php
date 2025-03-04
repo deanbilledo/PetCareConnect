@@ -1,7 +1,59 @@
 @extends('layouts.shop')
 
 @section('content')
-<div class="container mx-auto px-4 py-6">
+<div class="container mx-auto px-4 py-6" 
+     x-data="{ 
+        showNoteModal: false, 
+        noteText: '', 
+        imagePreview: null,
+        handleImagePreview(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    this.imagePreview = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        },
+        async submitNote() {
+            const noteText = this.noteText;
+            const noteImage = document.getElementById('noteImage').files[0];
+            
+            if (!noteText && !noteImage) {
+                alert('Please add either a note or an image');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('note', noteText);
+            if (noteImage) {
+                formData.append('note_image', noteImage);
+            }
+            formData.append('_token', '{{ csrf_token() }}');
+
+            try {
+                const response = await fetch(`/appointments/{{ $appointment->id }}/add-note`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    this.showNoteModal = false;
+                    this.noteText = '';
+                    this.imagePreview = null;
+                    window.location.reload();
+                } else {
+                    alert(result.error || 'Failed to add note');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while adding the note');
+            }
+        }
+     }">
     <!-- Back Button -->
     <div class="mb-6 mt-8">
         <a href="{{ route('shop.appointments') }}" class="text-gray-600 hover:text-gray-800 flex items-center">
@@ -20,6 +72,7 @@
 
         <!-- Appointment Info -->
         <div class="p-6">
+            
             <!-- Status Badge -->
             <div class="mb-6">
                 <span class="px-4 py-2 rounded-full text-sm font-medium
@@ -77,14 +130,34 @@
                 </div>
             </div>
 
-            <!-- Notes -->
-            @if($appointment->notes)
-            <div class="mt-6">
-                <h3 class="text-sm font-medium text-gray-500">Notes</h3>
-                <div class="mt-1 p-4 bg-gray-50 rounded">
-                    {{ $appointment->notes }}
+            <!-- Appointment Notes Section -->
+            @if($appointment->appointmentNotes && $appointment->appointmentNotes->count() > 0)
+            <div class="mt-6 border-t pt-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Appointment Notes ({{ $appointment->appointmentNotes->count() }})</h3>
+                <div class="space-y-4">
+                    @foreach($appointment->appointmentNotes->sortByDesc('created_at') as $note)
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <div class="flex items-start">
+                            @if($note->image)
+                            <div class="mr-4">
+                                <img src="{{ Storage::url($note->image) }}" 
+                                     alt="Note image" 
+                                     class="w-24 h-24 object-cover rounded-lg">
+                            </div>
+                            @endif
+                            <div class="flex-1">
+                                <p class="text-gray-700">{{ $note->note }}</p>
+                                <p class="text-sm text-gray-500 mt-2">
+                                    Added on {{ $note->created_at->format('M d, Y g:i A') }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    @endforeach
                 </div>
             </div>
+            @else
+            
             @endif
         </div>
     </div>
@@ -137,22 +210,28 @@
                             $birthDate = $appointment->pet->date_of_birth;
                             if ($birthDate) {
                                 $now = now();
-                                $years = $birthDate->diffInYears($now);
-                                $months = $birthDate->copy()->addYears($years)->diffInMonths($now);
+                                $years = (int)$birthDate->diffInYears($now);
+                                $totalMonths = (int)$birthDate->diffInMonths($now);
+                                $months = (int)($totalMonths % 12);
+                                $days = (int)$birthDate->copy()->addMonths($totalMonths)->diffInDays($now);
                                 
                                 if ($years > 0) {
                                     echo $years . ' ' . \Illuminate\Support\Str::plural('year', $years);
                                     if ($months > 0) {
-                                        echo ' ' . $months . ' ' . \Illuminate\Support\Str::plural('month', $months);
+                                        echo ' and ' . $months . ' ' . \Illuminate\Support\Str::plural('month', $months);
                                     }
                                 } else {
                                     if ($months > 0) {
                                         echo $months . ' ' . \Illuminate\Support\Str::plural('month', $months);
+                                        if ($days > 0) {
+                                            echo ' and ' . $days . ' ' . \Illuminate\Support\Str::plural('day', $days);
+                                        }
                                     } else {
-                                        $days = $birthDate->diffInDays($now);
+                                        $days = (int)$birthDate->diffInDays($now);
                                         echo $days . ' ' . \Illuminate\Support\Str::plural('day', $days);
                                     }
                                 }
+                                echo ' old';
                             } else {
                                 echo 'Not set';
                             }
@@ -205,7 +284,7 @@
         </div>
         
         <div class="p-6">
-            @if($appointment->pet->healthRecords && $appointment->pet->healthRecords->count() > 0)
+            @if($appointment->pet->vaccinations->count() > 0 || $appointment->pet->parasiteControls->count() > 0 || $appointment->pet->healthIssues->count() > 0)
                 <!-- Tabs -->
                 <div x-data="{ activeTab: 'vaccinations' }" class="mb-6">
                     <div class="border-b border-gray-200">
@@ -230,7 +309,7 @@
                     
                     <!-- Vaccinations Tab -->
                     <div x-show="activeTab === 'vaccinations'" class="mt-6">
-                        @if($appointment->pet->vaccinations && $appointment->pet->vaccinations->count() > 0)
+                        @if($appointment->pet->vaccinations->count() > 0)
                             <div class="overflow-x-auto">
                                 <table class="min-w-full divide-y divide-gray-200">
                                     <thead class="bg-gray-50">
@@ -262,7 +341,7 @@
                     
                     <!-- Parasite Control Tab -->
                     <div x-show="activeTab === 'parasiteControl'" class="mt-6" x-cloak>
-                        @if($appointment->pet->parasiteControls && $appointment->pet->parasiteControls->count() > 0)
+                        @if($appointment->pet->parasiteControls->count() > 0)
                             <div class="overflow-x-auto">
                                 <table class="min-w-full divide-y divide-gray-200">
                                     <thead class="bg-gray-50">
@@ -294,7 +373,7 @@
                     
                     <!-- Health Issues Tab -->
                     <div x-show="activeTab === 'healthIssues'" class="mt-6" x-cloak>
-                        @if($appointment->pet->healthIssues && $appointment->pet->healthIssues->count() > 0)
+                        @if($appointment->pet->healthIssues->count() > 0)
                             <div class="space-y-6">
                                 @foreach($appointment->pet->healthIssues as $issue)
                                     <div class="bg-gray-50 p-4 rounded-lg">
@@ -362,16 +441,72 @@
                 @endif
                 
                 @if($appointment->status === 'accepted' || $appointment->status === 'completed')
-                    <a href="#" onclick="addNote({{ $appointment->id }})"
+                    <button @click="showNoteModal = true"
                        class="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 inline-flex items-center">
                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                         </svg>
                         Add Note
-                    </a>
+                    </button>
                 @endif
             </div>
         </div>
     </div>
+
+    <!-- Add Note Modal -->
+    <div x-show="showNoteModal" 
+         class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50"
+         x-cloak
+         @click.away="showNoteModal = false">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <h3 class="text-lg leading-6 font-medium text-gray-900">Add Appointment Note</h3>
+                <div class="mt-4">
+                    <div class="space-y-4">
+                        <div>
+                            <label for="note" class="block text-sm font-medium text-gray-700">Note</label>
+                            <textarea id="note" 
+                                    x-model="noteText"
+                                    rows="4" 
+                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500"
+                                    placeholder="Enter your note here..."></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Add Image (optional)</label>
+                            <div class="mt-1 flex items-center">
+                                <input type="file" 
+                                       id="noteImage" 
+                                       accept="image/*"
+                                       @change="handleImagePreview($event)"
+                                       class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100">
+                            </div>
+                            <!-- Image Preview -->
+                            <div x-show="imagePreview" class="mt-2">
+                                <img :src="imagePreview" class="max-h-32 rounded">
+                            </div>
+                        </div>
+                        <div class="flex justify-end space-x-3">
+                            <button type="button" 
+                                    @click="showNoteModal = false"
+                                    class="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200">
+                                Cancel
+                            </button>
+                            <button type="button" 
+                                    @click="submitNote()"
+                                    class="px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700">
+                                Save Note
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
+
+@push('scripts')
+<script>
+// Remove the old JavaScript functions since we're now using Alpine.js
+</script>
+@endpush
 @endsection 

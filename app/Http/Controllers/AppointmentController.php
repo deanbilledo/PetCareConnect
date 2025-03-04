@@ -466,25 +466,26 @@ class AppointmentController extends Controller
             // Validate the request
             $validated = $request->validate([
                 'note' => 'required|string|max:1000',
-                'image' => 'nullable|image|max:5120' // Max 5MB image
+                'note_image' => 'nullable|image|max:5120' // Max 5MB image
             ]);
 
-            $data = ['notes' => $validated['note']];
+            $data = ['note' => $validated['note']];
 
             // Handle image upload if present
-            if ($request->hasFile('image')) {
-                $image = $request->file('image');
+            if ($request->hasFile('note_image')) {
+                $image = $request->file('note_image');
                 $imagePath = $image->store('appointment-notes', 'public');
-                $data['note_image'] = $imagePath;
+                $data['image'] = $imagePath;
             }
 
-            // Update the appointment with the note and image
-            $appointment->update($data);
+            // Create a new note
+            $note = $appointment->appointmentNotes()->create($data);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Note added successfully',
-                'image_url' => $request->hasFile('image') ? asset('storage/' . $imagePath) : null
+                'note' => $note,
+                'image_url' => $request->hasFile('note_image') ? asset('storage/' . $imagePath) : null
             ]);
         } catch (\Exception $e) {
             Log::error('Error adding note to appointment: ' . $e->getMessage());
@@ -507,15 +508,14 @@ class AppointmentController extends Controller
             }
 
             // Load the appointment with necessary relationships
-            $appointment->load(['user', 'pet', 'shop', 'employee']);
+            $appointment->load(['user', 'pet', 'shop', 'employee', 'appointmentNotes']);
 
             // Get the profile photo URL
             $profilePhotoUrl = $appointment->user->profile_photo_url ?? asset('images/default-profile.png');
 
             return response()->json([
                 'success' => true,
-                'note' => $appointment->notes,
-                'image_url' => $appointment->note_image ? asset('storage/' . $appointment->note_image) : null,
+                'notes' => $appointment->appointmentNotes,
                 'appointment' => [
                     'id' => $appointment->id,
                     'user' => [
@@ -532,16 +532,14 @@ class AppointmentController extends Controller
                     'appointment_date' => $appointment->appointment_date,
                     'service_type' => $appointment->service_type,
                     'status' => $appointment->status,
-                    'notes' => $appointment->notes,
-                    'note_image' => $appointment->note_image ? asset('storage/' . $appointment->note_image) : null,
                     'updated_at' => $appointment->updated_at
                 ]
             ]);
         } catch (\Exception $e) {
-            \Log::error('Error retrieving note for appointment: ' . $e->getMessage());
+            \Log::error('Error retrieving notes for appointment: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'error' => 'Failed to retrieve note'
+                'error' => 'Failed to retrieve notes'
             ], 500);
         }
     }

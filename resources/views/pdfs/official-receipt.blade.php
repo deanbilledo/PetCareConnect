@@ -138,10 +138,13 @@
             </div>
             <div class="info-block">
                 <h3>Appointment Details</h3>
-                <p><strong>Date:</strong> {{ $appointment->appointment_date->format('F j, Y') }}</p>
-                <p><strong>Time:</strong> {{ $appointment->appointment_date->format('g:i A') }}</p>
+                <p><strong>Date:</strong> {{ \Carbon\Carbon::parse($appointment->appointment_date)->format('F j, Y') }}</p>
+                <p><strong>Time:</strong> {{ \Carbon\Carbon::parse($appointment->appointment_date)->format('g:i A') }}</p>
                 <p><strong>Status:</strong> {{ ucfirst($appointment->status) }}</p>
-                <p><strong>Payment Date:</strong> {{ $appointment->paid_at ? $appointment->paid_at->format('F j, Y g:i A') : now()->format('F j, Y g:i A') }}</p>
+                <p><strong>Payment Date:</strong> {{ $appointment->paid_at ? \Carbon\Carbon::parse($appointment->paid_at)->format('F j, Y g:i A') : now()->format('F j, Y g:i A') }}</p>
+                @if($appointment->employee)
+                <p><strong>Assigned Staff:</strong> {{ $appointment->employee->name }} ({{ $appointment->employee->position }})</p>
+                @endif
             </div>
         </div>
 
@@ -162,11 +165,26 @@
                         <td>1 hour</td>
                         <td>₱{{ number_format($appointment->service_price, 2) }}</td>
                     </tr>
+                    @if($appointment->add_ons)
+                        @foreach(json_decode($appointment->add_ons) as $addOn)
+                            <tr>
+                                <td colspan="3">Add-on: {{ $addOn->name }}</td>
+                                <td>₱{{ number_format($addOn->price, 2) }}</td>
+                            </tr>
+                        @endforeach
+                    @endif
                 </tbody>
             </table>
         </div>
 
         <div class="total-section">
+            @if($appointment->add_ons_total > 0)
+                <p>Service Price: ₱{{ number_format($appointment->service_price - $appointment->add_ons_total, 2) }}</p>
+                <p>Add-ons Total: ₱{{ number_format($appointment->add_ons_total, 2) }}</p>
+            @endif
+            @if($appointment->discount_amount > 0)
+                <p>Discount: -₱{{ number_format($appointment->discount_amount, 2) }}</p>
+            @endif
             <p class="total-amount">Total Amount Paid: ₱{{ number_format($appointment->service_price, 2) }}</p>
         </div>
 
