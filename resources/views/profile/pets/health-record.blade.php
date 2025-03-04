@@ -1,5 +1,7 @@
 @php
 use Illuminate\Support\Str;
+
+
 @endphp
 
 @extends('layouts.app')
@@ -171,17 +173,39 @@ use Illuminate\Support\Str;
                 @forelse($pet->healthIssues as $issue)
                 <div class="border-b pb-4">
                     <div class="flex justify-between mb-2">
+                        <div class="flex items-center">
                             <span class="font-medium">{{ $issue->issue_title }}</span>
+                            <span class="ml-2 px-2 py-1 text-xs rounded-full {{ $issue->is_resolved ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800' }}">
+                                {{ $issue->is_resolved ? 'Resolved' : 'Active' }}
+                            </span>
+                        </div>
+                        <div class="flex items-center space-x-4">
                             <span class="text-gray-500 text-sm">{{ $issue->identified_date->format('M d, Y') }}</span>
-                    </div>
-                        <p class="text-sm text-gray-600 mb-2">{{ $issue->description }}</p>
-                    <div class="text-sm text-gray-600">
-                            <p>Treatment: {{ $issue->treatment }}</p>
-                            @if($issue->vet_notes)
-                                <p class="mt-1">Vet Notes: {{ $issue->vet_notes }}</p>
+                            @if(!$pet->isDeceased())
+                            <form action="{{ route('profile.pets.update-health-issue', ['pet' => $pet->id, 'issue' => $issue->id]) }}" 
+                                  method="POST" 
+                                  class="inline-block">
+                                @csrf
+                                @method('PATCH')
+                                <button type="submit" 
+                                        class="text-sm {{ $issue->is_resolved ? 'text-yellow-600 hover:text-yellow-700' : 'text-green-600 hover:text-green-700' }}">
+                                    {{ $issue->is_resolved ? 'Mark as Active' : 'Mark as Resolved' }}
+                                </button>
+                            </form>
                             @endif
-                </div>
+                        </div>
                     </div>
+                    <p class="text-sm text-gray-600 mb-2">{{ $issue->description }}</p>
+                    <div class="text-sm text-gray-600">
+                        <p>Treatment: {{ $issue->treatment }}</p>
+                        @if($issue->vet_notes)
+                            <p class="mt-1">Vet Notes: {{ $issue->vet_notes }}</p>
+                        @endif
+                        @if($issue->resolved_date)
+                            <p class="mt-1 text-green-600">Resolved on: {{ \Carbon\Carbon::parse($issue->resolved_date)->format('M d, Y') }}</p>
+                        @endif
+                    </div>
+                </div>
                 @empty
                     <p class="text-gray-500 text-center py-4">No health issues recorded</p>
                 @endforelse
@@ -222,7 +246,7 @@ use Illuminate\Support\Str;
                     </div>
                 <div class="border rounded-lg p-4">
                     <p class="text-sm text-gray-600">Active Health Issues</p>
-                    <p class="text-2xl font-semibold">{{ $pet->healthIssues->count() }}</p>
+                    <p class="text-2xl font-semibold">{{ $pet->healthIssues->where('is_resolved', false)->count() }}</p>
                     </div>
                 <div class="border rounded-lg p-4">
                     <p class="text-sm text-gray-600">Upcoming Due Dates</p>

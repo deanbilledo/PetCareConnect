@@ -128,6 +128,15 @@ class ShopAppointmentController extends Controller
             'pet.vaccinations',
             'pet.parasiteControls',
             'pet.healthIssues',
+            'appointmentNotes'
+        ]);
+
+        // Debug logging
+        \Log::info('Loading appointment in ShopAppointmentController:', [
+            'appointment_id' => $appointment->id,
+            'has_notes_relation' => $appointment->relationLoaded('appointmentNotes'),
+            'notes_count' => $appointment->appointmentNotes->count(),
+            'raw_notes' => $appointment->appointmentNotes->toArray()
         ]);
 
         // Mark appointment as viewed if not already

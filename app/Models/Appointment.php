@@ -57,6 +57,14 @@ class Appointment extends Model
     }
 
     /**
+     * Get the notes for this appointment
+     */
+    public function appointmentNotes()
+    {
+        return $this->hasMany(AppointmentNote::class);
+    }
+
+    /**
      * Mark the appointment as viewed
      *
      * @return bool

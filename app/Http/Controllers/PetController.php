@@ -89,6 +89,35 @@ class PetController extends Controller
                 'date_of_birth' => 'required|date|before_or_equal:today',
             ]);
 
+            // Track changes before updating
+            $trackableFields = [
+                'name', 'type', 'species', 'breed', 'size_category', 
+                'weight', 'color_markings', 'coat_type', 'date_of_birth'
+            ];
+
+            foreach ($trackableFields as $field) {
+                if (isset($validated[$field])) {
+                    $oldValue = $pet->$field;
+                    $newValue = $validated[$field];
+
+                    // Handle date fields
+                    if ($field === 'date_of_birth') {
+                        $oldValue = $pet->date_of_birth ? $pet->date_of_birth->format('Y-m-d') : null;
+                        $newValue = $validated['date_of_birth'];
+                    }
+
+                    // Only create history if values are actually different
+                    if ($oldValue != $newValue) {
+                        $pet->updateHistories()->create([
+                            'user_id' => auth()->id(),
+                            'field_name' => $field,
+                            'old_value' => $oldValue,
+                            'new_value' => $newValue
+                        ]);
+                    }
+                }
+            }
+
             $pet->update($validated);
 
             return redirect()->back()->with('success', 'Pet information updated successfully!');
@@ -102,82 +131,52 @@ class PetController extends Controller
 
     public function storeVaccination(Request $request, Pet $pet)
     {
-        try {
-            $validated = $request->validate([
-                'vaccine_name' => 'required|string|max:255',
-                'administered_date' => 'required|date|before_or_equal:today',
-                'administered_by' => 'required|string|max:255',
-                'next_due_date' => 'required|date|after:administered_date',
+        $validated = $request->validate([
+            'vaccine_name' => 'required|string|max:255',
+            'administered_date' => 'required|date',
+            'next_due_date' => 'required|date|after:administered_date',
+            'administered_by' => 'required|string|max:255',
+            'notes' => 'nullable|string'
+        ]);
+
+        $vaccination = $pet->vaccinations()->create($validated);
+
+        // Check for due dates and create notifications
+        $this->checkHealthRecordsDueDate($pet);
+
+        if (request()->wantsJson()) {
+            return response()->json([
+                'message' => 'Vaccination record added successfully',
+                'vaccination' => $vaccination
             ]);
-
-            $pet->vaccinations()->create($validated);
-
-            if ($request->ajax()) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Vaccination record added successfully!'
-                ]);
-            }
-
-            return redirect()
-                ->route('profile.pets.details', $pet->id)
-                ->with('success', 'Vaccination record added successfully!');
-        } catch (\Exception $e) {
-            Log::error('Failed to add vaccination record: ' . $e->getMessage());
-            
-            if ($request->ajax()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Failed to add vaccination record. Please try again.',
-                    'errors' => ['vaccination' => 'Failed to add vaccination record. Please try again.']
-                ], 422);
-            }
-
-            return redirect()
-                ->back()
-                ->withInput()
-                ->withErrors(['vaccination' => 'Failed to add vaccination record. Please try again.']);
         }
+
+        return back()->with('success', 'Vaccination record added successfully');
     }
 
     public function storeParasiteControl(Request $request, Pet $pet)
     {
-        try {
-            $validated = $request->validate([
-                'treatment_name' => 'required|string|max:255',
-                'treatment_type' => 'required|string|in:Flea,Tick,Worm,Other',
-                'treatment_date' => 'required|date|before_or_equal:today',
-                'next_treatment_date' => 'required|date|after:treatment_date',
+        $validated = $request->validate([
+            'treatment_name' => 'required|string|max:255',
+            'treatment_type' => 'required|string|max:255',
+            'treatment_date' => 'required|date',
+            'next_treatment_date' => 'required|date|after:treatment_date',
+            'notes' => 'nullable|string'
+        ]);
+
+        $parasiteControl = $pet->parasiteControls()->create($validated);
+
+        // Check for due dates and create notifications
+        $this->checkHealthRecordsDueDate($pet);
+
+        if (request()->wantsJson()) {
+            return response()->json([
+                'message' => 'Parasite control record added successfully',
+                'parasiteControl' => $parasiteControl
             ]);
-
-            $pet->parasiteControls()->create($validated);
-
-            if ($request->ajax()) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Parasite control record added successfully!'
-                ]);
-            }
-
-            return redirect()
-                ->route('profile.pets.details', $pet->id)
-                ->with('success', 'Parasite control record added successfully!');
-        } catch (\Exception $e) {
-            Log::error('Failed to add parasite control record: ' . $e->getMessage());
-            
-            if ($request->ajax()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Failed to add parasite control record. Please try again.',
-                    'errors' => ['parasite' => 'Failed to add parasite control record. Please try again.']
-                ], 422);
-            }
-
-            return redirect()
-                ->back()
-                ->withInput()
-                ->withErrors(['parasite' => 'Failed to add parasite control record. Please try again.']);
         }
+
+        return back()->with('success', 'Parasite control record added successfully');
     }
 
     public function storeHealthIssue(Request $request, Pet $pet)
@@ -408,6 +407,90 @@ class PetController extends Controller
             return redirect()
                 ->route('profile.pets.index')
                 ->with('error', 'Unable to access health record. Please try again.');
+        }
+    }
+
+    public function updateHealthIssue(Request $request, Pet $pet, PetHealthIssue $issue)
+    {
+        try {
+            // Check if the authenticated user owns this pet
+            if ($pet->user_id !== auth()->id()) {
+                return back()->with('error', 'Unauthorized action.');
+            }
+
+            // Check if the health issue belongs to the pet
+            if ($issue->pet_id !== $pet->id) {
+                return back()->with('error', 'Invalid health issue.');
+            }
+
+            // Toggle the resolution status
+            $issue->is_resolved = !$issue->is_resolved;
+            $issue->resolved_date = $issue->is_resolved ? now() : null;
+            $issue->save();
+
+            return back()->with('success', 
+                $issue->is_resolved ? 
+                'Health issue marked as resolved.' : 
+                'Health issue marked as active.'
+            );
+        } catch (\Exception $e) {
+            Log::error('Error updating health issue status: ' . $e->getMessage());
+            return back()->with('error', 'Failed to update health issue status. Please try again.');
+        }
+    }
+
+    /**
+     * Check and create notifications for upcoming and overdue health records
+     */
+    private function checkHealthRecordsDueDate(Pet $pet)
+    {
+        $now = now();
+        $sevenDaysFromNow = $now->copy()->addDays(7);
+
+        // Check vaccinations
+        foreach ($pet->vaccinations as $vaccination) {
+            if ($vaccination->next_due_date->between($now, $sevenDaysFromNow)) {
+                // Create upcoming vaccination notification
+                $pet->user->notifications()->create([
+                    'type' => 'appointment',
+                    'title' => 'Upcoming Vaccination Due',
+                    'message' => "Vaccination '{$vaccination->vaccine_name}' for {$pet->name} is due on {$vaccination->next_due_date->format('M d, Y')}",
+                    'action_url' => route('profile.pets.health-record', $pet),
+                    'action_text' => 'View Health Record'
+                ]);
+            } elseif ($vaccination->next_due_date->isPast()) {
+                // Create overdue vaccination notification
+                $pet->user->notifications()->create([
+                    'type' => 'appointment',
+                    'title' => 'Overdue Vaccination',
+                    'message' => "Vaccination '{$vaccination->vaccine_name}' for {$pet->name} was due on {$vaccination->next_due_date->format('M d, Y')}",
+                    'action_url' => route('profile.pets.health-record', $pet),
+                    'action_text' => 'View Health Record'
+                ]);
+            }
+        }
+
+        // Check parasite controls
+        foreach ($pet->parasiteControls as $control) {
+            if ($control->next_treatment_date->between($now, $sevenDaysFromNow)) {
+                // Create upcoming parasite control notification
+                $pet->user->notifications()->create([
+                    'type' => 'appointment',
+                    'title' => 'Upcoming Parasite Treatment Due',
+                    'message' => "Parasite treatment '{$control->treatment_name}' for {$pet->name} is due on {$control->next_treatment_date->format('M d, Y')}",
+                    'action_url' => route('profile.pets.health-record', $pet),
+                    'action_text' => 'View Health Record'
+                ]);
+            } elseif ($control->next_treatment_date->isPast()) {
+                // Create overdue parasite control notification
+                $pet->user->notifications()->create([
+                    'type' => 'appointment',
+                    'title' => 'Overdue Parasite Treatment',
+                    'message' => "Parasite treatment '{$control->treatment_name}' for {$pet->name} was due on {$control->next_treatment_date->format('M d, Y')}",
+                    'action_url' => route('profile.pets.health-record', $pet),
+                    'action_text' => 'View Health Record'
+                ]);
+            }
         }
     }
 } 

@@ -242,31 +242,41 @@ document.addEventListener('DOMContentLoaded', function() {
             clearErrors(formId);
             
             try {
+                const formData = new FormData(form);
                 const response = await fetch(form.action, {
                     method: 'POST',
-                    body: new FormData(form),
                     headers: {
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                    }
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: formData
                 });
 
-                const data = await response.json();
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        // Show success message
+                        successMessage.classList.remove('hidden');
+                        form.reset();
 
-                if (response.ok) {
-                    // Show success message
-                    successMessage.classList.remove('hidden');
-                    form.reset();
-
-                    // Hide success message after 3 seconds
-                    setTimeout(() => {
-                        successMessage.classList.add('hidden');
-                    }, 3000);
-                } else {
-                    // Display validation errors
-                    if (data.errors) {
-                        displayErrors(formId, data.errors);
+                        // Hide success message after 3 seconds
+                        setTimeout(() => {
+                            successMessage.classList.add('hidden');
+                        }, 3000);
+                    } else {
+                        // Display validation errors
+                        if (data.errors) {
+                            displayErrors(formId, data.errors);
+                        } else {
+                            displayErrors(formId, {'error': [data.message || 'An error occurred while processing your request.']});
+                        }
                     }
+                } else {
+                    // If response is not JSON, redirect to the response URL
+                    window.location.href = response.url;
                 }
             } catch (error) {
                 console.error('Error:', error);

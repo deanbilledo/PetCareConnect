@@ -77,6 +77,11 @@ class Pet extends Model
         return $this->hasMany(Appointment::class);
     }
 
+    public function updateHistories(): HasMany
+    {
+        return $this->hasMany(PetUpdateHistory::class)->latest();
+    }
+
     public function getSizeCategoryAttribute($value)
     {
         return strtolower($value);

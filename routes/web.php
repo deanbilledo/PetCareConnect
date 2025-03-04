@@ -175,6 +175,7 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/{pet}/vaccination', [PetController::class, 'storeVaccination'])->name('vaccination.store');
             Route::post('/{pet}/parasite-control', [PetController::class, 'storeParasiteControl'])->name('parasite-control.store');
             Route::post('/{pet}/health-issue', [PetController::class, 'storeHealthIssue'])->name('health-issue.store');
+            Route::patch('/{pet}/health-issue/{issue}', [PetController::class, 'updateHealthIssue'])->name('update-health-issue');
         });
     });
 

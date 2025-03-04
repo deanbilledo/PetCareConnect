@@ -51,7 +51,7 @@
             this.toasts = this.toasts.filter(toast => toast.id !== id);
         }
     }" 
-    class="fixed top-4 right-4 z-50 space-y-4 w-80"
+    class="fixed top-4 right-4 z-50 space-y-4 w-80 mt-16"
     @toast.window="add($event.detail)">
         <template x-for="toast in toasts" :key="toast.id">
             <div 
