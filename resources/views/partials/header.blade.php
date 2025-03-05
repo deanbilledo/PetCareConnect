@@ -2,7 +2,7 @@
     <div class="max-w-7xl mx-auto flex items-center justify-between">
         <!-- Logo -->
         <div class="flex-shrink-0 p-2 sm:p-4 w-32 sm:w-56">
-            <a href="#">
+            <a href="{{ route('home') }}">
                 <img src="{{ asset('images/logo.png') }}" alt="Pet Care Connect Logo" class="h-auto w-full max-w-[120px] sm:max-w-[200px] transition-all duration-300">
             </a>
         </div>
