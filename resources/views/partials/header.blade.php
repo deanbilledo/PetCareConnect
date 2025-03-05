@@ -1,9 +1,9 @@
 <header class="bg-white shadow-sm sticky top-0 z-50">
     <div class="max-w-7xl mx-auto flex items-center justify-between">
         <!-- Logo -->
-        <div class="flex-shrink-0 p-4 w-56">
-            <a href="#">
-                <img src="{{ asset('images/logo.png') }}" alt="Pet Care Connect Logo" class="h-auto w-full max-w-[200px]">
+        <div class="flex-shrink-0 p-2 sm:p-4 w-32 sm:w-56">
+            <a href="{{ route('home') }}">
+                <img src="{{ asset('images/logo.png') }}" alt="Pet Care Connect Logo" class="h-auto w-full max-w-[120px] sm:max-w-[200px] transition-all duration-300">
             </a>
         </div>
 
@@ -163,19 +163,19 @@
                 }" 
                 @click.away="showNotifications = false">
                     <button @click="showNotifications = !showNotifications" 
-                            class="mr-4 relative p-1 rounded-full hover:bg-gray-100 focus:outline-none">
-                        <svg class="h-6 w-6 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            class="mr-2 sm:mr-4 relative p-1 rounded-full hover:bg-gray-100 focus:outline-none">
+                        <svg class="h-5 w-5 sm:h-6 sm:w-6 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                         </svg>
                         <!-- Dynamic Notification Badge -->
                         <template x-if="unreadCount > 0">
-                            <span class="absolute -top-1 -left-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center" x-text="unreadCount">
+                            <span class="absolute -top-1 -left-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 sm:h-5 sm:w-5 flex items-center justify-center" x-text="unreadCount">
                             </span>
                         </template>
                         
                         <!-- Appointment Notification Badge -->
                         <template x-if="unreadAppointmentCount > 0">
-                            <span class="absolute top-1 -right-1 bg-blue-500 border-2 border-white text-white text-xs rounded-full h-3 w-3 flex items-center justify-center">
+                            <span class="absolute top-1 -right-1 bg-blue-500 border-2 border-white text-white text-xs rounded-full h-2 w-2 sm:h-3 sm:w-3 flex items-center justify-center">
                             </span>
                         </template>
                     </button>
@@ -183,36 +183,48 @@
                     <!-- Notification Dropdown -->
                     <div x-show="showNotifications"
                          x-cloak
-                         class="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg py-2 z-50"
+                         @keydown.escape.window="showNotifications = false"
+                         class="fixed inset-x-0 top-[60px] mx-auto sm:absolute sm:right-0 sm:left-auto sm:top-auto sm:inset-x-auto sm:mt-2 w-full sm:w-auto sm:max-w-[320px] md:max-w-[380px] bg-white rounded-none sm:rounded-lg shadow-xl py-2 z-50 max-h-[90vh] sm:max-h-[80vh] md:max-h-[70vh] flex flex-col"
                          x-transition:enter="transition ease-out duration-200"
-                         x-transition:enter-start="opacity-0 transform scale-95"
-                         x-transition:enter-end="opacity-100 transform scale-100"
-                         x-transition:leave="transition ease-in duration-100"
-                         x-transition:leave-start="opacity-100 transform scale-100"
-                         x-transition:leave-end="opacity-0 transform scale-95">
+                         x-transition:enter-start="opacity-0 transform translate-y-1 sm:scale-95"
+                         x-transition:enter-end="opacity-100 transform translate-y-0 sm:scale-100"
+                         x-transition:leave="transition ease-in duration-150"
+                         x-transition:leave-start="opacity-100 transform translate-y-0 sm:scale-100"
+                         x-transition:leave-end="opacity-0 transform translate-y-1 sm:scale-95">
+                        
+                        <!-- Mobile close button - only visible on small screens -->
+                        <div class="sm:hidden absolute top-2 right-2">
+                            <button @click="showNotifications = false" 
+                                    class="p-2 text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 rounded-full">
+                                <span class="sr-only">Close</span>
+                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                            </button>
+                        </div>
                         
                         <!-- Notification Header -->
-                        <div class="px-4 py-2 border-b border-gray-200">
+                        <div class="px-3 sm:px-4 py-3 border-b border-gray-200 flex-shrink-0">
                             <div class="flex justify-between items-center">
                                 <h3 class="text-sm font-semibold text-gray-900">Notifications</h3>
                                 <div class="flex space-x-2">
                                     <button @click="toggleAppointmentFilter()" 
                                             x-show="unreadAppointmentCount > 0"
-                                            class="text-xs text-blue-500 hover:text-blue-600"
+                                            class="text-xs text-blue-500 hover:text-blue-600 px-2 py-1 rounded-full active:bg-blue-50"
                                             :class="{'font-bold underline': showAppointmentNotificationsOnly}">
-                                        <span x-text="showAppointmentNotificationsOnly ? 'Show All' : 'Appointments Only'"></span>
+                                        <span x-text="showAppointmentNotificationsOnly ? 'Show All' : 'Appointments'"></span>
                                     </button>
                                     <button @click="markAllAsRead()" 
                                             x-show="unreadCount > 0"
-                                            class="text-xs text-blue-500 hover:text-blue-600">
-                                        Mark all as read
+                                            class="text-xs text-blue-500 hover:text-blue-600 px-2 py-1 rounded-full active:bg-blue-50">
+                                        Mark all read
                                     </button>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Notification Items -->
-                        <div class="max-h-64 overflow-y-auto">
+                        <div class="overflow-y-auto flex-grow overscroll-contain">
                             @php
                                 $hasNewAppointments = false;
                                 $isShopOwner = auth()->user()->isShopOwner() || auth()->user()->shop()->exists();
@@ -229,7 +241,7 @@
                             @endphp
 
                             @if($hasNewAppointments)
-                                <div class="px-4 py-2 bg-blue-50 border-l-4 border-blue-500">
+                                <div class="px-4 py-3 bg-blue-50 border-l-4 border-blue-500">
                                     <div class="flex items-center">
                                         <div class="flex-shrink-0">
                                             <svg class="h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -247,26 +259,28 @@
                             @forelse(auth()->user()->notifications()->latest()->take(5)->get() as $notification)
                                 <div id="notification-{{ $notification->id }}"
                                      x-show="!showAppointmentNotificationsOnly || '{{ $notification->type }}' === 'appointment'"
-                                     class="notification-item px-4 py-3 hover:bg-gray-50 {{ $notification->status === 'unread' ? 'border-l-4 border-blue-500' : '' }} {{ $notification->type === 'appointment' && $notification->status === 'unread' ? 'bg-blue-50' : '' }} {{ $notification->type === 'appointment' ? 'appointment-notification' : '' }}">
+                                     class="notification-item px-4 py-3 hover:bg-gray-50 active:bg-gray-100 transition-colors duration-150 {{ $notification->status === 'unread' ? 'border-l-4 border-blue-500' : '' }} {{ $notification->type === 'appointment' && $notification->status === 'unread' ? 'bg-blue-50' : '' }} {{ $notification->type === 'appointment' ? 'appointment-notification' : '' }}">
                                     <div class="flex items-start">
                                         <div class="flex-shrink-0">
                                             {!! $notification->getIconHtml() !!}
                                         </div>
                                         <div class="ml-3 w-0 flex-1">
                                             <p class="text-sm font-medium text-gray-900">{{ $notification->title }}</p>
-                                            <p class="mt-1 text-sm text-gray-500">{{ $notification->message }}</p>
-                                            <p class="mt-1 text-xs text-gray-400">{{ $notification->created_at->diffForHumans() }}</p>
-                                            @if($notification->action_url)
-                                                <a href="{{ $notification->action_url }}" 
-                                                   @click="markAsRead('{{ $notification->id }}')"
-                                                   class="mt-2 inline-flex items-center text-xs font-medium text-blue-600 hover:text-blue-500">
-                                                    {{ $notification->action_text ?? 'View Details' }}
-                                                </a>
-                                            @endif
+                                            <p class="mt-1 text-sm text-gray-500 line-clamp-3">{{ $notification->message }}</p>
+                                            <div class="mt-1 flex justify-between items-center">
+                                                <p class="text-xs text-gray-400">{{ $notification->created_at->diffForHumans() }}</p>
+                                                @if($notification->action_url)
+                                                    <a href="{{ $notification->action_url }}" 
+                                                       @click="markAsRead('{{ $notification->id }}')"
+                                                       class="ml-4 inline-flex items-center text-xs font-medium text-blue-600 hover:text-blue-500 py-1 px-2 rounded-full active:bg-blue-50">
+                                                        {{ $notification->action_text ?? 'View' }} <svg class="ml-1 h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                                                    </a>
+                                                @endif
+                                            </div>
                                         </div>
                                         @if($notification->status === 'unread')
                                             <button @click="markAsRead('{{ $notification->id }}')" 
-                                                    class="ml-2 text-gray-400 hover:text-gray-500">
+                                                    class="ml-2 p-2 text-gray-400 hover:text-gray-500 rounded-full active:bg-gray-100">
                                                 <span class="sr-only">Mark as read</span>
                                                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
@@ -276,16 +290,23 @@
                                     </div>
                                 </div>
                             @empty
-                                <div class="px-4 py-3 text-sm text-gray-500 text-center">
+                                <div class="px-4 py-6 text-sm text-gray-500 text-center">
+                                    <svg class="mx-auto h-10 w-10 text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+                                    </svg>
                                     No notifications to display
                                 </div>
                             @endforelse
                         </div>
 
                         <!-- Notification Footer -->
-                        <div class="px-4 py-2 border-t border-gray-200">
-                            <a href="{{ route('notifications.index') }}" class="text-sm text-blue-500 hover:text-blue-600 block text-center">
-                                View all notifications
+                        <div class="px-4 py-3 border-t border-gray-200 flex-shrink-0 bg-gray-50">
+                            <a href="{{ route('notifications.index') }}" 
+                               class="flex items-center justify-center text-sm text-blue-600 hover:text-blue-500 py-1 px-4 rounded-md active:bg-blue-50 transition-colors duration-150">
+                                <span>View all notifications</span>
+                                <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                                </svg>
                             </a>
                         </div>
                     </div>

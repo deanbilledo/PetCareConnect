@@ -103,6 +103,15 @@
                     <p class="mt-1 text-lg">{{ $appointment->user->name }}</p>
                     <p class="text-gray-600">{{ $appointment->user->email }}</p>
                     <p class="text-gray-600">{{ $appointment->user->phone }}</p>
+                    
+                    <!-- Report User Button -->
+                    <button class="mt-2 text-red-600 hover:text-red-800 flex items-center text-sm" 
+                            onclick="reportUser()">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                        </svg>
+                        Report User
+                    </button>
                 </div>
                 
                 <!-- Date & Time -->
@@ -504,9 +513,171 @@
     </div>
 </div>
 
+<!-- Report User Modal -->
+<div id="reportUserModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+    <!-- Backdrop -->
+    <div class="fixed inset-0 bg-black bg-opacity-50"></div>
+    
+    <!-- Modal Content -->
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg max-w-md w-full p-6 relative">
+            <!-- Close Button -->
+            <button onclick="closeReportUserModal()" 
+                    class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+
+            <!-- Modal Header -->
+            <div class="mb-6">
+                <h3 class="text-xl font-semibold text-gray-900">Report User</h3>
+                <p class="text-sm text-gray-600 mt-1">Please provide details about your concern with this user</p>
+            </div>
+
+            <!-- Report Form -->
+            <form class="space-y-4" id="reportUserForm">
+                @csrf
+                <input type="hidden" name="_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="user_id" value="{{ $appointment->user->id }}">
+                
+                <!-- Report Type -->
+                <div>
+                    <label for="reportType" class="block text-sm font-medium text-gray-700 mb-1">Report Type</label>
+                    <select id="reportType" name="report_type"
+                            class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <option value="">Select a reason</option>
+                        <option value="inappropriate">Inappropriate Behavior</option>
+                        <option value="no_show">No-Show</option>
+                        <option value="late_cancellation">Late Cancellation</option>
+                        <option value="payment_issue">Payment Issue</option>
+                        <option value="harassment">Harassment</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+
+                <!-- Description -->
+                <div>
+                    <label for="reportDescription" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                    <textarea id="reportDescription" name="description"
+                            rows="4" 
+                            class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                            placeholder="Please provide more details about your report..."></textarea>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="button"
+                        onclick="submitUserReport()"
+                        class="w-full bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600 transition-colors"
+                        id="submitReportBtn">
+                    Submit Report
+                </button>
+                <div id="reportStatusMessage" class="mt-2 text-center hidden"></div>
+            </form>
+        </div>
+    </div>
+</div>
+
 @push('scripts')
 <script>
-// Remove the old JavaScript functions since we're now using Alpine.js
+// Report User Functions
+function reportUser() {
+    document.getElementById('reportUserModal').classList.remove('hidden');
+}
+
+function closeReportUserModal() {
+    document.getElementById('reportUserModal').classList.add('hidden');
+    // Reset form
+    document.getElementById('reportUserForm').reset();
+    document.getElementById('reportStatusMessage').classList.add('hidden');
+    document.getElementById('reportStatusMessage').textContent = '';
+}
+
+function submitUserReport() {
+    const form = document.getElementById('reportUserForm');
+    const reportType = document.getElementById('reportType').value;
+    const reportDescription = document.getElementById('reportDescription').value;
+    const submitBtn = document.getElementById('submitReportBtn');
+    const statusMessage = document.getElementById('reportStatusMessage');
+    
+    // Validate form
+    if (!reportType) {
+        statusMessage.textContent = 'Please select a report type';
+        statusMessage.classList.remove('hidden', 'text-green-500');
+        statusMessage.classList.add('text-red-500');
+        return;
+    }
+    
+    if (!reportDescription || reportDescription.trim().length < 10) {
+        statusMessage.textContent = 'Please provide a detailed description (at least 10 characters)';
+        statusMessage.classList.remove('hidden', 'text-green-500');
+        statusMessage.classList.add('text-red-500');
+        return;
+    }
+    
+    // Show loading state
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Submitting...';
+    
+    // Prepare form data
+    const formData = new FormData(form);
+    
+    // Debug - log form data
+    console.log('Form data being submitted:');
+    for (let pair of formData.entries()) {
+        console.log(pair[0] + ': ' + pair[1]);
+    }
+    
+    // Send AJAX request
+    fetch('/user/report', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        credentials: 'same-origin'
+    })
+    .then(response => {
+        console.log('Response status:', response.status);
+        if (!response.ok) {
+            return response.json().then(data => {
+                console.error('Error response:', data);
+                throw new Error(data.message || 'Error submitting report');
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            statusMessage.textContent = 'Report submitted successfully!';
+            statusMessage.classList.remove('hidden', 'text-red-500');
+            statusMessage.classList.add('text-green-500');
+            
+            // Reset form after success
+            form.reset();
+            
+            // Close modal after 2 seconds
+            setTimeout(() => {
+                closeReportUserModal();
+            }, 2000);
+        } else {
+            throw new Error(data.message || 'Failed to submit report');
+        }
+    })
+    .catch(error => {
+        console.error('Error submitting report:', error);
+        statusMessage.textContent = error.message || 'An error occurred. Please try again.';
+        statusMessage.classList.remove('hidden', 'text-green-500');
+        statusMessage.classList.add('text-red-500');
+    })
+    .finally(() => {
+        // Reset button state
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Submit Report';
+        statusMessage.classList.remove('hidden');
+    });
+}
 </script>
 @endpush
 @endsection 
