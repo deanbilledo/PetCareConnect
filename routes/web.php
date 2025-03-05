@@ -25,6 +25,8 @@ use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\AdminServicesController;
 use App\Http\Controllers\ShopSettingsController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\ShopReportController;
+use App\Http\Controllers\UserReportController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -272,6 +274,31 @@ Route::middleware(['auth', IsAdmin::class])->prefix('admin')->name('admin.')->gr
     Route::get('/shops/{shop}/details', [AdminController::class, 'getShopDetails'])->name('shops.details');
     Route::get('/shops/{shop}/registration-details', [AdminController::class, 'getRegistrationDetails'])->name('shops.registration-details');
     
+    // Add shop reports routes
+    Route::get('/support', [App\Http\Controllers\Admin\ReportsController::class, 'shopReports'])->name('support');
+    Route::get('/reports/{id}', [App\Http\Controllers\Admin\ReportsController::class, 'getReport'])->name('reports.get');
+    Route::put('/reports/{id}/status', [App\Http\Controllers\Admin\ReportsController::class, 'updateReportStatus'])->name('reports.status.update');
+    
+    // Add user reports routes
+    Route::get('/user-reports/{id}', [App\Http\Controllers\Admin\ReportsController::class, 'getUserReport'])->name('user-reports.get');
+    Route::put('/user-reports/{id}/status', [App\Http\Controllers\Admin\ReportsController::class, 'updateUserReportStatus'])->name('user-reports.status.update');
+
+    // Test route for debugging user reports
+    Route::get('/test-user-report/{id}', function($id) {
+        $report = \App\Models\UserReport::with(['reporter', 'reportedUser'])->find($id);
+        if (!$report) {
+            return response()->json(['error' => 'Report not found'], 404);
+        }
+        
+        return response()->json([
+            'report' => $report,
+            'has_reporter' => $report->reporter !== null,
+            'has_reported_user' => $report->reportedUser !== null,
+            'reporter_name' => $report->reporter ? $report->reporter->name : null,
+            'reported_user_name' => $report->reportedUser ? $report->reportedUser->name : null
+        ]);
+    });
+
     // User management routes
     Route::get('/users', [AdminController::class, 'users'])->name('users');
     Route::get('/users/{user}/edit', [AdminController::class, 'editUser'])->name('users.edit');
@@ -286,14 +313,6 @@ Route::middleware(['auth', IsAdmin::class])->prefix('admin')->name('admin.')->gr
     Route::post('/services/{service}/status', [AdminServicesController::class, 'updateStatus'])->name('services.update-status');
     Route::delete('/services/{service}', [AdminServicesController::class, 'destroy'])->name('services.destroy');
 
-    // Other admin routes
-    Route::get('/shops', [AdminController::class, 'shops'])->name('shops');
-    Route::post('/shops/{shop}/approve', [AdminController::class, 'approveShop'])->name('shops.approve');
-    Route::post('/shops/{shop}/reject', [AdminController::class, 'rejectShop'])->name('shops.reject');
-    Route::get('/shops/{shop}/analytics', [AdminController::class, 'getShopAnalytics'])->name('shops.analytics');
-    Route::get('/shops/{shop}/details', [AdminController::class, 'getShopDetails'])->name('shops.details');
-    Route::get('/shops/{shop}/registration-details', [AdminController::class, 'getRegistrationDetails'])->name('shops.registration-details');
-    
     // Payment management routes
     Route::get('/payments', [App\Http\Controllers\Admin\PaymentController::class, 'index'])->name('payments');
     Route::post('/payments/{subscription}/verify', [App\Http\Controllers\Admin\PaymentController::class, 'verifyPayment'])->name('payments.verify');
@@ -303,7 +322,6 @@ Route::middleware(['auth', IsAdmin::class])->prefix('admin')->name('admin.')->gr
     
     Route::get('/reports', [AdminController::class, 'reports'])->name('reports');
     Route::get('/profile', [AdminController::class, 'profile'])->name('profile');
-    Route::get('/support', [AdminController::class, 'support'])->name('support');
     Route::get('/settings', [AdminController::class, 'settings'])->name('settings');
 });
 
@@ -333,4 +351,21 @@ Route::middleware(['auth', IsAdmin::class])->group(function () {
     Route::get('/admin/reports', [App\Http\Controllers\Admin\ReportsController::class, 'index'])->name('admin.reports');
     Route::get('/admin/reports/filter', [App\Http\Controllers\Admin\ReportsController::class, 'filter'])->name('admin.reports.filter');
     Route::get('/admin/reports/export/{format}', [App\Http\Controllers\Admin\ReportsController::class, 'export'])->name('admin.reports.export');
+});
+
+// Shop Reports Routes
+Route::middleware(['auth', 'has-shop'])->group(function () {
+    Route::get('/shop/reports', [ShopReportController::class, 'index'])->name('shop.reports');
+    Route::get('/shop/reports/filter', [ShopReportController::class, 'filter'])->name('shop.reports.filter');
+    Route::get('/shop/reports/export/{format}', [ShopReportController::class, 'export'])->name('shop.reports.export');
+});
+
+// Post route for submitting shop reports - accessible to all authenticated users
+Route::middleware(['auth'])->group(function () {
+    Route::post('/shop/report', [ShopReportController::class, 'store'])->name('shop.report.submit');
+});
+
+// Post route for submitting user reports - accessible to shop owners/employees
+Route::middleware(['auth', 'has-shop'])->group(function () {
+    Route::post('/user/report', [UserReportController::class, 'store'])->name('user.report.submit');
 });
