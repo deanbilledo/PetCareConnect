@@ -64,9 +64,9 @@
                                             </label>
                                             @endforeach
                                         </div>
-                                    </div>
+                                    </div> 
                                     <div>
-                                        <label class="block text-gray-700 text-sm font-bold mb-2">Size Ranges</label>
+                                        <label class="block text-gray-700 text-sm font-bold mb-2">Size Ranges - (Small: 0-10kg, Medium: 15-30kg, Large: 30+kg)</label>
                                         <div class="space-y-2">
                                             @foreach(['small', 'medium', 'large'] as $size)
                                             <label class="inline-flex items-center">

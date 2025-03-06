@@ -167,6 +167,130 @@ class ShopController extends Controller
 
     }
 
+
+
+    /**
+
+     * Search for shops near a given location
+
+     *
+
+     * @param  \Illuminate\Http\Request  $request
+
+     * @return \Illuminate\Http\JsonResponse
+
+     */
+
+    public function searchByLocation(Request $request)
+
+    {
+
+        try {
+
+            $latitude = $request->input('latitude');
+
+            $longitude = $request->input('longitude');
+
+            $type = $request->input('type'); // optional filter by shop type
+
+            $radius = $request->input('radius', 10); // km, default 10km
+
+            
+
+            // Validate inputs
+
+            if (!$latitude || !$longitude) {
+
+                return response()->json(['error' => 'Location is required'], 400);
+
+            }
+
+            
+
+            // Earth radius in kilometers
+
+            $earthRadius = 6371;
+
+            
+
+            // Haversine formula to calculate distance
+
+            $shops = Shop::selectRaw("
+
+                    id, name, type, phone, description, address, 
+
+                    image, latitude, longitude, status,
+
+                    ($earthRadius * acos(cos(radians(?)) * cos(radians(latitude)) * cos(radians(longitude) - radians(?)) + sin(radians(?)) * sin(radians(latitude)))) AS distance", 
+
+                    [$latitude, $longitude, $latitude])
+
+                ->where('status', 'active')
+
+                ->when($type, function($query, $type) {
+
+                    return $query->where('type', $type);
+
+                })
+
+                ->having('distance', '<=', $radius)
+
+                ->orderBy('distance')
+
+                ->limit(15)
+
+                ->get();
+
+                
+
+            return response()->json([
+
+                'success' => true,
+
+                'shops' => $shops,
+
+            ]);
+
+        } catch (\Exception $e) {
+
+            Log::error('Error in searchByLocation: ' . $e->getMessage());
+
+            Log::error($e->getTraceAsString());
+
+            return response()->json(['error' => 'Failed to search shops by location'], 500);
+
+        }
+
+    }
+
+
+
+    /**
+     * Get all active shops for map display
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getAllShops()
+    {
+        try {
+            $shops = Shop::select('id', 'name', 'type', 'phone', 'description', 'address', 
+                               'image', 'latitude', 'longitude', 'status')
+                ->where('status', 'active')
+                ->whereNotNull('latitude')
+                ->whereNotNull('longitude')
+                ->get();
+            
+            return response()->json([
+                'success' => true,
+                'shops' => $shops
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error in getAllShops: ' . $e->getMessage());
+            Log::error($e->getTraceAsString());
+            return response()->json(['error' => 'Failed to fetch shops'], 500);
+        }
+    }
+
 } 
 
 

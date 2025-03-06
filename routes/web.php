@@ -47,6 +47,8 @@ Route::get('/grooming', function () {
     return view('groomVetLandingPage.groominglandingpage');
 })->name('grooming');
 Route::get('/grooming-shops', [ShopController::class, 'groomingShops'])->name('groomingShops');
+Route::get('/shops/search-location', [ShopController::class, 'searchByLocation'])->name('shops.searchByLocation');
+Route::get('/shops/all', [ShopController::class, 'getAllShops'])->name('shops.getAllShops');
 Route::get('/terms', function () { return view('pages.terms'); })->name('terms');
 Route::get('/privacy', function () { return view('pages.privacy'); })->name('privacy');
 Route::get('/faqs', function () { return view('pages.faqs'); })->name('faqs');
