@@ -331,4 +331,99 @@ class ShopServicesController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Get service details with top appointments for the modal
+     *
+     * @param \App\Models\Service $service
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getServiceWithAppointments(Service $service)
+    {
+        // Get the appointment count for this service
+        $appointmentCount = \DB::table('appointment_services')
+            ->where('service_id', $service->id)
+            ->count();
+        
+        // Get 4 most recent appointments that used this service
+        $topAppointments = \DB::table('appointment_services')
+            ->join('appointments', 'appointment_services.appointment_id', '=', 'appointments.id')
+            ->leftJoin('pets', 'appointments.pet_id', '=', 'pets.id')
+            ->where('appointment_services.service_id', $service->id)
+            ->where('appointments.status', 'completed')
+            ->select(
+                'appointments.id',
+                'appointments.appointment_date',
+                'appointments.status',
+                'pets.name as pet_name',
+                'pets.type as pet_type'
+            )
+            ->orderBy('appointments.appointment_date', 'desc')
+            ->limit(4)
+            ->get()
+            ->map(function($appointment) {
+                return [
+                    'id' => $appointment->id,
+                    'pet_name' => $appointment->pet_name,
+                    'pet_type' => $appointment->pet_type,
+                    'status' => ucfirst($appointment->status),
+                    'formatted_date' => \Carbon\Carbon::parse($appointment->appointment_date)->format('M d, Y')
+                ];
+            });
+        
+        return response()->json([
+            'service' => $service,
+            'appointmentCount' => $appointmentCount,
+            'topAppointments' => $topAppointments
+        ]);
+    }
+
+    /**
+     * Get service details with top appointments for the modal (public API)
+     *
+     * @param int $serviceId
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getServiceDetails($serviceId)
+    {
+        // Find the service
+        $service = Service::findOrFail($serviceId);
+        
+        // Get the appointment count for this service
+        $appointmentCount = \DB::table('appointment_services')
+            ->where('service_id', $service->id)
+            ->count();
+        
+        // Get 4 most recent appointments that used this service
+        $topAppointments = \DB::table('appointment_services')
+            ->join('appointments', 'appointment_services.appointment_id', '=', 'appointments.id')
+            ->leftJoin('pets', 'appointments.pet_id', '=', 'pets.id')
+            ->where('appointment_services.service_id', $service->id)
+            ->where('appointments.status', 'completed')
+            ->select(
+                'appointments.id',
+                'appointments.appointment_date',
+                'appointments.status',
+                'pets.name as pet_name',
+                'pets.type as pet_type'
+            )
+            ->orderBy('appointments.appointment_date', 'desc')
+            ->limit(4)
+            ->get()
+            ->map(function($appointment) {
+                return [
+                    'id' => $appointment->id,
+                    'pet_name' => $appointment->pet_name,
+                    'pet_type' => $appointment->pet_type,
+                    'status' => ucfirst($appointment->status),
+                    'formatted_date' => \Carbon\Carbon::parse($appointment->appointment_date)->format('M d, Y')
+                ];
+            });
+        
+        return response()->json([
+            'service' => $service,
+            'appointmentCount' => $appointmentCount,
+            'topAppointments' => $topAppointments
+        ]);
+    }
 } 

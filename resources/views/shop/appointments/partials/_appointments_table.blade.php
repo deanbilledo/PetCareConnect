@@ -11,6 +11,7 @@
                     <tr>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Time</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Employee</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Pet</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Service</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Price</th>
@@ -53,6 +54,28 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                 {{ $appointment->appointment_date->format('g:i A') }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    @if($appointment->employee)
+                                    <div class="flex-shrink-0 h-10 w-10">
+                                        <img class="h-10 w-10 rounded-full object-cover"
+                                             src="{{ $appointment->employee->profile_photo ? asset('storage/' . $appointment->employee->profile_photo) : $appointment->employee->getProfilePhotoUrlAttribute() }}"
+                                             alt="{{ $appointment->employee->name }}"
+                                             onerror="this.src='{{ asset('images/default-profile.png') }}'">
+                                    </div>
+                                    <div class="ml-4">
+                                        <div class="text-sm font-medium text-gray-900">
+                                            {{ $appointment->employee->name }}
+                                        </div>
+                                        <div class="text-sm text-gray-500">
+                                            {{ $appointment->employee->position }}
+                                        </div>
+                                    </div>
+                                    @else
+                                    <span class="text-sm text-gray-500">Not assigned</span>
+                                    @endif
+                                </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                 <div class="flex flex-col">
