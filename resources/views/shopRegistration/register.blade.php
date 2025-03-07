@@ -101,6 +101,13 @@ use Illuminate\Support\Facades\Log;
                  address: '',
                  latitude: '',
                  longitude: '',
+                 addressSuggestions: [],
+                 addressSearchTimeout: null,
+                 addressLoading: false,
+                 selectedAddressIndex: -1,
+                 mapSearchQuery: '',
+                 mapSearchResults: [],
+                 mapSearchLoading: false,
                  formData: {
                      shop_name: '',
                      shop_type: '',
@@ -113,6 +120,81 @@ use Illuminate\Support\Facades\Log;
                  },
                  updateProgress() {
                      this.progress = ((this.currentStep - 1) / 3) * 100;
+                 },
+                 handleAddressInput(e) {
+                     const query = e.target.value.trim();
+                     
+                     // Clear any existing timeout
+                     if (this.addressSearchTimeout) {
+                         clearTimeout(this.addressSearchTimeout);
+                     }
+                     
+                     // Reset selected index
+                     this.selectedAddressIndex = -1;
+                     
+                     // Don't search for short queries
+                     if (query.length < 3) {
+                         this.addressSuggestions = [];
+                         return;
+                     }
+                     
+                     this.addressLoading = true;
+                     
+                     // Debounce the search request
+                     this.addressSearchTimeout = setTimeout(() => {
+                         fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5`)
+                             .then(response => response.json())
+                             .then(data => {
+                                 this.addressSuggestions = data;
+                                 this.addressLoading = false;
+                             })
+                             .catch(error => {
+                                 console.error('Error searching addresses:', error);
+                                 this.addressLoading = false;
+                             });
+                     }, 500);
+                 },
+                 selectNextAddress() {
+                     if (this.addressSuggestions.length === 0) return;
+                     this.selectedAddressIndex = (this.selectedAddressIndex + 1) % this.addressSuggestions.length;
+                 },
+                 selectPrevAddress() {
+                     if (this.addressSuggestions.length === 0) return;
+                     this.selectedAddressIndex = (this.selectedAddressIndex - 1 + this.addressSuggestions.length) % this.addressSuggestions.length;
+                 },
+                 selectCurrentAddress() {
+                     if (this.selectedAddressIndex >= 0 && this.addressSuggestions.length > 0) {
+                         this.selectAddress(this.addressSuggestions[this.selectedAddressIndex]);
+                     }
+                 },
+                 selectAddress(suggestion) {
+                     console.log('selectAddress called with:', suggestion);
+                     
+                     // Make sure suggestion has the required properties
+                     if (!suggestion || !suggestion.display_name || !suggestion.lat || !suggestion.lon) {
+                         console.error('Invalid suggestion object:', suggestion);
+                         return;
+                     }
+                     
+                     this.address = suggestion.display_name;
+                     this.latitude = suggestion.lat;
+                     this.longitude = suggestion.lon;
+                     this.addressSuggestions = [];
+                     
+                     console.log('Updated address to:', this.address);
+                     console.log('Updated coordinates to:', this.latitude, this.longitude);
+                     
+                     // Update map if it's open
+                     if (this.map && this.showMap) {
+                         const latLng = [parseFloat(suggestion.lat), parseFloat(suggestion.lon)];
+                         this.map.setView(latLng, 16);
+                         
+                         if (this.marker) {
+                             this.marker.setLatLng(latLng);
+                         } else {
+                             this.marker = L.marker(latLng).addTo(this.map);
+                         }
+                     }
                  },
                  nextStep() {
                      // Validate current step
@@ -202,7 +284,206 @@ use Illuminate\Support\Facades\Log;
                      });
                  },
                  confirmLocation() {
+                     console.log('Confirming location with address:', this.address);
+                     
+                     // Force update the address input field
+                     setTimeout(() => {
+                         if (document.getElementById('address')) {
+                             document.getElementById('address').value = this.address;
+                             document.getElementById('address').dispatchEvent(new Event('input'));
+                             console.log('Address input updated to:', document.getElementById('address').value);
+                         }
+                     }, 10);
+                     
                      this.showMap = false;
+                 },
+                 getCurrentLocation() {
+                     if (!navigator.geolocation) {
+                         alert('Geolocation is not supported by your browser');
+                         return;
+                     }
+                     
+                     // Show loading indicator
+                     this.addressLoading = true;
+                     this.addressSuggestions = [{ display_name: 'Locating...' }];
+                     
+                     navigator.geolocation.getCurrentPosition(
+                         // Success callback
+                         (position) => {
+                             const { latitude, longitude } = position.coords;
+                             this.latitude = latitude;
+                             this.longitude = longitude;
+                             
+                             // Perform reverse geocoding to get address
+                             fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`)
+                                 .then(response => response.json())
+                                 .then(data => {
+                                     this.address = data.display_name;
+                                     this.addressSuggestions = [];
+                                     this.addressLoading = false;
+                                     
+                                     // Update map if it's open
+                                     if (this.map && this.showMap) {
+                                         this.map.setView([latitude, longitude], 16);
+                                         
+                                         if (this.marker) {
+                                             this.marker.setLatLng([latitude, longitude]);
+                                         } else {
+                                             this.marker = L.marker([latitude, longitude]).addTo(this.map);
+                                         }
+                                     }
+                                 })
+                                 .catch(error => {
+                                     console.error('Error in reverse geocoding:', error);
+                                     this.addressSuggestions = [];
+                                     this.addressLoading = false;
+                                     alert('Error getting address from coordinates. Please try again or enter manually.');
+                                 });
+                         },
+                         // Error callback
+                         (error) => {
+                             this.addressSuggestions = [];
+                             this.addressLoading = false;
+                             
+                             let errorMessage = 'Error getting your location. ';
+                             switch(error.code) {
+                                 case error.PERMISSION_DENIED:
+                                     errorMessage += 'Please enable location access in your browser settings.';
+                                     break;
+                                 case error.POSITION_UNAVAILABLE:
+                                     errorMessage += 'Location information is unavailable.';
+                                     break;
+                                 case error.TIMEOUT:
+                                     errorMessage += 'Location request timed out.';
+                                     break;
+                                 default:
+                                     errorMessage += 'An unknown error occurred.';
+                             }
+                             alert(errorMessage);
+                         },
+                         {
+                             enableHighAccuracy: true,
+                             timeout: 10000,
+                             maximumAge: 0
+                         }
+                     );
+                 },
+                 // New map search methods
+                 handleMapSearch() {
+                     // Clear previous results
+                     this.mapSearchResults = [];
+                     
+                     // Don't search if query is too short
+                     if (!this.mapSearchQuery || this.mapSearchQuery.length < 3) return;
+                     
+                     // Cancel previous timeout
+                     if (this.mapSearchTimeout) clearTimeout(this.mapSearchTimeout);
+                     
+                     // Set new timeout for debounce
+                     this.mapSearchTimeout = setTimeout(() => {
+                         this.searchMap();
+                     }, 500);
+                 },
+                 
+                 async searchMap() {
+                     if (!this.mapSearchQuery || this.mapSearchQuery.length < 3) return;
+                     
+                     this.mapSearchLoading = true;
+                     
+                     try {
+                         const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(this.mapSearchQuery)}&limit=5`);
+                         const data = await response.json();
+                         this.mapSearchResults = data;
+                     } catch (error) {
+                         console.error('Error searching location:', error);
+                     } finally {
+                         this.mapSearchLoading = false;
+                     }
+                 },
+                 
+                 selectMapSearchResult(result) {
+                     console.log('Map search result selected:', result);
+                     this.mapSearchResults = [];
+                     this.mapSearchQuery = result.display_name;
+                     
+                     const lat = parseFloat(result.lat);
+                     const lng = parseFloat(result.lon);
+                     
+                     // Update the map view
+                     this.map.setView([lat, lng], 16);
+                     
+                     // Update the marker
+                     if (this.marker) {
+                         this.marker.setLatLng([lat, lng]);
+                     } else {
+                         this.marker = L.marker([lat, lng]).addTo(this.map);
+                     }
+                     
+                     // Update address and coordinates
+                     this.latitude = lat;
+                     this.longitude = lng;
+                     this.address = result.display_name;
+                     
+                     // Force update the address input field
+                     setTimeout(() => {
+                         document.getElementById('address').value = result.display_name;
+                         document.getElementById('address').dispatchEvent(new Event('input'));
+                     }, 10);
+                     
+                     console.log('Updated address to:', this.address);
+                 },
+                 
+                 getMapCurrentLocation() {
+                     if (!navigator.geolocation) {
+                         alert('Geolocation is not supported by your browser');
+                         return;
+                     }
+                     
+                     navigator.geolocation.getCurrentPosition(
+                         (position) => {
+                             console.log('Got current position:', position);
+                             const { latitude, longitude } = position.coords;
+                             
+                             // Update the map view
+                             this.map.setView([latitude, longitude], 16);
+                             
+                             // Update the marker
+                             if (this.marker) {
+                                 this.marker.setLatLng([latitude, longitude]);
+                             } else {
+                                 this.marker = L.marker([latitude, longitude]).addTo(this.map);
+                             }
+                             
+                             // Update address and coordinates
+                             this.latitude = latitude;
+                             this.longitude = longitude;
+                             
+                             // Reverse geocode to get address
+                             fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`)
+                                 .then(response => response.json())
+                                 .then(data => {
+                                     this.address = data.display_name;
+                                     this.mapSearchQuery = data.display_name;
+                                     
+                                     // Force update the address field
+                                     setTimeout(() => {
+                                         if (document.getElementById('address')) {
+                                             document.getElementById('address').value = data.display_name;
+                                             document.getElementById('address').dispatchEvent(new Event('input'));
+                                         }
+                                     }, 10);
+                                     
+                                     console.log('Updated address to:', this.address);
+                                 })
+                                 .catch(error => {
+                                     console.error('Error fetching address:', error);
+                                     alert('Could not retrieve address from your location. The coordinates have been saved.');
+                                 });
+                         },
+                         (error) => {
+                             alert('Error getting location: ' + error.message);
+                         }
+                     );
                  }
              }"
              x-init="$watch('currentStep', value => { 
@@ -224,120 +505,7 @@ use Illuminate\Support\Facades\Log;
                 </div>
 
                 <!-- Wrap everything in a parent Alpine component -->
-                <div x-data="{ 
-                    currentStep: 1,
-                    progress: 0,
-                    showMap: false,
-                    map: null,
-                    marker: null,
-                    address: '',
-                    latitude: '',
-                    longitude: '',
-                    formData: {
-                        shop_name: '',
-                        shop_type: '',
-                        phone: '',
-                        tin: '',
-                        vat_status: '',
-                        bir_certificate: '',
-                        shop_image: null,
-                        shop_image_preview: null
-                    },
-                    updateProgress() {
-                        this.progress = ((this.currentStep - 1) / 3) * 100;
-                    },
-                    nextStep() {
-                        // Validate current step
-                        const errors = validateStep(this.currentStep, this.formData);
-                        
-                        if (errors.length > 0) {
-                            showErrors(errors);
-                            return; // Don't proceed if there are errors
-                        }
-                        
-                        // Remove any existing error messages since validation passed
-                        const existingErrors = document.querySelector('.validation-errors');
-                        if (existingErrors) existingErrors.remove();
-                        
-                        // Proceed to next step
-                        if (this.currentStep < 4) {
-                            this.currentStep++;
-                            this.updateProgress();
-                        }
-                    },
-                    prevStep() {
-                        if (this.currentStep > 1) {
-                            this.currentStep--;
-                            this.updateProgress();
-                        }
-                    },
-                    initMap() {
-                        this.$nextTick(() => {
-                            if (!this.map) {
-                                console.log('Initializing map...');
-                                try {
-                                    // Wait for the modal to be fully visible
-                                    setTimeout(() => {
-                                        this.map = L.map('map').setView([6.9214, 122.0790], 13);
-                                        
-                                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                                            attribution: '© OpenStreetMap contributors'
-                                        }).addTo(this.map);
-
-                                        // Add geocoder control
-                                        const geocoder = L.Control.geocoder({
-                                            defaultMarkGeocode: false
-                                        })
-                                        .on('markgeocode', (e) => {
-                                            const { center, name } = e.geocode;
-                                            if (this.marker) {
-                                                this.marker.setLatLng(center);
-                                            } else {
-                                                this.marker = L.marker(center).addTo(this.map);
-                                            }
-                                            this.map.setView(center, 16);
-                                            this.latitude = center.lat;
-                                            this.longitude = center.lng;
-                                            this.address = name;
-                                        })
-                                        .addTo(this.map);
-
-                                        // Handle map clicks
-                                        this.map.on('click', (e) => {
-                                            const { lat, lng } = e.latlng;
-                                            if (this.marker) {
-                                                this.marker.setLatLng([lat, lng]);
-                                            } else {
-                                                this.marker = L.marker([lat, lng]).addTo(this.map);
-                                            }
-                                            this.latitude = lat;
-                                            this.longitude = lng;
-                                            
-                                            // Reverse geocode the clicked location
-                                            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
-                                                .then(response => response.json())
-                                                .then(data => {
-                                                    this.address = data.display_name;
-                                                });
-                                        });
-
-                                        // Force map to update its size
-                                        this.map.invalidateSize();
-                                    }, 100);
-                                } catch (error) {
-                                    console.error('Error initializing map:', error);
-                                }
-                            } else {
-                                // If map already exists, just update its size
-                                this.map.invalidateSize();
-                            }
-                        });
-                    },
-                    confirmLocation() {
-                        this.showMap = false;
-                    }
-                }"
-                x-init="updateProgress()">
+                <div class="w-full max-w-3xl mx-auto">
                     <!-- Progress Steps -->
                     <div class="mb-24">
                         <div class="flex justify-between relative">
@@ -505,15 +673,71 @@ use Illuminate\Support\Facades\Log;
                                             id="address"
                                             placeholder="Shop Address"
                                             x-model="address"
+                                            @input="handleAddressInput"
+                                            @keydown.arrow-down.prevent="selectNextAddress"
+                                            @keydown.arrow-up.prevent="selectPrevAddress"
+                                            @keydown.enter.prevent="selectCurrentAddress"
+                                            @keydown.escape="addressSuggestions = []"
+                                            @blur="setTimeout(() => { addressSuggestions = [] }, 200)"
                                             class="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-custom-blue focus:border-custom-blue">
+                                        <div class="absolute right-0 flex items-center">
                                         <button type="button" 
-                                                @click="showMap = true"
-                                                class="absolute right-2 p-2 text-gray-400 hover:text-gray-600">
+                                                    @click="getCurrentLocation"
+                                                    class="p-2 text-gray-400 hover:text-gray-600 mr-1"
+                                                    title="Use Current Location">
                                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
                                             </svg>
                                         </button>
+                                            <button type="button" 
+                                                    @click="showMap = true"
+                                                    class="p-2 text-gray-400 hover:text-gray-600 mr-2"
+                                                    title="Open Map">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Address Suggestions Dropdown -->
+                                    <div x-show="addressSuggestions.length > 0" 
+                                        class="absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md overflow-hidden border border-gray-300 max-h-60 overflow-y-auto">
+                                        <template x-for="(suggestion, index) in addressSuggestions" :key="index">
+                                            <div 
+                                                class="p-2.5 cursor-pointer hover:bg-gray-100"
+                                                :class="{ 'bg-gray-100': selectedAddressIndex === index }"
+                                                @mouseenter="selectedAddressIndex = index"
+                                                @mousedown.prevent="
+                                                    console.log('Suggestion clicked:', suggestion);
+                                                    $event.target.closest('form').querySelector('#address').value = suggestion.display_name;
+                                                    address = suggestion.display_name;
+                                                    latitude = suggestion.lat;
+                                                    longitude = suggestion.lon;
+                                                    
+                                                    // Force update the input value directly
+                                                    setTimeout(() => {
+                                                        document.getElementById('address').value = suggestion.display_name;
+                                                        document.getElementById('address').dispatchEvent(new Event('input'));
+                                                    }, 10);
+                                                    
+                                                    addressSuggestions = [];
+                                                    console.log('Updated address to:', address);
+                                                "
+                                            >
+                                                <p class="text-sm font-medium" x-text="suggestion.display_name"></p>
+                                            </div>
+                                        </template>
+                                        
+                                        <!-- Loading Indicator -->
+                                        <div x-show="addressLoading" class="p-2.5 text-center text-sm text-gray-500">
+                                            <svg class="animate-spin h-5 w-5 mx-auto mb-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            <span>Searching...</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -531,30 +755,121 @@ use Illuminate\Support\Facades\Log;
                                 <!-- Modal Panel -->
                                 <div class="fixed inset-0 z-50 overflow-y-auto">
                                     <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
-                                        <div class="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
-                                            <div class="absolute right-0 top-0 pr-4 pt-4">
+                                        <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-2xl">
+                                            <div class="absolute right-0 top-0 hidden pt-4 pr-4 sm:block z-10">
                                                 <button type="button" 
                                                         @click="showMap = false"
-                                                        class="rounded-md bg-white text-gray-400 hover:text-gray-500">
+                                                        class="rounded-full bg-white p-1 text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-custom-blue">
                                                     <span class="sr-only">Close</span>
-                                                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                                                     </svg>
                                                 </button>
                                             </div>
 
+                                            <!-- Header -->
+                                            <div class="bg-custom-blue px-4 py-4 sm:px-6">
+                                                <div class="flex items-center justify-between">
+                                                    <h3 class="text-lg font-medium leading-6 text-white">
+                                                        Select Shop Location
+                                                    </h3>
+                                                </div>
+                                            </div>
+
+                                            <!-- Search Bar -->
+                                            <div class="px-4 pt-4 pb-2 sm:px-6">
+                                                <div class="relative">
+                                                    <div class="flex items-center">
+                                                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                            <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                                            </svg>
+                                                        </div>
+                                                        <input 
+                                                            type="text" 
+                                                            id="map-search" 
+                                                            placeholder="Search for a location..." 
+                                                            x-model="mapSearchQuery" 
+                                                            @input="handleMapSearch"
+                                                            @keydown.enter.prevent="searchMap"
+                                                            class="block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-custom-blue focus:border-custom-blue text-sm"
+                                                        >
+                                                        <div class="absolute inset-y-0 right-0 flex items-center">
+                                                            <button 
+                                                                type="button" 
+                                                                @click="searchMap"
+                                                                class="p-2 text-gray-400 hover:text-gray-600">
+                                                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                                                </svg>
+                                                            </button>
+                                                            <button 
+                                                                type="button" 
+                                                                @click="getMapCurrentLocation"
+                                                                class="p-2 text-gray-400 hover:text-gray-600 mr-1"
+                                                                title="Use Current Location">
+                                                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                                </svg>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Map Search Results Dropdown -->
+                                                    <div x-show="mapSearchResults.length > 0" 
+                                                        class="absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md overflow-hidden border border-gray-300 max-h-60 overflow-y-auto">
+                                                        <template x-for="(result, index) in mapSearchResults" :key="index">
+                                                            <div 
+                                                                @click="selectMapSearchResult(result)"
+                                                                class="p-2.5 cursor-pointer hover:bg-gray-100 border-b border-gray-100">
+                                                                <div class="flex items-start">
+                                                                    <svg class="h-5 w-5 text-gray-400 mr-2 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                                                    </svg>
+                                                                    <p class="text-sm font-medium" x-text="result.display_name"></p>
+                                                                </div>
+                                                            </div>
+                                                        </template>
+                                                        
+                                                        <!-- Loading Indicator -->
+                                                        <div x-show="mapSearchLoading" class="p-2.5 text-center text-sm text-gray-500">
+                                                            <svg class="animate-spin h-5 w-5 mx-auto mb-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                            </svg>
+                                                            <span>Searching...</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <p class="mt-1 text-xs text-gray-500">
+                                                    Drag marker or click on map to adjust location precisely
+                                                </p>
+                                            </div>
+
                                             <!-- Map Container -->
-                                            <div class="mt-3 text-center sm:mt-0 sm:text-left">
-                                                <h3 class="text-lg font-semibold leading-6 text-gray-900 mb-4">
-                                                    Select Location
-                                                </h3>
-                                                <div class="mt-2">
-                                                    <div id="map" class="h-96 w-full rounded-lg z-50" style="min-height: 400px;"></div>
+                                            <div class="px-4 py-2 sm:px-6">
+                                                <div id="map" class="h-[400px] w-full rounded-lg z-40 border border-gray-300 shadow-inner"></div>
+                                            </div>
+
+                                            <!-- Location Info -->
+                                            <div class="bg-gray-50 px-4 py-3 sm:px-6 border-t border-gray-200">
+                                                <div class="mb-2">
+                                                    <p class="text-sm font-medium text-gray-700">Selected Location:</p>
+                                                    <p class="text-sm text-gray-600 truncate" x-text="address || 'No location selected'"></p>
+                                                </div>
+                                                <div class="flex items-center text-xs text-gray-500 space-x-4">
+                                                    <div>
+                                                        <span class="font-medium">Latitude:</span> <span x-text="latitude ? parseFloat(latitude).toFixed(6) : 'N/A'"></span>
+                                                    </div>
+                                                    <div>
+                                                        <span class="font-medium">Longitude:</span> <span x-text="longitude ? parseFloat(longitude).toFixed(6) : 'N/A'"></span>
+                                                    </div>
                                                 </div>
                                             </div>
 
                                             <!-- Action Buttons -->
-                                            <div class="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
+                                            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
                                                 <button type="button"
                                                         @click="confirmLocation"
                                                         class="inline-flex w-full justify-center rounded-md bg-custom-blue px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-600 sm:ml-3 sm:w-auto">
