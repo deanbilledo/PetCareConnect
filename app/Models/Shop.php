@@ -151,4 +151,14 @@ class Shop extends Model
     {
         return $this->hasOne(Subscription::class)->latest();
     }
+
+    /**
+     * Alias for ratings relationship
+     * 
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function reviews()
+    {
+        return $this->ratings();
+    }
 } 

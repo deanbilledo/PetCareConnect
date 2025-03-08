@@ -108,6 +108,93 @@
         </div>
     </div>
 
+    <!-- Service Booking Analytics -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <!-- Most/Least Booked Services -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h3 class="text-lg font-semibold mb-4">Service Popularity</h3>
+            <div class="h-80">
+                <canvas id="servicePopularityChart"></canvas>
+            </div>
+            <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="bg-green-50 p-4 rounded-lg">
+                    <h4 class="font-medium text-green-800 mb-2">Most Popular Service</h4>
+                    @if(isset($mostBookedService))
+                        <div class="flex items-center">
+                            <div class="p-2 bg-green-100 rounded-full mr-3">
+                                <svg class="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 11l7-7 7 7M5 19l7-7 7 7" />
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="font-semibold text-gray-800">{{ $mostBookedService->name }}</p>
+                                <p class="text-sm text-gray-600">{{ $mostBookedService->count }} bookings</p>
+                            </div>
+                        </div>
+                    @else
+                        <p class="text-gray-500">No data available</p>
+                    @endif
+                </div>
+                <div class="bg-red-50 p-4 rounded-lg">
+                    <h4 class="font-medium text-red-800 mb-2">Least Popular Service</h4>
+                    @if(isset($leastBookedService))
+                        <div class="flex items-center">
+                            <div class="p-2 bg-red-100 rounded-full mr-3">
+                                <svg class="w-5 h-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 13l-7 7-7-7m14-8l-7 7-7-7" />
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="font-semibold text-gray-800">{{ $leastBookedService->name }}</p>
+                                <p class="text-sm text-gray-600">{{ $leastBookedService->count }} bookings</p>
+                            </div>
+                        </div>
+                    @else
+                        <p class="text-gray-500">No data available</p>
+                    @endif
+                </div>
+            </div>
+        </div>
+
+        <!-- Peak Booking Hours -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h3 class="text-lg font-semibold mb-4">Peak Booking Hours</h3>
+            <div class="h-80">
+                <canvas id="peakHoursChart"></canvas>
+            </div>
+            <div class="mt-4">
+                <div class="bg-blue-50 p-4 rounded-lg">
+                    <h4 class="font-medium text-blue-800 mb-2">Busiest Time of Day</h4>
+                    @if(isset($peakBookingHour))
+                        <div class="flex items-center">
+                            <div class="p-2 bg-blue-100 rounded-full mr-3">
+                                <svg class="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="font-semibold text-gray-800">
+                                    {{ date('g:i A', strtotime($peakBookingHour->hour . ':00')) }} - {{ date('g:i A', strtotime($peakBookingHour->hour . ':59')) }}
+                                </p>
+                                <p class="text-sm text-gray-600">{{ $peakBookingHour->count }} bookings</p>
+                            </div>
+                        </div>
+                    @else
+                        <p class="text-gray-500">No data available</p>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Day of Week Popularity -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+        <h3 class="text-lg font-semibold mb-4">Day of Week Popularity</h3>
+        <div class="h-60">
+            <canvas id="dayOfWeekChart"></canvas>
+        </div>
+    </div>
+
     <!-- Recent Activity -->
     <div class="bg-white rounded-lg shadow-md p-6">
         <h3 class="text-lg font-semibold mb-4">Recent Activity</h3>
@@ -223,6 +310,182 @@ new Chart(appointmentsCtx, {
             },
             x: {
                 stacked: true
+            }
+        }
+    }
+});
+
+// Service Popularity Chart
+const serviceCtx = document.getElementById('servicePopularityChart').getContext('2d');
+const serviceData = {
+    labels: {!! json_encode($serviceBookingCounts->pluck('name')) !!},
+    datasets: [{
+        label: 'Number of Bookings',
+        data: {!! json_encode($serviceBookingCounts->pluck('count')) !!},
+        backgroundColor: [
+            'rgba(255, 99, 132, 0.7)',
+            'rgba(54, 162, 235, 0.7)',
+            'rgba(255, 206, 86, 0.7)',
+            'rgba(75, 192, 192, 0.7)',
+            'rgba(153, 102, 255, 0.7)',
+            'rgba(255, 159, 64, 0.7)',
+            'rgba(199, 199, 199, 0.7)',
+            'rgba(83, 102, 255, 0.7)',
+            'rgba(40, 159, 64, 0.7)',
+            'rgba(210, 199, 199, 0.7)',
+        ],
+        borderColor: [
+            'rgb(255, 99, 132)',
+            'rgb(54, 162, 235)',
+            'rgb(255, 206, 86)',
+            'rgb(75, 192, 192)',
+            'rgb(153, 102, 255)',
+            'rgb(255, 159, 64)',
+            'rgb(199, 199, 199)',
+            'rgb(83, 102, 255)',
+            'rgb(40, 159, 64)',
+            'rgb(210, 199, 199)',
+        ],
+        borderWidth: 1
+    }]
+};
+
+new Chart(serviceCtx, {
+    type: 'bar',
+    data: serviceData,
+    options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: false
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        return context.parsed.x + ' bookings';
+                    }
+                }
+            }
+        },
+        scales: {
+            x: {
+                beginAtZero: true,
+                title: {
+                    display: true,
+                    text: 'Number of Bookings'
+                }
+            },
+            y: {
+                title: {
+                    display: true,
+                    text: 'Services'
+                }
+            }
+        }
+    }
+});
+
+// Peak Hours Chart
+const hoursCtx = document.getElementById('peakHoursChart').getContext('2d');
+const hourLabels = {!! json_encode($hourlyBookings->pluck('hour_label')) !!};
+const hourData = {!! json_encode($hourlyBookings->pluck('count')) !!};
+
+const peakHoursData = {
+    labels: hourLabels,
+    datasets: [{
+        label: 'Bookings per Hour',
+        data: hourData,
+        backgroundColor: 'rgba(59, 130, 246, 0.5)',
+        borderColor: 'rgb(59, 130, 246)',
+        borderWidth: 1,
+        tension: 0.1,
+        fill: true
+    }]
+};
+
+new Chart(hoursCtx, {
+    type: 'line',
+    data: peakHoursData,
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'top',
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                title: {
+                    display: true,
+                    text: 'Number of Bookings'
+                },
+                ticks: {
+                    precision: 0
+                }
+            },
+            x: {
+                title: {
+                    display: true,
+                    text: 'Hour of Day'
+                }
+            }
+        }
+    }
+});
+
+// Day of Week Chart
+const dowCtx = document.getElementById('dayOfWeekChart').getContext('2d');
+const dowData = {
+    labels: {!! json_encode($dayOfWeekBookings->pluck('day')) !!},
+    datasets: [{
+        label: 'Bookings by Day of Week',
+        data: {!! json_encode($dayOfWeekBookings->pluck('count')) !!},
+        backgroundColor: [
+            'rgba(255, 99, 132, 0.7)',
+            'rgba(54, 162, 235, 0.7)',
+            'rgba(255, 206, 86, 0.7)',
+            'rgba(75, 192, 192, 0.7)',
+            'rgba(153, 102, 255, 0.7)',
+            'rgba(255, 159, 64, 0.7)',
+            'rgba(99, 255, 132, 0.7)',
+        ],
+        borderColor: [
+            'rgb(255, 99, 132)',
+            'rgb(54, 162, 235)',
+            'rgb(255, 206, 86)',
+            'rgb(75, 192, 192)',
+            'rgb(153, 102, 255)',
+            'rgb(255, 159, 64)',
+            'rgb(99, 255, 132)',
+        ],
+        borderWidth: 1
+    }]
+};
+
+new Chart(dowCtx, {
+    type: 'pie',
+    data: dowData,
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'top',
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        const label = context.label || '';
+                        const value = context.raw || 0;
+                        const total = context.dataset.data.reduce((acc, data) => acc + data, 0);
+                        const percentage = Math.round((value / total) * 100);
+                        return `${label}: ${value} bookings (${percentage}%)`;
+                    }
+                }
             }
         }
     }

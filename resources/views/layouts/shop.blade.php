@@ -2,7 +2,7 @@
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="shop-id" content="{{ auth()->user()->shop->id }}">
     
@@ -17,11 +17,61 @@
         [x-cloak] { 
             display: none !important; 
         }
+        
+        /* Custom CSS to fix sidebar behavior */
+        .sidebar-container {
+            transition: all 0.3s ease-in-out;
+        }
+        
+        @media (max-width: 768px) {
+            /* Hide sidebar on mobile completely */
+            .sidebar-container {
+                display: none !important;
+            }
+            
+            /* Full width content on mobile */
+            .content-area-wrapper {
+                width: 100% !important;
+                margin-left: 0 !important;
+                padding-left: 0 !important;
+                padding-right: 0 !important;
+            }
+        }
+        
+        /* Main content container max-width */
+        .main-container {
+            max-width: 1440px;
+            margin: 0 auto;
+            width: 100%;
+            position: relative;
+        }
+        
+        /* Content area centering */
+        .content-area-wrapper {
+            display: flex;
+            justify-content: center;
+            width: 100%;
+        }
+        
+        /* Improve scrolling experience on mobile */
+        html, body {
+            position: relative;
+            overflow-x: hidden;
+            touch-action: manipulation;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        /* Screen size specific adjustments */
+        @media (min-width: 1600px) {
+            .main-container {
+                max-width: 1600px;
+            }
+        }
     </style>
     
     @yield('styles')
 </head>
-<body class="bg-gray-100 font-[Poppins] min-h-screen flex flex-col">
+<body class="font-sans text-gray-800 bg-gray-100 antialiased" x-data="{ sidebarOpen: false }">
     <!-- Toast Notifications -->
     <div 
         x-data="{
@@ -156,39 +206,133 @@
 
     <!-- Fixed Header -->
     <div class="fixed top-0 left-0 right-0 z-50 bg-white shadow-sm">
-        @include('partials.header')
+        <div class="main-container">
+            @include('partials.header')
+        </div>
     </div>
 
     <!-- Main Content with Sidebar -->
-    <div class="pt-16 flex"> <!-- Add padding-top for fixed header -->
-        <!-- Fixed Sidebar -->
-        <div class="fixed left-0 top-16 bottom-0 w-56 bg-white shadow-md overflow-y-auto">
-            @include('partials.sidebar')
+    <div class="pt-16 flex flex-col w-full" x-data="{ sidebarOpen: false }" x-init="$watch('sidebarOpen', value => document.body.classList.toggle('overflow-hidden', value && window.innerWidth < 768))">
+        <!-- Mobile Hamburger Menu Button -->
+        <button @click="sidebarOpen = !sidebarOpen" 
+                class="md:hidden fixed top-4 left-4 z-30 p-2 bg-gray-50 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-150" 
+                aria-label="Toggle sidebar">
+            <svg x-show="!sidebarOpen" class="h-6 w-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+            <svg x-show="sidebarOpen" class="h-6 w-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+        </button>
+        
+        <!-- Sidebar overlay for mobile -->
+        <div x-show="sidebarOpen" 
+            @click="sidebarOpen = false" 
+            class="fixed inset-0 z-40 bg-black bg-opacity-50 md:hidden transition-opacity" 
+            x-transition:enter="transition ease-out duration-200" 
+            x-transition:enter-start="opacity-0" 
+            x-transition:enter-end="opacity-100" 
+            x-transition:leave="transition ease-in duration-150" 
+            x-transition:leave-start="opacity-100" 
+            x-transition:leave-end="opacity-0">
         </div>
+        
+        <div class="flex-1 flex">
+            <!-- Fixed Sidebar container -->
+            <div class="bg-gray-50 overflow-y-auto sidebar-container transition-all duration-300 shrink-0 h-[calc(100vh-4rem)] hidden md:block"
+                :class="{
+                    'fixed left-0 top-16 bottom-0 z-45': true,
+                    'w-64 md:w-56': !$store.sidebar.collapsed, 
+                    'w-20': $store.sidebar.collapsed
+                }">
+                @include('partials.sidebar')
+            </div>
 
-        <!-- Main Content -->
-        <div class="ml-56 flex-1">
-            <main class="p-6">
-                @if(session('success'))
-                    <div class="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded">
-                        {{ session('success') }}
-                    </div>
-                @endif
+            <!-- Main Content Area Wrapper for Centering -->
+            <div class="flex-1 transition-all duration-300 content-area-wrapper"
+                :class="{
+                    'ml-56': !$store.sidebar.collapsed && window.innerWidth >= 768,
+                    'ml-20': $store.sidebar.collapsed && window.innerWidth >= 768,
+                    'ml-0': window.innerWidth < 768,
+                    'main-content-shifted': sidebarOpen && window.innerWidth < 768
+                }">
+                <!-- Main Content Container for Max Width -->
+                <div class="w-full max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
+                    <main class="py-4 sm:py-6 md:pt-16">
+                        <!-- Mobile header spacer - only visible on mobile -->
+                        <div class="h-16 md:hidden"></div>
+                        
+                        @if(session('success'))
+                            <div class="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded">
+                                {{ session('success') }}
+                            </div>
+                        @endif
 
-                @if(session('error'))
-                    <div class="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
-                        {{ session('error') }}
-                    </div>
-                @endif
+                        @if(session('error'))
+                            <div class="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+                                {{ session('error') }}
+                            </div>
+                        @endif
 
-                @yield('content')
-            </main>
+                        @yield('content')
+                    </main>
+                </div>
+            </div>
         </div>
     </div>
 
     <!-- Initialize Session Messages as Toast Notifications -->
     <script>
         document.addEventListener('alpine:init', () => {
+            Alpine.store('sidebar', {
+                collapsed: true,
+                toggle() {
+                    this.collapsed = !this.collapsed;
+                    
+                    // Only update sidebar width on desktop
+                    if (window.innerWidth >= 768) {
+                        const mainContent = document.querySelector('.content-area-wrapper');
+                        if (mainContent) {
+                            mainContent.classList.toggle('ml-20', this.collapsed);
+                            mainContent.classList.toggle('ml-56', !this.collapsed);
+                        }
+                        
+                        // Make sure layout container has the right background color
+                        document.querySelectorAll('.fixed.inset-y-0').forEach(el => {
+                            el.classList.add('bg-gray-50');
+                        });
+                    }
+                }
+            });
+            
+            // Ensure background color on initial load
+            document.querySelectorAll('.fixed.inset-y-0').forEach(el => {
+                el.classList.add('bg-gray-50');
+            });
+            
+            // Apply collapsed sidebar style on initial load
+            if (window.innerWidth >= 768) {
+                const mainContent = document.querySelector('.content-area-wrapper');
+                if (mainContent) {
+                    mainContent.classList.add('ml-20');
+                    mainContent.classList.remove('ml-56');
+                }
+            }
+            
+            // Handle mobile-specific initialization
+            const handleResize = () => {
+                const isMobile = window.innerWidth < 768;
+                
+                // Mobile specific adjustments can go here
+                document.querySelectorAll('.content-area-wrapper').forEach(el => {
+                    el.classList.toggle('mobile-view', isMobile);
+                });
+            };
+            
+            // Run on init and add listener for window resize
+            handleResize();
+            window.addEventListener('resize', handleResize);
+            
             @if(session('success'))
                 window.dispatchEvent(new CustomEvent('toast', {
                     detail: {

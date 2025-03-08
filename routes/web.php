@@ -238,7 +238,6 @@ Route::middleware(['auth'])->group(function () {
     Route::middleware(['auth', 'has-shop'])->group(function () {
         Route::post('/appointments/reschedule/{appointment}/approve', [AppointmentController::class, 'approveReschedule'])
             ->name('appointments.reschedule.approve');
-
         Route::post('/appointments/reschedule/{appointment}/decline', [AppointmentController::class, 'declineReschedule'])
             ->name('appointments.reschedule.decline');
     });
@@ -330,9 +329,9 @@ Route::middleware(['auth', IsAdmin::class])->prefix('admin')->name('admin.')->gr
 Route::middleware(['auth', 'has-shop'])->group(function () {
     Route::post('/shop/services', [ShopServicesController::class, 'store']);
     Route::put('/shop/services/{service}', [ShopServicesController::class, 'update']);
-    Route::get('/shop/services/{service}', [ShopServicesController::class, 'show']);
-    Route::delete('/shop/services/{service}', [ShopServicesController::class, 'destroy']);
     Route::put('/shop/services/{service}/status', [ShopServicesController::class, 'updateStatus']);
+    Route::delete('/shop/services/{service}', [ShopServicesController::class, 'destroy']);
+    Route::post('/shop/services/{service}/discounts', [ShopServicesController::class, 'storeDiscount']);
     
     // Add analytics route
     Route::get('/shop/analytics', [ShopAnalyticsController::class, 'index'])->name('shop.analytics');
@@ -342,9 +341,10 @@ Route::middleware(['auth', 'has-shop'])->group(function () {
 Route::middleware(['auth', 'verified', 'has-shop'])->group(function () {
     Route::prefix('shop/settings')->name('shop.settings.')->group(function () {
         Route::post('/profile', [ShopSettingsController::class, 'updateProfile'])->name('profile.update');
+        Route::post('/business', [ShopSettingsController::class, 'updateBusiness'])->name('business.update');
+        Route::post('/services', [ShopSettingsController::class, 'updateServices'])->name('services.update');
         Route::post('/hours', [ShopSettingsController::class, 'updateHours'])->name('hours.update');
         Route::post('/notifications', [ShopSettingsController::class, 'updateNotifications'])->name('notifications.update');
-        Route::post('/security', [ShopSettingsController::class, 'updatePassword'])->name('security.update');
     });
 });
 
@@ -359,7 +359,8 @@ Route::middleware(['auth', IsAdmin::class])->group(function () {
 Route::middleware(['auth', 'has-shop'])->group(function () {
     Route::get('/shop/reports', [ShopReportController::class, 'index'])->name('shop.reports');
     Route::get('/shop/reports/filter', [ShopReportController::class, 'filter'])->name('shop.reports.filter');
-    Route::get('/shop/reports/export/{format}', [ShopReportController::class, 'export'])->name('shop.reports.export');
+    Route::get('/shop/reports/export', [ShopReportController::class, 'export'])->name('shop.reports.export');
+    Route::get('/shop/reports/print', [ShopReportController::class, 'print'])->name('shop.reports.print');
 });
 
 // Post route for submitting shop reports - accessible to all authenticated users
@@ -370,4 +371,15 @@ Route::middleware(['auth'])->group(function () {
 // Post route for submitting user reports - accessible to shop owners/employees
 Route::middleware(['auth', 'has-shop'])->group(function () {
     Route::post('/user/report', [UserReportController::class, 'store'])->name('user.report.submit');
+});
+
+// Shop Admin Routes
+Route::middleware(['auth', 'has-shop'])->prefix('shop')->name('shop.')->group(function () {
+    // Existing routes
+    Route::get('/dashboard', [App\Http\Controllers\Shop\DashboardController::class, 'index'])->name('dashboard');
+    
+    // Add analytics routes
+    Route::get('/analytics', [App\Http\Controllers\Shop\AnalyticsController::class, 'index'])->name('analytics');
+    
+    // Other routes
 });

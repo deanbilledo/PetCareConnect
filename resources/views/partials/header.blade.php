@@ -1,6 +1,8 @@
 <header class="bg-white shadow-sm sticky top-0 z-50">
     <div class="max-w-7xl mx-auto flex items-center justify-between">
-        <!-- Logo -->
+        <!-- Remove Shop Mode Mobile Toggle Button -->
+        
+        <!-- Logo with proper spacing -->
         <div class="flex-shrink-0 p-2 sm:p-4 w-32 sm:w-56">
             <a href="{{ route('home') }}">
                 <img src="{{ asset('images/logo.png') }}" alt="Pet Care Connect Logo" class="h-auto w-full max-w-[120px] sm:max-w-[200px] transition-all duration-300">
@@ -472,47 +474,111 @@
                                      x-transition:leave-start="opacity-100 transform translate-y-0"
                                      x-transition:leave-end="opacity-0 transform -translate-y-2"
                                      class="px-2 py-2 space-y-1">
-                                    <a href="{{ route('home') }}" 
-                                       class="flex items-center px-4 py-2 text-sm text-gray-700 rounded-lg hover:bg-gray-100 {{ request()->routeIs('home') ? 'bg-gray-100' : '' }}">
-                                        <svg class="mr-3 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
-                                        </svg>
-                                        Home
-                                    </a>
-
-                                    @auth
-                                        <a href="{{ route('appointments.index') }}" 
-                                           class="flex items-center px-4 py-2 text-sm text-gray-700 rounded-lg hover:bg-gray-100 {{ request()->routeIs('appointments*') ? 'bg-gray-100' : '' }}">
+                                    
+                                    <!-- SHOP MODE: Only shown when in shop mode -->
+                                    @if(session('shop_mode'))
+                                        <a href="{{ route('shop.dashboard') }}" 
+                                           class="flex items-center px-4 py-2 text-sm text-gray-700 rounded-lg hover:bg-gray-100 {{ request()->routeIs('shop.dashboard') ? 'bg-gray-100' : '' }}">
+                                            <svg class="mr-3 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                                            </svg>
+                                            Dashboard
+                                        </a>
+                                        
+                                        <a href="{{ route('shop.appointments') }}" 
+                                           class="flex items-center px-4 py-2 text-sm text-gray-700 rounded-lg hover:bg-gray-100 {{ request()->routeIs('shop.appointments') ? 'bg-gray-100' : '' }}">
                                             <svg class="mr-3 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                                             </svg>
                                             Appointments
                                         </a>
-                                    @else
-                                        <button @click="open = false; showLoginPrompt = true" 
-                                                class="flex w-full items-center px-4 py-2 text-sm text-gray-700 rounded-lg hover:bg-gray-100">
+                                        
+                                        <a href="{{ route('shop.services') }}" 
+                                           class="flex items-center px-4 py-2 text-sm text-gray-700 rounded-lg hover:bg-gray-100 {{ request()->routeIs('shop.services') ? 'bg-gray-100' : '' }}">
                                             <svg class="mr-3 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
                                             </svg>
-                                            Appointments
-                                        </button>
-                                    @endauth
+                                            Services
+                                        </a>
+                                        
+                                        <a href="{{ route('shop.employees.index') }}" 
+                                           class="flex items-center px-4 py-2 text-sm text-gray-700 rounded-lg hover:bg-gray-100 {{ request()->routeIs('shop.employees.*') ? 'bg-gray-100' : '' }}">
+                                            <svg class="mr-3 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+                                            </svg>
+                                            Employees
+                                        </a>
+                                        
+                                        <a href="{{ route('shop.analytics') }}" 
+                                           class="flex items-center px-4 py-2 text-sm text-gray-700 rounded-lg hover:bg-gray-100 {{ request()->routeIs('shop.analytics') ? 'bg-gray-100' : '' }}">
+                                            <svg class="mr-3 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                                            </svg>
+                                            Analytics
+                                        </a>
+                                        
+                                        <a href="{{ route('shop.reviews') }}" 
+                                           class="flex items-center px-4 py-2 text-sm text-gray-700 rounded-lg hover:bg-gray-100 {{ request()->routeIs('shop.reviews') ? 'bg-gray-100' : '' }}">
+                                            <svg class="mr-3 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
+                                            </svg>
+                                            Reviews
+                                        </a>
 
-                                    <a href="{{ route('grooming') }}" 
-                                       class="flex items-center px-4 py-2 text-sm text-gray-700 rounded-lg hover:bg-gray-100 {{ request()->routeIs('grooming') ? 'bg-gray-100' : '' }}">
-                                        <svg class="mr-3 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                                        </svg>
-                                        Grooming
-                                    </a>
+                                        <!-- Switch to Customer Mode -->
+                                        <form action="{{ route('shop.mode.customer') }}" method="POST">
+                                            @csrf
+                                            <button type="submit" class="flex w-full items-center px-4 py-2 text-sm text-gray-700 rounded-lg hover:bg-gray-100">
+                                                <svg class="mr-3 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                                                </svg>
+                                                Switch to Customer Mode
+                                            </button>
+                                        </form>
+                                    @else
+                                        <!-- REGULAR MODE: Standard navigation links -->
+                                        <a href="{{ route('home') }}" 
+                                           class="flex items-center px-4 py-2 text-sm text-gray-700 rounded-lg hover:bg-gray-100 {{ request()->routeIs('home') ? 'bg-gray-100' : '' }}">
+                                            <svg class="mr-3 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                                            </svg>
+                                            Home
+                                        </a>
 
-                                    <a href="{{ route('petlandingpage') }}" 
-                                       class="flex items-center px-4 py-2 text-sm text-gray-700 rounded-lg hover:bg-gray-100 {{ request()->routeIs('petlandingpage') ? 'bg-gray-100' : '' }}">
-                                        <svg class="mr-3 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
-                                        </svg>
-                                        Pet Clinics
-                                    </a>
+                                        @auth
+                                            <a href="{{ route('appointments.index') }}" 
+                                               class="flex items-center px-4 py-2 text-sm text-gray-700 rounded-lg hover:bg-gray-100 {{ request()->routeIs('appointments*') ? 'bg-gray-100' : '' }}">
+                                                <svg class="mr-3 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                                </svg>
+                                                Appointments
+                                            </a>
+                                        @else
+                                            <button @click="open = false; showLoginPrompt = true" 
+                                                    class="flex w-full items-center px-4 py-2 text-sm text-gray-700 rounded-lg hover:bg-gray-100">
+                                                <svg class="mr-3 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                                </svg>
+                                                Appointments
+                                            </button>
+                                        @endauth
+
+                                        <a href="{{ route('grooming') }}" 
+                                           class="flex items-center px-4 py-2 text-sm text-gray-700 rounded-lg hover:bg-gray-100 {{ request()->routeIs('grooming') ? 'bg-gray-100' : '' }}">
+                                            <svg class="mr-3 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                            </svg>
+                                            Grooming
+                                        </a>
+
+                                        <a href="{{ route('petlandingpage') }}" 
+                                           class="flex items-center px-4 py-2 text-sm text-gray-700 rounded-lg hover:bg-gray-100 {{ request()->routeIs('petlandingpage') ? 'bg-gray-100' : '' }}">
+                                            <svg class="mr-3 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                                            </svg>
+                                            Pet Clinics
+                                        </a>
+                                    @endif
                                 </div>
                                 <div class="border-t border-gray-100 my-2"></div>
                             </div>

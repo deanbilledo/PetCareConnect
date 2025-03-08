@@ -63,7 +63,7 @@
                     <!-- Reviews List -->
                     <div class="space-y-6">
                         <h3 class="text-lg font-semibold">Recent Reviews</h3>
-                        @forelse($shop->ratings()->with(['user', 'appointment.employee', 'appointment.services'])->latest()->get() as $rating)
+                        @forelse($ratings as $rating)
                             <div class="bg-white rounded-lg shadow p-6">
                                 <!-- User Info and Rating -->
                                 <div class="flex items-start justify-between mb-4">
@@ -172,6 +172,11 @@
                                 No reviews yet.
                             </div>
                         @endforelse
+
+                        <!-- Pagination -->
+                        <div class="mt-6">
+                            {{ $ratings->links() }}
+                        </div>
                     </div>
                 </div>
             </div>
