@@ -45,7 +45,11 @@ class Appointment extends Model
         'service_price' => 'decimal:2',
         'accepted_at' => 'datetime',
         'requested_date' => 'datetime',
-        'viewed_at' => 'datetime'
+        'viewed_at' => 'datetime',
+        'paid_at' => 'datetime',
+        'last_reschedule_at' => 'datetime',
+        'reschedule_approved_at' => 'datetime',
+        'reschedule_rejected_at' => 'datetime'
     ];
 
     protected $appends = ['duration'];
@@ -106,5 +110,13 @@ class Appointment extends Model
         return $this->belongsToMany(Service::class, 'appointment_services')
                     ->withPivot('price')
                     ->withTimestamps();
+    }
+
+    /**
+     * Get the staff ratings for this appointment
+     */
+    public function staffRatings()
+    {
+        return $this->hasMany(StaffRating::class);
     }
 } 

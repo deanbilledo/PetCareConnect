@@ -11,6 +11,9 @@ use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\AnalyticsExport;
 
 class AnalyticsController extends Controller
 {
@@ -59,6 +62,18 @@ class AnalyticsController extends Controller
         // Day of Week Analytics
         $dayOfWeekBookings = $this->getDayOfWeekBookings($shop->id);
         
+        // Paid Appointments Analytics
+        $paidAppointments = Appointment::where('shop_id', $shop->id)
+            ->with(['user', 'pet', 'employee'])
+            ->where('payment_status', 'paid')
+            ->where('status', 'completed')
+            ->orderBy('paid_at', 'desc')
+            ->limit(10)
+            ->get();
+            
+        // Calculate total revenue from paid appointments
+        $paidRevenue = $paidAppointments->sum('service_price');
+        
         return view('shop.analytics.index', compact(
             'totalAppointments',
             'totalRevenue',
@@ -76,7 +91,9 @@ class AnalyticsController extends Controller
             'leastBookedService',
             'hourlyBookings',
             'peakBookingHour',
-            'dayOfWeekBookings'
+            'dayOfWeekBookings',
+            'paidAppointments',
+            'paidRevenue'
         ));
     }
     
@@ -285,5 +302,83 @@ class AnalyticsController extends Controller
         }
         
         return $months;
+    }
+    
+    /**
+     * Export analytics data based on type (pdf, excel, csv)
+     * 
+     * @param string $type
+     * @return \Symfony\Component\HttpFoundation\BinaryFileResponse|\Illuminate\Http\Response
+     */
+    public function export($type)
+    {
+        $shop = Auth::user()->shop;
+        $filename = 'shop_analytics_report_' . now()->format('Y-m-d_H-i-s');
+        
+        // Basic stats
+        $totalAppointments = Appointment::where('shop_id', $shop->id)->count();
+        $totalRevenue = Appointment::where('shop_id', $shop->id)
+            ->where('status', 'completed')
+            ->sum('service_price');
+        $totalCustomers = Appointment::where('shop_id', $shop->id)
+            ->distinct('user_id')
+            ->count('user_id');
+        $activeServices = Service::where('shop_id', $shop->id)
+            ->where('status', 'active')
+            ->count();
+            
+        // Monthly metrics
+        $monthlyRevenue = $this->getMonthlyRevenue($shop->id);
+            
+        // Get paid appointments
+        $paidAppointments = Appointment::where('shop_id', $shop->id)
+            ->with(['user', 'pet', 'employee'])
+            ->where('payment_status', 'paid')
+            ->where('status', 'completed')
+            ->orderBy('paid_at', 'desc')
+            ->limit(50)
+            ->get();
+            
+        // Format data for export
+        $reportData = [
+            'shop_name' => $shop->name,
+            'shop_type' => ucfirst($shop->type),
+            'generated_at' => now()->format('F d, Y h:i A'),
+            'summary' => [
+                'total_appointments' => $totalAppointments,
+                'total_revenue' => '₱' . number_format($totalRevenue, 2),
+                'total_customers' => $totalCustomers,
+                'active_services' => $activeServices,
+            ],
+            'monthly_revenue' => $monthlyRevenue,
+            'paid_appointments' => $paidAppointments->map(function($appointment) {
+                return [
+                    'customer' => $appointment->user->first_name . ' ' . $appointment->user->last_name,
+                    'email' => $appointment->user->email,
+                    'pet' => $appointment->pet->name,
+                    'service' => $appointment->service_type,
+                    'employee' => $appointment->employee ? $appointment->employee->name : 'Not assigned',
+                    'date' => $appointment->appointment_date->format('M d, Y'),
+                    'time' => $appointment->appointment_date->format('h:i A'),
+                    'amount' => '₱' . number_format($appointment->service_price, 2),
+                    'paid_at' => $appointment->paid_at ? $appointment->paid_at->format('M d, Y h:i A') : 'N/A',
+                ];
+            })
+        ];
+        
+        switch ($type) {
+            case 'pdf':
+                $pdf = PDF::loadView('exports.analytics_pdf', ['data' => $reportData]);
+                return $pdf->download($filename . '.pdf');
+                
+            case 'excel':
+                return Excel::download(new AnalyticsExport($reportData), $filename . '.xlsx');
+                
+            case 'csv':
+                return Excel::download(new AnalyticsExport($reportData), $filename . '.csv');
+                
+            default:
+                return back()->with('error', 'Invalid export type');
+        }
     }
 } 

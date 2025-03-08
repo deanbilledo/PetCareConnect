@@ -39,13 +39,9 @@ require __DIR__.'/shop.php';
 
 // Public routes
 Route::get('/', [HomeController::class, 'index'])->name('home');
-Route::get('/petlandingpage', function () {
-    return view('groomVetLandingPage.petlandingpage');
-})->name('petlandingpage');
+Route::get('/petlandingpage', [\App\Http\Controllers\VeterinaryController::class, 'index'])->name('petlandingpage');
 Route::get('/book/{shop}', [BookingController::class, 'show'])->name('booking.show');
-Route::get('/grooming', function () {
-    return view('groomVetLandingPage.groominglandingpage');
-})->name('grooming');
+Route::get('/grooming', [\App\Http\Controllers\GroomingController::class, 'index'])->name('grooming');
 Route::get('/grooming-shops', [ShopController::class, 'groomingShops'])->name('groomingShops');
 Route::get('/shops/search-location', [ShopController::class, 'searchByLocation'])->name('shops.searchByLocation');
 Route::get('/shops/all', [ShopController::class, 'getAllShops'])->name('shops.getAllShops');
@@ -132,6 +128,10 @@ Route::middleware(['auth'])->group(function () {
                 Route::put('/{employee}', [ShopEmployeeController::class, 'update'])->name('update');
                 Route::delete('/{employee}', [ShopEmployeeController::class, 'destroy'])->name('destroy');
                 Route::post('/{employee}/restore', [ShopEmployeeController::class, 'restore'])->name('restore');
+                
+                // Employee analytics routes
+                Route::post('/analytics', [ShopEmployeeController::class, 'analytics'])->name('analytics');
+                Route::post('/{employee}/detailed-stats', [ShopEmployeeController::class, 'detailedStats'])->name('detailed-stats');
             });
             
             // Services management routes
@@ -144,7 +144,7 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/services/{service}/discounts', [ShopServicesController::class, 'addDiscount'])->name('services.add-discount');
             
             // Static routes
-            Route::view('/analytics', 'shop.analytics.index')->name('analytics');
+            Route::get('/analytics', [ShopAnalyticsController::class, 'index'])->name('analytics');
             Route::view('/settings', 'shop.settings.index')->name('settings');
             Route::post('/gallery', [ShopProfileController::class, 'uploadGalleryPhoto'])->name('gallery.upload');
             Route::delete('/gallery/{photo}', [ShopProfileController::class, 'deleteGalleryPhoto'])->name('gallery.delete');
@@ -335,6 +335,7 @@ Route::middleware(['auth', 'has-shop'])->group(function () {
     
     // Add analytics route
     Route::get('/shop/analytics', [ShopAnalyticsController::class, 'index'])->name('shop.analytics');
+    Route::get('/shop/analytics/export/{type}', [ShopAnalyticsController::class, 'export'])->name('shop.analytics.export');
 });
 
 // Shop Settings Routes
@@ -380,6 +381,7 @@ Route::middleware(['auth', 'has-shop'])->prefix('shop')->name('shop.')->group(fu
     
     // Add analytics routes
     Route::get('/analytics', [App\Http\Controllers\Shop\AnalyticsController::class, 'index'])->name('analytics');
+    Route::get('/analytics/export/{type}', [App\Http\Controllers\Shop\AnalyticsController::class, 'export'])->name('analytics.export');
     
     // Other routes
 });
