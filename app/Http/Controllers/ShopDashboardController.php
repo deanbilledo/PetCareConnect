@@ -78,7 +78,14 @@ class ShopDashboardController extends Controller
     public function reviews()
     {
         $shop = auth()->user()->shop;
-        return view('shop.reviews.index', compact('shop'));
+        
+        // Get paginated ratings instead of all at once
+        $ratings = $shop->ratings()
+            ->with(['user', 'appointment.employee', 'appointment.services'])
+            ->latest()
+            ->paginate(10);
+            
+        return view('shop.reviews.index', compact('shop', 'ratings'));
     }
 
     public function addComment(Request $request, Rating $rating)

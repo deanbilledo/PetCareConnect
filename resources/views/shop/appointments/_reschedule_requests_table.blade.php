@@ -3,70 +3,76 @@
         @if($rescheduleRequests->isEmpty())
             <p class="text-gray-500 text-center py-4">No pending reschedule requests.</p>
         @else
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200">
+            <!-- Desktop Table View -->
+            <div class="hidden md:block">
+                <table class="w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Current Date/Time</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Requested Date/Time</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reason</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[20%]">Client</th>
+                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[18%]">Current Date/Time</th>
+                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[18%]">Requested Date/Time</th>
+                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[14%]">Service</th>
+                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[20%]">Reason</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[10%]">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
                         @foreach($rescheduleRequests as $appointment)
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap">
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-4 py-4">
                                     <div class="flex items-center">
-                                        <div class="ml-4">
-                                            <div class="text-sm font-medium text-gray-900">
+                                        <div class="flex-shrink-0 h-10 w-10 mr-3">
+                                            <img class="h-10 w-10 rounded-full object-cover" 
+                                                 src="{{ asset('images/default-profile.png') }}" 
+                                                 alt="{{ $appointment->user->name }}">
+                                        </div>
+                                        <div>
+                                            <div class="text-sm font-medium text-gray-900 truncate max-w-[180px]">
                                                 {{ $appointment->user->name }}
                                             </div>
-                                            <div class="text-sm text-gray-500">
+                                            <div class="text-sm text-gray-500 truncate max-w-[180px]">
                                                 {{ $appointment->user->email }}
                                             </div>
                                         </div>
                                     </div>
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm text-gray-900">
+                                <td class="px-3 py-4">
+                                    <div class="text-sm font-medium text-gray-900">
                                         {{ $appointment->appointment_date->format('F j, Y') }}
                                     </div>
                                     <div class="text-sm text-gray-500">
                                         {{ $appointment->appointment_date->format('g:i A') }}
                                     </div>
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm text-gray-900">
+                                <td class="px-3 py-4">
+                                    <div class="text-sm font-medium text-gray-900">
                                         {{ \Carbon\Carbon::parse($appointment->requested_date)->format('F j, Y') }}
                                     </div>
                                     <div class="text-sm text-gray-500">
                                         {{ \Carbon\Carbon::parse($appointment->requested_date)->format('g:i A') }}
                                     </div>
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
+                                <td class="px-3 py-4">
                                     <div class="text-sm text-gray-900">
                                         {{ $appointment->requested_service ?: $appointment->service }}
                                     </div>
                                 </td>
-                                <td class="px-6 py-4">
-                                    <div class="text-sm text-gray-900">
+                                <td class="px-3 py-4">
+                                    <div class="text-sm text-gray-900 line-clamp-2">
                                         {{ $appointment->reschedule_reason }}
                                     </div>
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    <div class="flex space-x-3">
+                                <td class="px-4 py-4 text-right text-sm font-medium">
+                                    <div class="flex gap-2 justify-end">
                                         <button
                                             onclick="approveReschedule({{ $appointment->id }})"
-                                            class="text-green-600 hover:text-green-900"
+                                            class="text-green-600 hover:text-green-900 bg-green-50 px-2 py-1 rounded-full text-xs font-medium"
                                         >
                                             Approve
                                         </button>
                                         <button
                                             onclick="showDeclineRescheduleModal({{ $appointment->id }})"
-                                            class="text-red-600 hover:text-red-900"
+                                            class="text-red-600 hover:text-red-900 bg-red-50 px-2 py-1 rounded-full text-xs font-medium"
                                         >
                                             Decline
                                         </button>
@@ -76,6 +82,71 @@
                         @endforeach
                     </tbody>
                 </table>
+            </div>
+            
+            <!-- Mobile Card View -->
+            <div class="md:hidden divide-y divide-gray-200">
+                @foreach($rescheduleRequests as $appointment)
+                    <div class="p-4">
+                        <!-- Client Info -->
+                        <div class="flex items-center mb-4">
+                            <div class="h-12 w-12 rounded-full overflow-hidden mr-3">
+                                <img class="h-full w-full object-cover" 
+                                     src="{{ asset('images/default-profile.png') }}" 
+                                     alt="{{ $appointment->user->name }}">
+                            </div>
+                            <div>
+                                <div class="font-medium text-gray-900">{{ $appointment->user->name }}</div>
+                                <div class="text-sm text-gray-500">{{ $appointment->user->email }}</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Dates Comparison -->
+                        <div class="bg-gray-50 rounded-lg p-3 mb-3">
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <div class="text-xs text-gray-500 uppercase font-semibold mb-1">Current Date/Time</div>
+                                    <div class="text-sm font-medium">
+                                        {{ $appointment->appointment_date->format('F j, Y') }}<br>
+                                        {{ $appointment->appointment_date->format('g:i A') }}
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="text-xs text-gray-500 uppercase font-semibold mb-1">Requested Date/Time</div>
+                                    <div class="text-sm font-medium">
+                                        {{ \Carbon\Carbon::parse($appointment->requested_date)->format('F j, Y') }}<br>
+                                        {{ \Carbon\Carbon::parse($appointment->requested_date)->format('g:i A') }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Service and Reason -->
+                        <div class="mb-4">
+                            <div class="text-sm text-gray-500 mb-1">Service</div>
+                            <div class="text-sm font-medium mb-3">{{ $appointment->requested_service ?: $appointment->service }}</div>
+                            
+                            <div class="text-sm text-gray-500 mb-1">Reason for Reschedule</div>
+                            <div class="text-sm font-medium bg-gray-50 p-3 rounded-lg">{{ $appointment->reschedule_reason }}</div>
+                        </div>
+                        
+                        <!-- Actions -->
+                        <div class="flex gap-2 mt-4">
+                            <button
+                                onclick="approveReschedule({{ $appointment->id }})"
+                                class="flex-1 text-center bg-green-100 text-green-800 px-3 py-2 rounded-lg text-sm font-medium"
+                            >
+                                Approve
+                            </button>
+                            <button
+                                onclick="showDeclineRescheduleModal({{ $appointment->id }})"
+                                class="flex-1 text-center bg-red-100 text-red-800 px-3 py-2 rounded-lg text-sm font-medium"
+                            >
+                                Decline
+                            </button>
+                        </div>
+                    </div>
+                @endforeach
             </div>
         @endif
     </div>

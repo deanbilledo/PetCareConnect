@@ -1,9 +1,40 @@
-@extends('layouts.app')
+@extends('layouts.shop')
 
 @section('content')
 @push('styles')
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.bootstrap5.css" rel="stylesheet">
+    <style>
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            color: white;
+        }
+        
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid white;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 1rem;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
 @endpush
 
 <div class="py-12">
@@ -243,6 +274,13 @@
             </div>
         </div>
     </div>
+</div>
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay" class="loading-overlay" style="display: none;">
+    <div class="spinner"></div>
+    <p class="text-xl">Processing your request...</p>
+    <p class="text-sm mt-2">Please wait, do not close this page.</p>
 </div>
 
 <!-- Add/Edit Service Modal -->
@@ -514,6 +552,17 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     let currentServiceId = null;
+    let isSubmitting = false; // Track submission state
+
+    // Function to show loading overlay
+    function showLoadingOverlay() {
+        document.getElementById('loadingOverlay').style.display = 'flex';
+    }
+
+    // Function to hide loading overlay
+    function hideLoadingOverlay() {
+        document.getElementById('loadingOverlay').style.display = 'none';
+    }
 
     // Initialize form elements only if they exist
     const serviceForm = document.getElementById('serviceForm');
@@ -523,6 +572,15 @@ document.addEventListener('DOMContentLoaded', function() {
     if (serviceForm) {
         serviceForm.addEventListener('submit', function(e) {
             e.preventDefault();
+            
+            // Prevent duplicate submissions
+            if (isSubmitting) {
+                console.log('Form submission in progress, please wait...');
+                return;
+            }
+            
+            isSubmitting = true;
+            showLoadingOverlay();
             
             // Get all selected pet types including 'Exotic' if exotic_pet_service is checked
             const selectedPetTypes = Array.from(document.querySelectorAll('input[name="pet_types[]"]:checked')).map(cb => cb.value);
@@ -539,12 +597,16 @@ document.addEventListener('DOMContentLoaded', function() {
             // Validate that at least one pet type is selected
             if (selectedPetTypes.length === 0) {
                 alert('Please select at least one pet type');
+                hideLoadingOverlay();
+                isSubmitting = false;
                 return;
             }
 
             // Validate that at least one employee is selected
             if (selectedEmployeeIds.length === 0) {
                 alert('Please assign at least one employee to this service');
+                hideLoadingOverlay();
+                isSubmitting = false;
                 return;
             }
             
@@ -567,28 +629,40 @@ document.addEventListener('DOMContentLoaded', function() {
             // Validate required fields
             if (!formData.name) {
                 alert('Service name is required');
+                hideLoadingOverlay();
+                isSubmitting = false;
                 return;
             }
             if (!formData.category) {
                 alert('Category is required');
+                hideLoadingOverlay();
+                isSubmitting = false;
                 return;
             }
             if (isNaN(formData.base_price) || formData.base_price <= 0) {
                 alert('Please enter a valid base price');
+                hideLoadingOverlay();
+                isSubmitting = false;
                 return;
             }
             if (isNaN(formData.duration) || formData.duration < 15) {
                 alert('Please enter a valid duration (minimum 15 minutes)');
+                hideLoadingOverlay();
+                isSubmitting = false;
                 return;
             }
             if (formData.size_ranges.length === 0) {
                 alert('Please select at least one size range');
+                hideLoadingOverlay();
+                isSubmitting = false;
                 return;
             }
 
             // Add validation for exotic pet species
             if (formData.exotic_pet_service && formData.exotic_pet_species.length === 0) {
                 alert('Please add at least one exotic pet species when exotic pet service is enabled');
+                hideLoadingOverlay();
+                isSubmitting = false;
                 return;
             }
 
@@ -627,8 +701,8 @@ document.addEventListener('DOMContentLoaded', function() {
             .catch(error => {
                 console.error('Error:', error);
                 alert(error.message || 'Failed to save service. Please try again.');
-            })
-            .finally(() => {
+                hideLoadingOverlay();
+                isSubmitting = false;
                 if (submitButton) submitButton.disabled = false;
             });
         });
@@ -927,6 +1001,10 @@ document.addEventListener('DOMContentLoaded', function() {
             const exoticPetSpeciesSection = document.querySelector('.exotic-species-section');
             if (exoticPetServiceCheckbox) exoticPetServiceCheckbox.checked = false;
             if (exoticPetSpeciesSection) exoticPetSpeciesSection.style.display = 'none';
+            
+            // Reset submission state
+            isSubmitting = false;
+            hideLoadingOverlay();
         }
     };
 
@@ -1141,6 +1219,10 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('serviceIdForDiscount').value = '';
             const form = document.getElementById('discountForm');
             if (form) form.reset();
+            
+            // Reset submission state
+            isSubmitting = false;
+            hideLoadingOverlay();
         }
     };
 
@@ -1159,6 +1241,15 @@ document.addEventListener('DOMContentLoaded', function() {
         discountForm.addEventListener('submit', function(e) {
             e.preventDefault();
             
+            // Prevent duplicate submissions
+            if (isSubmitting) {
+                console.log('Form submission in progress, please wait...');
+                return;
+            }
+            
+            isSubmitting = true;
+            showLoadingOverlay();
+            
             const serviceId = document.getElementById('serviceIdForDiscount').value;
             const formData = {
                 discount_type: document.getElementById('discountType').value,
@@ -1172,20 +1263,30 @@ document.addEventListener('DOMContentLoaded', function() {
             // Validate discount value
             if (isNaN(formData.discount_value) || formData.discount_value <= 0) {
                 alert('Please enter a valid discount value');
+                hideLoadingOverlay();
+                isSubmitting = false;
                 return;
             }
 
             // Validate dates
             if (new Date(formData.valid_until) <= new Date(formData.valid_from)) {
                 alert('Valid until date must be after valid from date');
+                hideLoadingOverlay();
+                isSubmitting = false;
                 return;
             }
 
             // Validate percentage discount
             if (formData.discount_type === 'percentage' && formData.discount_value > 100) {
                 alert('Percentage discount cannot be more than 100%');
+                hideLoadingOverlay();
+                isSubmitting = false;
                 return;
             }
+
+            // Disable submit button
+            const submitButton = discountForm.querySelector('button[type="submit"]');
+            if (submitButton) submitButton.disabled = true;
 
             fetch(`/shop/services/${serviceId}/discounts`, {
                 method: 'POST',
@@ -1212,6 +1313,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         message: error.message || 'Failed to add discount. Please try again.'
                     }
                 }));
+                hideLoadingOverlay();
+                isSubmitting = false;
+                if (submitButton) submitButton.disabled = false;
             });
         });
     }

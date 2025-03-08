@@ -445,4 +445,202 @@ class ShopEmployeeController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Get employee analytics data for performance tab
+     * 
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function analytics(Request $request)
+    {
+        $shop = auth()->user()->shop;
+        $period = $request->input('period', 30); // Default to 30 days
+        $serviceType = $request->input('service_type', '');
+        
+        // Set date range based on period
+        $endDate = now();
+        $startDate = ($period === 'all') ? null : now()->subDays($period);
+        
+        // Build the base query for appointments
+        $appointmentsQuery = $shop->appointments()
+            ->where('status', 'completed');
+            
+        // Apply date filter if not 'all time'
+        if ($startDate) {
+            $appointmentsQuery->whereBetween('created_at', [$startDate, $endDate]);
+        }
+        
+        // Apply service type filter if specified
+        if ($serviceType) {
+            $appointmentsQuery->where('service_type', $serviceType);
+        }
+        
+        // Get all relevant appointments
+        $appointments = $appointmentsQuery->with(['staffRatings', 'employee'])->get();
+        
+        // Initialize aggregate stats
+        $totalStats = [
+            'completed' => 0,
+            'revenue' => 0,
+            'avgRating' => 0,
+            'avgTime' => 0,
+        ];
+        
+        // Initialize employee stats tracking
+        $employeeStats = [];
+        
+        // Process all appointments
+        foreach ($appointments as $appointment) {
+            // Skip if no employee assigned
+            if (!$appointment->employee_id) continue;
+            
+            // Update total stats
+            $totalStats['completed']++;
+            $totalStats['revenue'] += $appointment->service_price;
+            
+            // Initialize employee entry if not exists
+            if (!isset($employeeStats[$appointment->employee_id])) {
+                $employee = $appointment->employee;
+                $employeeStats[$appointment->employee_id] = [
+                    'id' => $employee->id,
+                    'name' => $employee->name,
+                    'position' => $employee->position,
+                    'profile_photo_url' => $employee->profile_photo_url,
+                    'completed' => 0,
+                    'revenue' => 0,
+                    'ratings' => [],
+                    'avg_rating' => 0,
+                    'avg_completion_time' => 0
+                ];
+            }
+            
+            // Update employee stats
+            $employeeStats[$appointment->employee_id]['completed']++;
+            $employeeStats[$appointment->employee_id]['revenue'] += $appointment->service_price;
+            
+            // Get staff rating for this appointment if it exists
+            $staffRating = $appointment->staffRatings()->first();
+            if ($staffRating) {
+                $employeeStats[$appointment->employee_id]['ratings'][] = $staffRating->rating;
+                
+                // Add to total ratings count for calculating overall average
+                if (!isset($totalStats['ratingSum'])) $totalStats['ratingSum'] = 0;
+                if (!isset($totalStats['ratingCount'])) $totalStats['ratingCount'] = 0;
+                $totalStats['ratingSum'] += $staffRating->rating;
+                $totalStats['ratingCount']++;
+            }
+        }
+        
+        // Calculate averages for each employee
+        foreach ($employeeStats as $employeeId => $stats) {
+            if (count($stats['ratings']) > 0) {
+                $employeeStats[$employeeId]['avg_rating'] = array_sum($stats['ratings']) / count($stats['ratings']);
+            }
+            
+            // Set a placeholder completion time (this would ideally come from real data)
+            $employeeStats[$employeeId]['avg_completion_time'] = rand(30, 90);
+        }
+        
+        // Calculate overall averages
+        if ($totalStats['completed'] > 0) {
+            $totalStats['avgTime'] = 60; // Placeholder - would come from real data
+        }
+        
+        if (isset($totalStats['ratingCount']) && $totalStats['ratingCount'] > 0) {
+            $totalStats['avgRating'] = $totalStats['ratingSum'] / $totalStats['ratingCount'];
+        }
+        
+        // Remove temp calculation fields
+        unset($totalStats['ratingSum']);
+        unset($totalStats['ratingCount']);
+        
+        // Convert to array of employee stats
+        $employeeStatsArray = array_values($employeeStats);
+        
+        return response()->json([
+            'success' => true,
+            'stats' => [
+                'total' => $totalStats,
+                'employees' => $employeeStatsArray
+            ]
+        ]);
+    }
+    
+    /**
+     * Get detailed stats for a specific employee
+     * 
+     * @param \Illuminate\Http\Request $request
+     * @param \App\Models\Employee $employee
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function detailedStats(Request $request, Employee $employee)
+    {
+        // Check if the employee belongs to the authenticated user's shop
+        if ($employee->shop_id !== auth()->user()->shop->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized access'
+            ], 403);
+        }
+        
+        $period = $request->input('period', 30);
+        $serviceType = $request->input('service_type', '');
+        
+        // Set date range based on period
+        $endDate = now();
+        $startDate = ($period === 'all') ? null : now()->subDays($period);
+        
+        // Get recent appointments for this employee
+        $appointmentsQuery = $employee->appointments()
+            ->where('status', 'completed')
+            ->orderBy('appointment_date', 'desc');
+            
+        // Apply date filter if not 'all time'
+        if ($startDate) {
+            $appointmentsQuery->whereBetween('created_at', [$startDate, $endDate]);
+        }
+        
+        // Apply service type filter if specified
+        if ($serviceType) {
+            $appointmentsQuery->where('service_type', $serviceType);
+        }
+        
+        $appointments = $appointmentsQuery->with(['staffRatings', 'user'])->limit(10)->get();
+        
+        // Format recent appointments
+        $recentAppointments = $appointments->map(function($appointment) {
+            $staffRating = $appointment->staffRatings()->first();
+            return [
+                'id' => $appointment->id,
+                'date' => $appointment->appointment_date,
+                'service_type' => $appointment->service_type,
+                'revenue' => $appointment->service_price,
+                'rating' => $staffRating ? $staffRating->rating : null,
+            ];
+        });
+        
+        // Get reviews
+        $reviews = [];
+        foreach ($appointments as $appointment) {
+            $staffRating = $appointment->staffRatings()->first();
+            if ($staffRating && ($staffRating->review || $staffRating->rating > 0)) {
+                $reviews[] = [
+                    'id' => $staffRating->id,
+                    'rating' => $staffRating->rating,
+                    'review' => $staffRating->review,
+                    'date' => $staffRating->created_at,
+                    'customer_name' => $appointment->user->first_name . ' ' . $appointment->user->last_name,
+                ];
+            }
+        }
+        
+        return response()->json([
+            'success' => true,
+            'details' => [
+                'recent_appointments' => $recentAppointments,
+                'reviews' => $reviews
+            ]
+        ]);
+    }
 }

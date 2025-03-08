@@ -61,22 +61,22 @@ use Illuminate\Support\Facades\Storage;
         this.closeNoteModal();
         window.location.reload();
     }
-}" class="container mx-auto px-4 py-8">
-    <div class="bg-white rounded-lg shadow-lg p-6">
+}" class="w-full">
+    <div class="bg-white rounded-lg shadow-lg p-4 sm:p-6">
         <!-- Shop Header -->
-        <div class="flex items-center justify-between mb-6">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
             <div class="flex items-center space-x-4">
                 <img 
                     src="{{ $shop->image_url }}" 
                     alt="{{ $shop->name }}" 
-                    class="w-16 h-16 rounded-full object-cover"
+                    class="w-12 h-12 sm:w-16 sm:h-16 rounded-full object-cover"
                 >
                 <div>
-                    <h1 class="text-2xl font-bold">{{ $shop->name }}</h1>
+                    <h1 class="text-xl sm:text-2xl font-bold">{{ $shop->name }}</h1>
                     <p class="text-gray-600">{{ ucfirst($shop->type) }} Shop</p>
                 </div>
             </div>
-            <div class="flex items-center space-x-4">
+            <div class="flex items-center">
                 <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
                     Open
                 </span>
@@ -84,12 +84,12 @@ use Illuminate\Support\Facades\Storage;
         </div>
 
         <!-- Quick Stats -->
-        <div class="grid grid-cols-2 gap-6 mb-8">
+        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6 mb-8">
             <!-- Today's Appointments -->
-            <div class="bg-blue-50 p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+            <div class="bg-blue-50 p-4 sm:p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow">
                 <div class="flex flex-col">
                     <h3 class="text-blue-800 text-sm font-medium mb-2">Today's Appointments</h3>
-                    <p class="text-3xl font-bold text-blue-900">{{ $todayAppointments }}</p>
+                    <p class="text-2xl sm:text-3xl font-bold text-blue-900">{{ $todayAppointments }}</p>
                     <p class="text-blue-600 text-sm mt-2">
                         @if($todayAppointments > 0)
                             Scheduled for today
@@ -101,86 +101,97 @@ use Illuminate\Support\Facades\Storage;
             </div>
 
             <!-- Total Revenue -->
-            <div class="bg-green-50 p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+            <div class="bg-green-50 p-4 sm:p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow">
                 <div class="flex flex-col">
                     <h3 class="text-green-800 text-sm font-medium mb-2">Total Revenue</h3>
-                    <p class="text-3xl font-bold text-green-900">₱{{ number_format($totalRevenue, 2) }}</p>
+                    <p class="text-2xl sm:text-3xl font-bold text-green-900">₱{{ number_format($totalRevenue, 2) }}</p>
                     <p class="text-green-600 text-sm mt-2">Overall earnings</p>
                 </div>
             </div>
 
             <!-- Pending Appointments -->
-            <div class="bg-yellow-50 p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+            <div class="bg-yellow-50 p-4 sm:p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow">
                 <div class="flex flex-col">
                     <h3 class="text-yellow-800 text-sm font-medium mb-2">Pending Appointments</h3>
-                    <p class="text-3xl font-bold text-yellow-900">{{ $pendingAppointments }}</p>
+                    <p class="text-2xl sm:text-3xl font-bold text-yellow-900">{{ $pendingAppointments }}</p>
                     <p class="text-yellow-600 text-sm mt-2">Awaiting service</p>
                 </div>
             </div>
 
             <!-- Rating -->
-            <div class="bg-purple-50 p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+            <div class="bg-purple-50 p-4 sm:p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow">
                 <div class="flex flex-col">
                     <h3 class="text-purple-800 text-sm font-medium mb-2">Shop Rating</h3>
-                    <p class="text-3xl font-bold text-purple-900">{{ number_format($shop->rating, 1) }}</p>
+                    <p class="text-2xl sm:text-3xl font-bold text-purple-900">{{ number_format($shop->rating, 1) }}</p>
                     <p class="text-purple-600 text-sm mt-2">Average customer rating</p>
                 </div>
             </div>
         </div>
 
         <!-- Appointments Table -->
-        <div class="mt-8">
-            <div class="flex justify-between items-center mb-4">
+        <div class="mt-8 overflow-hidden">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                 <h2 class="text-xl font-semibold">Recent Appointments</h2>
-                <div class="flex gap-2">
+                <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
                     <select x-data="{ status: 'all' }" 
                             x-model="status" 
                             @change="window.location.href = '{{ route('shop.dashboard') }}?status=' + status"
-                            class="border rounded-md px-3 py-1.5 text-sm">
+                            class="border rounded-md px-3 py-1.5 text-sm w-full sm:w-auto">
                         <option value="all">All Status</option>
                         <option value="pending">Pending</option>
                         <option value="completed">Completed</option>
                         <option value="cancelled">Cancelled</option>
                     </select>
                     <input type="date" 
-                           class="border rounded-md px-3 py-1.5 text-sm"
+                           class="border rounded-md px-3 py-1.5 text-sm w-full sm:w-auto"
                            value="{{ request('date') }}"
                            onchange="window.location.href = '{{ route('shop.dashboard') }}?date=' + this.value">
                 </div>
             </div>
 
-            <div class="bg-white rounded-lg border overflow-hidden">
+            <!-- Table for larger screens -->
+            <div class="hidden md:block overflow-x-auto rounded-lg border">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[20%]">
                                 Customer
                             </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[15%]">
                                 Pet
                             </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[15%]">
                                 Service
                             </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[15%]">
+                                Employee
+                            </th>
+                            <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[10%]">
                                 Date & Time
                             </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[10%]">
                                 Status
                             </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[10%]">
                                 Price
                             </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[10%]">
                                 Actions
                             </th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
                         @forelse($appointments as $appointment)
-                            <tr class="hover:bg-gray-50">
-                                <td class="px-6 py-4 whitespace-nowrap">
+                            <tr class="hover:bg-gray-50 cursor-pointer" onclick="viewAppointment({{ $appointment->id }})">
+                                <td class="px-4 sm:px-6 py-4">
                                     <div class="flex items-center">
+                                        <div class="flex-shrink-0 h-10 w-10 mr-3">
+                                            <div class="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500">
+                                                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                                </svg>
+                                            </div>
+                                        </div>
                                         <div>
                                             <div class="text-sm font-medium text-gray-900">
                                                 {{ $appointment->user->first_name }} {{ $appointment->user->last_name }}
@@ -191,23 +202,41 @@ use Illuminate\Support\Facades\Storage;
                                         </div>
                                     </div>
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm text-gray-900">{{ $appointment->pet->name }}</div>
+                                <td class="px-4 sm:px-6 py-4">
+                                    <div class="text-sm font-medium text-gray-900">{{ $appointment->pet->name }}</div>
                                     <div class="text-sm text-gray-500">{{ $appointment->pet->breed }}</div>
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
+                                <td class="px-4 sm:px-6 py-4">
                                     <div class="text-sm text-gray-900">{{ $appointment->service_type }}</div>
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm text-gray-900">
+                                <td class="px-4 sm:px-6 py-4">
+                                    <div class="flex items-center">
+                                        @if($appointment->employee)
+                                            <div class="flex-shrink-0 h-8 w-8 mr-2">
+                                                <img class="h-8 w-8 rounded-full object-cover" 
+                                                     src="{{ $appointment->employee->profile_photo ? asset('storage/' . $appointment->employee->profile_photo) : $appointment->employee->getProfilePhotoUrlAttribute() }}" 
+                                                     alt="{{ $appointment->employee->name }}"
+                                                     onerror="this.src='{{ asset('images/default-profile.png') }}'">
+                                            </div>
+                                            <div>
+                                                <div class="text-sm font-medium text-gray-900">{{ $appointment->employee->name }}</div>
+                                                <div class="text-xs text-gray-500">{{ $appointment->employee->position }}</div>
+                                            </div>
+                                        @else
+                                            <span class="text-sm text-gray-500">Not assigned</span>
+                                        @endif
+                                    </div>
+                                </td>
+                                <td class="px-4 sm:px-6 py-4">
+                                    <div class="text-sm font-medium text-gray-900">
                                         {{ $appointment->appointment_date->format('M d, Y') }}
                                     </div>
                                     <div class="text-sm text-gray-500">
                                         {{ $appointment->appointment_date->format('g:i A') }}
                                     </div>
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                <td class="px-4 sm:px-6 py-4">
+                                    <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
                                         @if($appointment->status === 'completed') bg-green-100 text-green-800
                                         @elseif($appointment->status === 'cancelled') bg-red-100 text-red-800
                                         @else bg-blue-100 text-blue-800
@@ -215,58 +244,138 @@ use Illuminate\Support\Facades\Storage;
                                         {{ ucfirst($appointment->status) }}
                                     </span>
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <td class="px-4 sm:px-6 py-4 text-sm text-gray-900 font-medium">
                                     ₱{{ number_format($appointment->service_price, 2) }}
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    @if($appointment->status === 'pending')
-                                        <button onclick="showAcceptModal({{ $appointment->id }})" 
-                                                class="text-green-600 hover:text-green-900 bg-green-50 px-3 py-1 rounded-full text-sm font-medium mr-2">
-                                            Accept
-                                        </button>
-                                        <button onclick="showCancelModal({{ $appointment->id }})"
-                                                class="text-red-600 hover:text-red-900 bg-red-50 px-3 py-1 rounded-full text-sm font-medium">
-                                            Cancel
-                                        </button>
-                                    @elseif($appointment->status === 'accepted')
-                                        <button onclick="showMarkAsPaidModal({{ $appointment->id }})"
-                                                class="text-blue-600 hover:text-blue-900 bg-blue-50 px-3 py-1 rounded-full text-sm font-medium">
-                                            Mark as Paid
-                                        </button>
-                                    @elseif($appointment->status === 'completed')
-                                        <span class="text-green-600 bg-green-50 px-3 py-1 rounded-full text-sm font-medium">
-                                            Completed (Paid)
-                                        </span>
-                                        <button @click="openNoteModal({{ $appointment->id }}, '{{ $appointment->shop->type }}')"
-                                                class="text-indigo-600 hover:text-indigo-800 bg-indigo-50 px-3 py-1 rounded-full text-sm font-medium ml-2">
-                                            {{ $appointment->shop->type === 'grooming' ? "Groomer's Note" : "Doctor's Note" }}
-                                        </button>
-                                    @elseif($appointment->status === 'cancelled')
-                                        <span class="text-red-600 bg-red-50 px-3 py-1 rounded-full text-sm font-medium">
-                                            Cancelled
-                                        </span>
-                                    @endif
+                                <td class="px-4 sm:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <div class="flex flex-wrap justify-end gap-2" onclick="event.stopPropagation()">
+                                        @if($appointment->status === 'pending')
+                                            <button onclick="showAcceptModal({{ $appointment->id }})" 
+                                                    class="text-green-600 hover:text-green-900 bg-green-50 px-2 sm:px-3 py-1 rounded-full text-sm font-medium">
+                                                Accept
+                                            </button>
+                                            <button onclick="showCancelModal({{ $appointment->id }})"
+                                                    class="text-red-600 hover:text-red-900 bg-red-50 px-2 sm:px-3 py-1 rounded-full text-sm font-medium">
+                                                Cancel
+                                            </button>
+                                        @elseif($appointment->status === 'accepted')
+                                            <button onclick="showMarkAsPaidModal({{ $appointment->id }})"
+                                                    class="text-blue-600 hover:text-blue-900 bg-blue-50 px-2 sm:px-3 py-1 rounded-full text-sm font-medium">
+                                                Mark as Paid
+                                            </button>
+                                        @elseif($appointment->status === 'completed')
+                                            <button @click="openNoteModal({{ $appointment->id }}, '{{ $appointment->shop->type }}')"
+                                                    class="text-indigo-600 hover:text-indigo-800 bg-indigo-50 px-2 sm:px-3 py-1 rounded-full text-sm font-medium">
+                                                Notes
+                                            </button>
+                                        @elseif($appointment->status === 'cancelled')
+                                            <span class="text-red-600 bg-red-50 px-2 sm:px-3 py-1 rounded-full text-sm font-medium">
+                                                Cancelled
+                                            </span>
+                                        @endif
+                                    </div>
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="px-6 py-4 text-center text-gray-500">
+                                <td colspan="8" class="px-4 sm:px-6 py-4 text-center text-gray-500">
                                     No appointments found
                                 </td>
                             </tr>
                         @endforelse
                     </tbody>
                 </table>
+            </div>
 
-                <!-- Pagination -->
-                <div class="px-6 py-4 border-t">
-                    {{ $appointments->links() }}
-                </div>
+            <!-- Card view for mobile screens -->
+            <div class="md:hidden space-y-4">
+                @forelse($appointments as $appointment)
+                    <div class="bg-white rounded-lg border shadow-sm p-4" onclick="viewAppointment({{ $appointment->id }})">
+                        <div class="flex justify-between items-start mb-3">
+                            <div>
+                                <h3 class="font-medium">{{ $appointment->user->first_name }} {{ $appointment->user->last_name }}</h3>
+                                <p class="text-sm text-gray-500">{{ $appointment->user->email }}</p>
+                            </div>
+                            <span class="px-2 py-1 text-xs font-semibold rounded-full 
+                                @if($appointment->status === 'completed') bg-green-100 text-green-800
+                                @elseif($appointment->status === 'cancelled') bg-red-100 text-red-800
+                                @else bg-blue-100 text-blue-800
+                                @endif">
+                                {{ ucfirst($appointment->status) }}
+                            </span>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-2 mb-3 text-sm">
+                            <div>
+                                <p class="text-gray-500">Pet:</p>
+                                <p>{{ $appointment->pet->name }} ({{ $appointment->pet->breed }})</p>
+                            </div>
+                            <div>
+                                <p class="text-gray-500">Service:</p>
+                                <p>{{ $appointment->service_type }}</p>
+                            </div>
+                            <div>
+                                <p class="text-gray-500">Date:</p>
+                                <p>{{ $appointment->appointment_date->format('M d, Y') }}</p>
+                            </div>
+                            <div>
+                                <p class="text-gray-500">Time:</p>
+                                <p>{{ $appointment->appointment_date->format('g:i A') }}</p>
+                            </div>
+                            <div>
+                                <p class="text-gray-500">Price:</p>
+                                <p class="font-medium">₱{{ number_format($appointment->service_price, 2) }}</p>
+                            </div>
+                            <div>
+                                <p class="text-gray-500">Employee:</p>
+                                <p>
+                                    @if($appointment->employee)
+                                        {{ $appointment->employee->name }}
+                                    @else
+                                        Not assigned
+                                    @endif
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4 flex flex-wrap gap-2" onclick="event.stopPropagation()">
+                            @if($appointment->status === 'pending')
+                                <button onclick="showAcceptModal({{ $appointment->id }})" 
+                                        class="flex-1 text-center text-green-600 hover:text-green-900 bg-green-50 px-3 py-2 rounded-lg text-sm font-medium">
+                                    Accept
+                                </button>
+                                <button onclick="showCancelModal({{ $appointment->id }})"
+                                        class="flex-1 text-center text-red-600 hover:text-red-900 bg-red-50 px-3 py-2 rounded-lg text-sm font-medium">
+                                    Cancel
+                                </button>
+                            @elseif($appointment->status === 'accepted')
+                                <button onclick="showMarkAsPaidModal({{ $appointment->id }})"
+                                        class="w-full text-center text-blue-600 hover:text-blue-900 bg-blue-50 px-3 py-2 rounded-lg text-sm font-medium">
+                                    Mark as Paid
+                                </button>
+                            @elseif($appointment->status === 'completed')
+                                <button @click="openNoteModal({{ $appointment->id }}, '{{ $appointment->shop->type }}')"
+                                        class="w-full text-center text-indigo-600 hover:text-indigo-800 bg-indigo-50 px-3 py-2 rounded-lg text-sm font-medium">
+                                    {{ $appointment->shop->type === 'grooming' ? "Groomer's Note" : "Doctor's Note" }}
+                                </button>
+                            @endif
+                        </div>
+                    </div>
+                @empty
+                    <div class="bg-white rounded-lg border p-6 text-center text-gray-500">
+                        No appointments found
+                    </div>
+                @endforelse
+            </div>
+
+            <!-- Pagination -->
+            <div class="mt-6 px-4 py-3 border-t bg-white rounded-b-lg">
+                {{ $appointments->links() }}
             </div>
         </div>
     </div>
 
-    <!-- Note Modal -->
+    <!-- Note Modal - Made responsive -->
     <div x-show="showNoteModal" 
          x-cloak 
          class="fixed inset-0 z-50 overflow-y-auto"
@@ -348,7 +457,7 @@ use Illuminate\Support\Facades\Storage;
                             </label>
                             <span x-show="noteImage" 
                                   x-text="noteImage?.name"
-                                  class="ml-3 text-sm text-gray-500"></span>
+                                  class="ml-3 text-sm text-gray-500 truncate max-w-[150px]"></span>
                         </div>
                     </div>
 
@@ -375,15 +484,15 @@ use Illuminate\Support\Facades\Storage;
                 </div>
 
                 <!-- Modal Footer -->
-                <div class="bg-gray-50 px-4 py-3 sm:px-6 flex flex-row-reverse gap-2">
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 flex flex-col sm:flex-row-reverse gap-2">
                     <button type="button"
                             @click="saveNote()"
-                            class="inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:text-sm">
+                            class="w-full sm:w-auto inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:text-sm">
                         Save Note
                     </button>
                     <button type="button"
                             @click="closeNoteModal()"
-                            class="inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:text-sm">
+                            class="w-full sm:w-auto inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:text-sm">
                         Cancel
                     </button>
                 </div>
@@ -392,14 +501,34 @@ use Illuminate\Support\Facades\Storage;
     </div>
 </div>
 
-<!-- Accept Modal -->
+<!-- Responsive modal styles for mobile -->
+<style>
+@media (max-width: 640px) {
+    .fixed.inset-0.z-50.overflow-y-auto {
+        padding: 0;
+    }
+    
+    .fixed.inset-0.z-50.overflow-y-auto .max-w-lg {
+        max-width: 100%;
+        margin: 0;
+        height: 100%;
+        border-radius: 0;
+    }
+    
+    .fixed.inset-0.z-50.overflow-y-auto .transform {
+        transform: none !important;
+    }
+}
+</style>
+
+<!-- Accept Modal - Made responsive -->
 <div id="acceptModal" 
      x-data="{ show: false, appointmentId: null }"
      x-show="show"
      @accept-modal.window="show = true; appointmentId = $event.detail.appointmentId"
      class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center"
      x-cloak>
-    <div class="relative mx-auto p-8 border w-[500px] shadow-lg rounded-md bg-white">
+    <div class="relative mx-auto p-4 sm:p-8 border w-full max-w-md sm:w-[500px] shadow-lg rounded-md bg-white">
         <div class="text-center">
             <h3 class="text-xl font-semibold text-gray-900 mb-4">Accept Appointment</h3>
             <div class="mt-2">
@@ -508,6 +637,11 @@ function showMarkAsPaidModal(appointmentId) {
     window.dispatchEvent(new CustomEvent('mark-as-paid-modal', {
         detail: { appointmentId: appointmentId }
     }));
+}
+
+function viewAppointment(appointmentId) {
+    // Navigate to the appointment details page with from=dashboard parameter
+    window.location.href = `/shop/appointments/${appointmentId}?from=dashboard`;
 }
 
 async function acceptAppointment(appointmentId) {
@@ -640,7 +774,7 @@ function showNotification(message, type = 'success') {
     const notification = document.createElement('div');
     notification.className = `fixed bottom-4 right-4 px-6 py-3 rounded-lg text-white ${
         type === 'success' ? 'bg-green-500' : 'bg-red-500'
-    } transition-opacity duration-500`;
+    } transition-opacity duration-500 z-50`;
     notification.textContent = message;
     document.body.appendChild(notification);
 
@@ -651,5 +785,13 @@ function showNotification(message, type = 'success') {
         }, 500);
     }, 3000);
 }
+
+// Check for screen size changes to adjust UI
+window.addEventListener('resize', function() {
+    const tableWrapper = document.querySelector('.overflow-x-auto');
+    if (tableWrapper) {
+        tableWrapper.style.maxWidth = window.innerWidth < 640 ? '100vw' : 'none';
+    }
+});
 </script>
 @endpush 

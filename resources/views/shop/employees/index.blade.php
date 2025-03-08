@@ -3,6 +3,22 @@
 @section('styles')
 <meta name="csrf-token" content="{{ csrf_token() }}">
 <link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css' rel='stylesheet' />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.css">
+<style>
+    .productivity-card {
+        transition: transform 0.3s ease;
+    }
+    .productivity-card:hover {
+        transform: translateY(-5px);
+    }
+    .rating-stars {
+        display: inline-flex;
+        align-items: center;
+    }
+    .rating-stars .star {
+        color: #FFC107;
+    }
+</style>
 @endsection
 
 @section('content')
@@ -15,6 +31,12 @@
                             'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': currentTab !== 'list'}"
                     class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
                 Employees List
+            </button>
+            <button @click="currentTab = 'analytics'" 
+                    :class="{'border-blue-500 text-blue-600': currentTab === 'analytics',
+                            'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': currentTab !== 'analytics'}"
+                    class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                Performance Analytics
             </button>
             <button @click="currentTab = 'schedule'" 
                     :class="{'border-blue-500 text-blue-600': currentTab === 'schedule',
@@ -90,6 +112,143 @@
                 <p class="text-gray-500">No employees found. Add your first employee to get started!</p>
             </div>
             @endforelse
+        </div>
+    </div>
+
+    <!-- Performance Analytics Tab -->
+    <div x-show="currentTab === 'analytics'" x-cloak>
+        <div class="mb-6">
+            <h1 class="text-2xl font-bold">Employee Performance Analytics</h1>
+            <p class="text-gray-600">Track employee productivity, completed appointments, and customer ratings</p>
+        </div>
+
+        <!-- Date Filter -->
+        <div class="mb-6 bg-white p-4 rounded-lg shadow-sm">
+            <div class="flex flex-wrap items-center gap-4">
+                <div>
+                    <label for="period-filter" class="block text-sm font-medium text-gray-700 mb-1">Time Period</label>
+                    <select id="period-filter" x-model="analyticsPeriod" @change="loadAnalyticsData()" class="rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                        <option value="7">Last 7 Days</option>
+                        <option value="30">Last 30 Days</option>
+                        <option value="90">Last 90 Days</option>
+                        <option value="365">Last Year</option>
+                        <option value="all">All Time</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="service-filter" class="block text-sm font-medium text-gray-700 mb-1">Service Type</label>
+                    <select id="service-filter" x-model="analyticsServiceType" @change="loadAnalyticsData()" class="rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">All Services</option>
+                        <option value="grooming">Grooming Only</option>
+                        <option value="veterinary">Veterinary Only</option>
+                        <option value="boarding">Boarding Only</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+            <div class="bg-white p-6 rounded-lg shadow-sm border-l-4 border-blue-500">
+                <h3 class="text-lg font-semibold text-gray-800">Total Completed</h3>
+                <p class="text-3xl font-bold text-blue-600 mt-2" x-text="totalStats.completed">0</p>
+                <p class="text-sm text-gray-500 mt-1">appointments completed</p>
+            </div>
+            
+            <div class="bg-white p-6 rounded-lg shadow-sm border-l-4 border-green-500">
+                <h3 class="text-lg font-semibold text-gray-800">Revenue Generated</h3>
+                <p class="text-3xl font-bold text-green-600 mt-2">₱<span x-text="totalStats.revenue.toLocaleString()">0</span></p>
+                <p class="text-sm text-gray-500 mt-1">total revenue</p>
+            </div>
+            
+            <div class="bg-white p-6 rounded-lg shadow-sm border-l-4 border-yellow-500">
+                <h3 class="text-lg font-semibold text-gray-800">Average Rating</h3>
+                <p class="text-3xl font-bold text-yellow-600 mt-2" x-text="totalStats.avgRating.toFixed(1)">0.0</p>
+                <p class="text-sm text-gray-500 mt-1">average customer rating</p>
+            </div>
+            
+            <div class="bg-white p-6 rounded-lg shadow-sm border-l-4 border-purple-500">
+                <h3 class="text-lg font-semibold text-gray-800">Avg. Completion Time</h3>
+                <p class="text-3xl font-bold text-purple-600 mt-2" x-text="totalStats.avgTime">0</p>
+                <p class="text-sm text-gray-500 mt-1">minutes per appointment</p>
+            </div>
+        </div>
+
+        <!-- Performance Comparison Section -->
+        <div class="mb-8">
+            <h2 class="text-xl font-semibold mb-4">Employee Performance Comparison</h2>
+            <div class="bg-white p-6 rounded-lg shadow">
+                <div class="h-80">
+                    <canvas id="employeeComparisonChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Employee Productivity Cards -->
+        <div class="mb-6">
+            <h2 class="text-xl font-semibold mb-4">Individual Employee Productivity</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <template x-for="employee in employeeAnalytics" :key="employee.id">
+                    <div class="bg-white rounded-lg shadow-md overflow-hidden productivity-card">
+                        <div class="p-6">
+                            <div class="flex items-center mb-4">
+                                <img :src="employee.profile_photo_url" 
+                                     :alt="employee.name" 
+                                     class="w-16 h-16 rounded-full object-cover">
+                                <div class="ml-4">
+                                    <h3 class="text-lg font-semibold text-gray-900" x-text="employee.name"></h3>
+                                    <p class="text-sm text-gray-600" x-text="employee.position"></p>
+                                </div>
+                            </div>
+                            
+                            <!-- Analytics Data -->
+                            <div class="space-y-4">
+                                <div class="flex justify-between border-b pb-2">
+                                    <span class="text-gray-600">Completed Appointments:</span>
+                                    <span class="font-semibold text-blue-600" x-text="employee.completed"></span>
+                                </div>
+                                
+                                <div class="flex justify-between border-b pb-2">
+                                    <span class="text-gray-600">Revenue Generated:</span>
+                                    <span class="font-semibold text-green-600">₱<span x-text="employee.revenue.toLocaleString()"></span></span>
+                                </div>
+                                
+                                <div class="flex justify-between border-b pb-2">
+                                    <span class="text-gray-600">Average Rating:</span>
+                                    <div class="flex items-center">
+                                        <span class="font-semibold text-yellow-600 mr-2" x-text="employee.avg_rating.toFixed(1)"></span>
+                                        <div class="rating-stars">
+                                            <template x-for="i in 5" :key="i">
+                                                <span class="star" x-html="i <= Math.round(employee.avg_rating) ? '★' : '☆'"></span>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Avg. Completion Time:</span>
+                                    <span class="font-semibold text-purple-600" x-text="employee.avg_completion_time + ' mins'"></span>
+                                </div>
+                            </div>
+                            
+                            <!-- View Details Button -->
+                            <button @click="showEmployeeDetails(employee.id)" 
+                                    class="mt-4 w-full bg-blue-50 text-blue-600 py-2 rounded-md text-sm font-medium hover:bg-blue-100 transition-colors">
+                                View Detailed Stats
+                            </button>
+                        </div>
+                    </div>
+                </template>
+                
+                <!-- Placeholder card if no employees -->
+                <div x-show="employeeAnalytics.length === 0" class="col-span-full bg-white p-8 rounded-lg shadow-sm text-center">
+                    <svg class="w-16 h-16 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    <p class="mt-4 text-lg text-gray-500">No employee performance data available.</p>
+                    <p class="text-sm text-gray-400 mt-1">Analytics will appear once appointments are completed.</p>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -241,6 +400,125 @@
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Employee Details Modal -->
+    <div x-show="showEmployeeDetailsModal" class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center">
+        <div class="fixed inset-0 bg-black opacity-50" @click="showEmployeeDetailsModal = false"></div>
+        <div class="relative bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center px-6 py-4 border-b">
+                <h3 class="text-xl font-semibold text-gray-900" x-text="selectedEmployee ? selectedEmployee.name + ' - Detailed Performance' : 'Employee Details'"></h3>
+                <button @click="showEmployeeDetailsModal = false" class="text-gray-400 hover:text-gray-500">
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="p-6">
+                <template x-if="selectedEmployee">
+                    <div>
+                        <!-- Employee Info Header -->
+                        <div class="flex items-center mb-6">
+                            <img :src="selectedEmployee.profile_photo_url" :alt="selectedEmployee.name" class="w-16 h-16 rounded-full object-cover">
+                            <div class="ml-4">
+                                <h4 class="text-lg font-semibold" x-text="selectedEmployee.name"></h4>
+                                <p class="text-gray-600" x-text="selectedEmployee.position"></p>
+                            </div>
+                            <div class="ml-auto text-right">
+                                <div class="text-sm text-gray-600">Overall Rating</div>
+                                <div class="flex items-center justify-end mt-1">
+                                    <span class="text-2xl font-bold text-yellow-600 mr-2" x-text="selectedEmployee.avg_rating.toFixed(1)"></span>
+                                    <div class="rating-stars">
+                                        <template x-for="i in 5" :key="i">
+                                            <span class="star text-lg" x-html="i <= Math.round(selectedEmployee.avg_rating) ? '★' : '☆'"></span>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Performance Metrics -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                            <div class="bg-blue-50 p-4 rounded-lg">
+                                <div class="text-sm text-blue-800">Completed Appointments</div>
+                                <div class="text-2xl font-bold text-blue-600" x-text="selectedEmployee.completed"></div>
+                            </div>
+                            <div class="bg-green-50 p-4 rounded-lg">
+                                <div class="text-sm text-green-800">Revenue Generated</div>
+                                <div class="text-2xl font-bold text-green-600">₱<span x-text="selectedEmployee.revenue.toLocaleString()"></span></div>
+                            </div>
+                            <div class="bg-purple-50 p-4 rounded-lg">
+                                <div class="text-sm text-purple-800">Avg. Completion Time</div>
+                                <div class="text-2xl font-bold text-purple-600" x-text="selectedEmployee.avg_completion_time + ' mins'"></div>
+                            </div>
+                        </div>
+
+                        <!-- Recent Appointments Section -->
+                        <div class="mb-6">
+                            <h4 class="text-lg font-semibold mb-3">Recent Appointments</h4>
+                            <div class="bg-white border rounded-lg overflow-hidden">
+                                <table class="min-w-full divide-y divide-gray-200">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Service</th>
+                                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Revenue</th>
+                                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rating</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="bg-white divide-y divide-gray-200">
+                                        <template x-for="appointment in selectedEmployee.recent_appointments" :key="appointment.id">
+                                            <tr class="hover:bg-gray-50">
+                                                <td class="px-4 py-3 whitespace-nowrap text-sm" x-text="formatDate(appointment.date)"></td>
+                                                <td class="px-4 py-3 whitespace-nowrap text-sm" x-text="appointment.service_type"></td>
+                                                <td class="px-4 py-3 whitespace-nowrap text-sm font-medium">₱<span x-text="appointment.revenue.toLocaleString()"></span></td>
+                                                <td class="px-4 py-3 whitespace-nowrap">
+                                                    <div class="flex items-center">
+                                                        <span class="text-yellow-600 mr-1" x-text="appointment.rating ? appointment.rating.toFixed(1) : '-'"></span>
+                                                        <div class="rating-stars" x-show="appointment.rating">
+                                                            <template x-for="i in 5" :key="i">
+                                                                <span class="star text-sm" x-html="i <= Math.round(appointment.rating) ? '★' : '☆'"></span>
+                                                            </template>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </template>
+                                        <tr x-show="!selectedEmployee.recent_appointments || selectedEmployee.recent_appointments.length === 0">
+                                            <td colspan="4" class="px-4 py-3 text-sm text-center text-gray-500">No recent appointments found</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Customer Reviews Section -->
+                        <div>
+                            <h4 class="text-lg font-semibold mb-3">Customer Reviews</h4>
+                            <div class="space-y-4">
+                                <template x-for="(review, index) in selectedEmployee.reviews" :key="index">
+                                    <div class="bg-gray-50 p-4 rounded-lg">
+                                        <div class="flex justify-between mb-2">
+                                            <div class="rating-stars">
+                                                <template x-for="i in 5" :key="i">
+                                                    <span class="star" x-html="i <= review.rating ? '★' : '☆'"></span>
+                                                </template>
+                                            </div>
+                                            <span class="text-sm text-gray-500" x-text="formatDate(review.date)"></span>
+                                        </div>
+                                        <p class="text-gray-700" x-text="review.review || 'No comment provided'"></p>
+                                        <p class="text-sm text-gray-500 mt-2" x-text="'- ' + review.customer_name"></p>
+                                    </div>
+                                </template>
+                                <div x-show="!selectedEmployee.reviews || selectedEmployee.reviews.length === 0" class="bg-gray-50 p-4 rounded-lg text-center text-gray-500">
+                                    No customer reviews yet
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </template>
             </div>
         </div>
     </div>
@@ -451,6 +729,7 @@
 
 @push('scripts')
 <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js'></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 
 <script>
 function employeeManager() {
@@ -489,11 +768,29 @@ function employeeManager() {
             type: 'shift',
             notes: ''
         },
+        analyticsPeriod: '30',
+        analyticsServiceType: '',
+        totalStats: {
+            completed: 0,
+            revenue: 0,
+            avgRating: 0,
+            avgTime: 0
+        },
+        employeeAnalytics: [],
+        showEmployeeDetailsModal: false,
+        selectedEmployee: null,
+        comparisonChart: null,
 
         init() {
             console.log('Component initialized'); // Debug log
             this.loadTimeOffList(); // Ensure timeOffList is loaded on initialization
             
+            // Initialize analytics when the tab is loaded
+            if (this.currentTab === 'analytics') {
+                this.loadAnalyticsData();
+            }
+            
+            // Initialize schedule calendar
             if (this.currentTab === 'schedule') {
                 this.$nextTick(() => {
                     if (!this.calendar && document.getElementById('calendar')) {
@@ -509,12 +806,23 @@ function employeeManager() {
                             this.initializeCalendar();
                         }
                     });
+                } else if (value === 'analytics') {
+                    this.loadAnalyticsData();
                 }
             });
 
             this.$watch('calendarView', (value) => {
                 if (this.calendar) {
                     this.calendar.changeView(value);
+                }
+            });
+            
+            // Watch for analytics data changes to update the chart
+            this.$watch('employeeAnalytics', () => {
+                if (this.currentTab === 'analytics') {
+                    this.$nextTick(() => {
+                        this.initializeComparisonChart();
+                    });
                 }
             });
         },
@@ -553,6 +861,97 @@ function employeeManager() {
             });
 
             this.calendar.render();
+        },
+        
+        initializeComparisonChart() {
+            const ctx = document.getElementById('employeeComparisonChart');
+            if (!ctx) return;
+            
+            // Destroy existing chart instance if it exists
+            if (this.comparisonChart) {
+                this.comparisonChart.destroy();
+            }
+            
+            // Extract employee names and metrics for the chart
+            const labels = this.employeeAnalytics.map(employee => employee.name);
+            const completedData = this.employeeAnalytics.map(employee => employee.completed);
+            const revenueData = this.employeeAnalytics.map(employee => employee.revenue);
+            const ratingData = this.employeeAnalytics.map(employee => employee.avg_rating);
+            
+            this.comparisonChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Completed Appointments',
+                            data: completedData,
+                            backgroundColor: 'rgba(66, 153, 225, 0.5)',
+                            borderColor: 'rgb(66, 153, 225)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Revenue (₱)',
+                            data: revenueData,
+                            backgroundColor: 'rgba(72, 187, 120, 0.5)',
+                            borderColor: 'rgb(72, 187, 120)',
+                            borderWidth: 1,
+                            hidden: true // Hidden by default
+                        },
+                        {
+                            label: 'Average Rating',
+                            data: ratingData,
+                            backgroundColor: 'rgba(245, 158, 11, 0.5)',
+                            borderColor: 'rgb(245, 158, 11)',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Employee Performance Metrics Comparison',
+                            font: {
+                                size: 16
+                            }
+                        },
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                boxWidth: 12
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        if (label.includes('Revenue')) {
+                                            label += '₱' + context.parsed.y.toLocaleString();
+                                        } else if (label.includes('Rating')) {
+                                            label += context.parsed.y.toFixed(1) + ' / 5';
+                                        } else {
+                                            label += context.parsed.y;
+                                        }
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
         },
 
         loadEvents(info, successCallback) {
@@ -972,6 +1371,121 @@ function employeeManager() {
             } catch (error) {
                 console.error('Error deleting employee:', error);
                 alert(error.message || 'Failed to delete employee');
+            }
+        },
+        
+        async loadAnalyticsData() {
+            try {
+                const response = await fetch('/shop/employees/analytics', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    },
+                    body: JSON.stringify({
+                        period: this.analyticsPeriod,
+                        service_type: this.analyticsServiceType
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load analytics data');
+                }
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    this.totalStats = data.stats.total;
+                    this.employeeAnalytics = data.stats.employees;
+                    
+                    // Update the chart if we're on the analytics tab
+                    if (this.currentTab === 'analytics') {
+                        this.$nextTick(() => {
+                            this.initializeComparisonChart();
+                        });
+                    }
+                } else {
+                    throw new Error(data.error || 'Failed to load analytics data');
+                }
+            } catch (error) {
+                console.error('Error loading analytics data:', error);
+                // Default values if data loading fails
+                this.totalStats = {
+                    completed: 0,
+                    revenue: 0,
+                    avgRating: 0,
+                    avgTime: 0
+                };
+                this.employeeAnalytics = [];
+            }
+        },
+
+        showEmployeeDetails(employeeId) {
+            // Find the employee in the analytics data
+            const employee = this.employeeAnalytics.find(e => e.id === employeeId);
+            if (employee) {
+                this.selectedEmployee = employee;
+                
+                // Fetch detailed stats for the employee
+                this.fetchEmployeeDetailedStats(employeeId);
+                
+                this.showEmployeeDetailsModal = true;
+            } else {
+                console.error('Employee not found:', employeeId);
+            }
+        },
+        
+        async fetchEmployeeDetailedStats(employeeId) {
+            try {
+                const response = await fetch(`/shop/employees/${employeeId}/detailed-stats`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    },
+                    body: JSON.stringify({
+                        period: this.analyticsPeriod,
+                        service_type: this.analyticsServiceType
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load detailed employee stats');
+                }
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Add the detailed data to the selected employee
+                    this.selectedEmployee = {
+                        ...this.selectedEmployee,
+                        recent_appointments: data.details.recent_appointments || [],
+                        reviews: data.details.reviews || []
+                    };
+                } else {
+                    throw new Error(data.error || 'Failed to load detailed employee stats');
+                }
+            } catch (error) {
+                console.error('Error loading detailed employee stats:', error);
+                // Set default values for detailed stats
+                if (this.selectedEmployee) {
+                    this.selectedEmployee.recent_appointments = [];
+                    this.selectedEmployee.reviews = [];
+                }
+            }
+        },
+
+        formatDate(dateString) {
+            try {
+                const options = { year: 'numeric', month: 'short', day: 'numeric' };
+                const date = new Date(dateString);
+                if (isNaN(date.getTime())) {
+                    return 'Invalid Date';
+                }
+                return date.toLocaleDateString(undefined, options);
+            } catch (e) {
+                console.error('Error formatting date:', e);
+                return dateString || 'Unknown Date';
             }
         }
     }
