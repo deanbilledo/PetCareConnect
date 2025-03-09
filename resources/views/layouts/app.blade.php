@@ -111,14 +111,14 @@
     <div class="pt-16"> <!-- Add padding-top for fixed header -->
         @if($showSidebar)
             <!-- Fixed Sidebar -->
-            <div class="fixed left-0 top-16 bottom-0 w-56 bg-white shadow-md overflow-y-auto">
+            <div class="fixed left-0 top-16 bottom-0 w-56 bg-gray-50 shadow-md overflow-y-auto">
                 @include('partials.sidebar')
             </div>
             <!-- Main Content with margin for sidebar -->
             <div class="ml-56 ">
                 <main class="p-6 ">
                     @yield('content')
-                </main>
+                </main> 
             </div>
         @else
             <!-- Main Content without sidebar -->
