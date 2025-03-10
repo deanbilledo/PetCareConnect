@@ -152,8 +152,8 @@
             </a>
 
             <!-- Subscriptions -->
-            <a href="{{ route('shop.subscriptions') }}" 
-                class="group flex items-center px-6 py-3 mb-1 transition-all duration-150 ease-in-out {{ request()->routeIs('shop.subscriptions') ? 'text-blue-600 border-r-4 border-blue-600 bg-blue-50/50' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100/60' }}"
+            <a href="{{ route('shop.subscriptions.index') }}" 
+                class="group flex items-center px-6 py-3 mb-1 transition-all duration-150 ease-in-out {{ request()->routeIs('shop.subscriptions.index') ? 'text-blue-600 border-r-4 border-blue-600 bg-blue-50/50' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100/60' }}"
                 :class="{ 'justify-center': $store.sidebar.collapsed }">
                 <svg class="h-6 w-6 flex-shrink-0" :class="{ 'mr-3': !$store.sidebar.collapsed }" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 9a2 2 0 10-4 0v5a2 2 0 104 0V9z" />

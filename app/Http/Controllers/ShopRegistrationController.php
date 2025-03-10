@@ -190,7 +190,7 @@ class ShopRegistrationController extends Controller
                 "Congratulations! Your shop '{$shop->name}' has been approved. Your 30-day free trial has been activated. " .
                 "After the trial period, you'll need to subscribe to continue using our platform. " .
                 "Click below to view your subscription details and payment options.",
-                route('shop.subscriptions'),
+                route('shop.subscriptions.index'),
                 'View Subscription Details'
             );
 

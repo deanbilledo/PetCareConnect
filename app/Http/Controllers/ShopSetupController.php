@@ -56,6 +56,7 @@ class ShopSetupController extends Controller
         $validated = $request->validate([
             'description' => 'required|string|max:1000',
             'contact_email' => 'required|email',
+            'contact_number' => 'required|string|max:20',
             'gallery.*' => 'required|image|mimes:jpeg,png|max:5120', // 5MB max
             'gallery' => 'array|max:6' // Maximum 6 images
         ]);
@@ -67,7 +68,8 @@ class ShopSetupController extends Controller
                 // Update shop details
                 $shop->update([
                     'description' => $request->description,
-                    'contact_email' => $request->contact_email
+                    'contact_email' => $request->contact_email,
+                    'contact_number' => $request->contact_number
                 ]);
 
                 // Handle gallery images
@@ -114,18 +116,82 @@ class ShopSetupController extends Controller
                 ->with('info', 'Shop setup has already been completed.');
         }
         
+        // Preprocess the request data to ensure required array indices exist
+        $services = $request->input('services', []);
+        
+        // Log raw input before processing
+        \Log::info('Raw services input', ['services' => $services]);
+        
+        // Ensure numeric keys for services array to prevent missing indices
+        $reindexedServices = [];
+        foreach ($services as $service) {
+            $reindexedServices[] = $service;
+        }
+        $services = $reindexedServices;
+        
+        // Handle each service
+        foreach ($services as $index => $service) {
+            // Default values for pet_types if missing or empty
+            if (!isset($service['pet_types']) || !is_array($service['pet_types']) || empty($service['pet_types'])) {
+                $services[$index]['pet_types'] = ['dogs', 'cats']; // Default values
+            } else {
+                // Ensure numeric keys for pet_types and cast all values to strings
+                $petTypes = [];
+                foreach (array_values($service['pet_types']) as $i => $type) {
+                    $petTypes[$i] = (string)$type; // Explicitly cast to string
+                }
+                $services[$index]['pet_types'] = $petTypes;
+            }
+            
+            // Default values for size_ranges if missing or empty
+            if (!isset($service['size_ranges']) || !is_array($service['size_ranges']) || empty($service['size_ranges'])) {
+                $services[$index]['size_ranges'] = ['small', 'medium', 'large']; // Default values
+            } else {
+                // Ensure numeric keys for size_ranges and cast all values to strings
+                $sizeRanges = [];
+                foreach (array_values($service['size_ranges']) as $i => $size) {
+                    $sizeRanges[$i] = (string)$size; // Explicitly cast to string
+                }
+                $services[$index]['size_ranges'] = $sizeRanges;
+            }
+        }
+        
+        // Replace the original services data with our preprocessed data
+        $request->merge(['services' => $services]);
+        
+        // Log the preprocessed request data for debugging
+        \Log::info('Preprocessed service submission data', [
+            'services' => $request->services,
+            'service_count' => count($request->services)
+        ]);
+        
+        // More detailed logging for troubleshooting
+        foreach ($request->services as $index => $service) {
+            \Log::info("Service $index details", [
+                'name' => $service['name'] ?? 'Not set',
+                'pet_types' => isset($service['pet_types']) ? $service['pet_types'] : 'Not set',
+                'pet_types_types' => isset($service['pet_types']) ? array_map(function($val) { 
+                    return gettype($val) . '(' . (is_string($val) ? $val : json_encode($val)) . ')'; 
+                }, (array)$service['pet_types']) : 'N/A',
+                'size_ranges' => isset($service['size_ranges']) ? $service['size_ranges'] : 'Not set',
+                'size_ranges_types' => isset($service['size_ranges']) ? array_map(function($val) { 
+                    return gettype($val) . '(' . (is_string($val) ? $val : json_encode($val)) . ')'; 
+                }, (array)$service['size_ranges']) : 'N/A'
+            ]);
+        }
+        
         $validated = $request->validate([
             'services' => 'required|array',
             'services.*.name' => 'required|string',
             'services.*.category' => 'required|string',
             'services.*.description' => 'nullable|string',
-            'services.*.pet_types' => 'required|array',
+            'services.*.pet_types' => 'required|array|min:1',
             'services.*.pet_types.*' => 'string',
-            'services.*.size_ranges' => 'required|array',
+            'services.*.size_ranges' => 'required|array|min:1',
             'services.*.size_ranges.*' => 'string',
-            'services.*.exotic_pet_service' => 'boolean',
-            'services.*.exotic_pet_species' => 'required_if:services.*.exotic_pet_service,true|array|nullable',
-            'services.*.exotic_pet_species.*' => 'string',
+            'services.*.exotic_pet_service' => 'nullable|boolean',
+            'services.*.exotic_pet_species' => 'nullable|array',
+            'services.*.exotic_pet_species.*' => 'nullable|string',
             'services.*.special_requirements' => 'nullable|string',
             'services.*.base_price' => 'required|numeric|min:0',
             'services.*.duration' => 'required|integer|min:15',
@@ -136,7 +202,7 @@ class ShopSetupController extends Controller
             'services.*.add_ons.*.name' => 'required_with:services.*.add_ons|string',
             'services.*.add_ons.*.price' => 'required_with:services.*.add_ons|numeric|min:0',
             'services.*.employee_ids' => 'nullable|array',
-            'services.*.employee_ids.*' => 'exists:employees,id'
+            'services.*.employee_ids.*' => 'nullable|string|exists:employees,id'
         ]);
 
         $shop = $user->shop;
@@ -150,7 +216,24 @@ class ShopSetupController extends Controller
                 foreach ($validated['services'] as $serviceData) {
                     // Extract employee IDs before creating service
                     $employeeIds = $serviceData['employee_ids'] ?? [];
+                    
+                    // Filter out null or empty values
+                    $employeeIds = array_filter($employeeIds, function($id) {
+                        return !is_null($id) && $id !== '';
+                    });
+                    
                     unset($serviceData['employee_ids']);
+
+                    // Ensure required array fields have proper format
+                    $serviceData['pet_types'] = array_values((array)$serviceData['pet_types']);
+                    $serviceData['size_ranges'] = array_values((array)$serviceData['size_ranges']);
+
+                    // Log the service data before creation for debugging
+                    \Log::info('Creating service', [
+                        'name' => $serviceData['name'],
+                        'pet_types' => $serviceData['pet_types'], 
+                        'size_ranges' => $serviceData['size_ranges']
+                    ]);
 
                     // Create service
                     $service = $shop->services()->create([
@@ -169,9 +252,12 @@ class ShopSetupController extends Controller
                         'status' => 'active'
                     ]);
 
-                    // Attach employees to the service
+                    // Attach employees to the service ONLY if there are valid employee IDs
                     if (!empty($employeeIds)) {
+                        \Log::info('Attaching employees to service', ['service_id' => $service->id, 'employee_ids' => $employeeIds]);
                         $service->employees()->attach($employeeIds);
+                    } else {
+                        \Log::info('No employees to attach to service', ['service_id' => $service->id]);
                     }
                 }
             });
@@ -179,6 +265,7 @@ class ShopSetupController extends Controller
             return redirect()->route('shop.setup.hours');
         } catch (\Exception $e) {
             Log::error('Error storing services: ' . $e->getMessage());
+            Log::error('Error trace: ' . $e->getTraceAsString());
             return back()->with('error', 'Failed to save services. Please try again.')
                         ->withInput();
         }

@@ -7,6 +7,18 @@
         <p class="text-gray-600">Manage your shop's subscription and payment details</p>
     </div>
 
+    <!-- Success Message -->
+    @if(session('success'))
+    <div class="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+        <div class="flex items-center">
+            <svg class="w-5 h-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            <p class="font-medium text-green-800">{{ session('success') }}</p>
+        </div>
+    </div>
+    @endif
+
     <!-- Subscription Status -->
     <div class="bg-white rounded-lg shadow-md p-6 mb-6">
         @if($subscription->status === 'trial')
@@ -50,10 +62,12 @@
                 <p class="text-2xl font-bold">₱{{ number_format($subscription->amount, 2) }}<span class="text-sm font-normal text-gray-600">/month</span></p>
             </div>
 
-            <!-- Pending Payment Notification -->
+            <!-- Pending Payment Notification (only show if no success message) -->
+            @if(!session('success'))
             <div id="pendingNotification" class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg {{ $subscription->payment_status === 'pending' ? '' : 'hidden' }}">
                 <p id="successMessage" class="text-blue-800">Your payment is being verified. Please wait for admin approval.</p>
             </div>
+            @endif
 
             <!-- GCash Payment Details -->
             <div class="bg-blue-50 p-4 rounded-lg mb-6">
@@ -76,11 +90,7 @@
                 </div>
             </div>
 
-            @if($subscription->payment_status === 'pending')
-                <div class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                    <p class="text-blue-800">Your payment is being verified. Please wait for admin approval.</p>
-                </div>
-            @elseif($subscription->payment_status === 'rejected')
+            @if($subscription->payment_status === 'rejected')
                 <div class="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
                     <p class="text-red-800">Your last payment was rejected. Please try again.</p>
                 </div>
@@ -112,12 +122,11 @@
                     <li>Access shop analytics</li>
                     <li>Use premium features</li>
                 </ul>
-                <form action="{{ route('shop.subscriptions.cancel') }}" method="POST" class="mt-4">
-                    @csrf
-                    <button type="submit" class="px-4 py-2 border border-red-600 text-red-600 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
-                        Cancel Subscription
-                    </button>
-                </form>
+                <button type="button" 
+                        onclick="showCancelModal()" 
+                        class="mt-4 px-4 py-2 border border-red-600 text-red-600 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
+                    Cancel Subscription
+                </button>
             </div>
         @endif
 
@@ -132,10 +141,10 @@
 </div>
 
 <!-- GCash Payment Modal -->
-<div id="gcashModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-    <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+<div id="gcashModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-4 sm:p-6">
+    <div class="bg-white rounded-lg p-4 sm:p-6 w-full max-w-sm sm:max-w-lg md:max-w-xl lg:max-w-2xl mx-auto overflow-y-auto max-h-[90vh]">
         <div class="flex justify-between items-center mb-4">
-            <h3 class="text-lg font-semibold text-gray-900">GCash Payment Details</h3>
+            <h3 class="text-lg sm:text-xl font-semibold text-gray-900">GCash Payment Details</h3>
             <button onclick="hideGcashModal()" class="text-gray-500 hover:text-gray-700">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -146,72 +155,81 @@
         <form id="paymentForm" action="{{ route('shop.subscriptions.verify') }}" method="POST" enctype="multipart/form-data">
             @csrf
             <div class="space-y-4">
-                <!-- GCash QR Code -->
-                <div class="flex justify-center">
-                    <img src="{{ asset('images/QRcode.jpg') }}" alt="GCash QR Code" class="w-48 h-48">
-                </div> 
+                <!-- Two-column layout for larger screens -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Left column -->
+                    <div>
+                        <!-- GCash QR Code -->
+                        <div class="flex justify-center">
+                            <img src="{{ asset('images/QRcode.jpg') }}" alt="GCash QR Code" class="w-48 h-48 object-contain">
+                        </div>
 
-                <!-- Payment Details -->
-                <div class="bg-blue-50 p-4 rounded-lg space-y-2">
-                    <div class="flex justify-between">
-                        <span class="text-gray-600">Account Name:</span>
-                        <span class="font-medium">DE*N RE***T B.</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="text-gray-600">GCash Number:</span>
-                        <span class="font-medium">0970 981 3882</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="text-gray-600">Amount:</span>
-                        <span class="font-medium">₱{{ number_format($subscription->amount, 2) }}</span>
-                    </div>
-                </div>
-
-                <!-- Add Reference Number Input -->
-                <div class="mt-4">
-                    <label for="reference_number" class="block text-sm font-medium text-gray-700 mb-1">
-                        GCash Reference Number
-                    </label>
-                    <input 
-                        type="text" 
-                        id="reference_number" 
-                        name="reference_number" 
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="Enter your GCash reference number"
-                        required
-                    >
-                    <p class="mt-1 text-xs text-gray-500">
-                        Please enter the reference number from your GCash transaction
-                    </p>
-                </div>
-
-                <!-- Add Screenshot Upload Section -->
-                <div class="mt-4">
-                    <label for="payment_screenshot" class="block text-sm font-medium text-gray-700 mb-1">
-                        Payment Screenshot
-                    </label>
-                    <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
-                        <div class="space-y-1 text-center">
-                            <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                            </svg>
-                            <div class="flex text-sm text-gray-600">
-                                <label for="payment_screenshot" class="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
-                                    <span>Upload a file</span>
-                                    <input id="payment_screenshot" name="payment_screenshot" type="file" class="sr-only" accept="image/*" required>
-                                </label>
-                                <p class="pl-1">or drag and drop</p>
+                        <!-- Payment Details -->
+                        <div class="bg-blue-50 p-4 rounded-lg space-y-2 mt-4">
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Account Name:</span>
+                                <span class="font-medium">DE*N RE***T B.</span>
                             </div>
-                            <p class="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">GCash Number:</span>
+                                <span class="font-medium">0970 981 3882</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Amount:</span>
+                                <span class="font-medium">₱{{ number_format($subscription->amount, 2) }}</span>
+                            </div>
                         </div>
                     </div>
-                    <div id="preview" class="mt-2 hidden">
-                        <img id="preview_image" src="" alt="Preview" class="max-h-40 rounded-md">
+
+                    <!-- Right column -->
+                    <div>
+                        <!-- Add Reference Number Input -->
+                        <div>
+                            <label for="reference_number" class="block text-sm font-medium text-gray-700 mb-1">
+                                GCash Reference Number
+                            </label>
+                            <input 
+                                type="text" 
+                                id="reference_number" 
+                                name="reference_number" 
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                placeholder="Enter your GCash reference number"
+                                required
+                            >
+                            <p class="mt-1 text-xs text-gray-500">
+                                Please enter the reference number from your GCash transaction
+                            </p>
+                        </div>
+
+                        <!-- Add Screenshot Upload Section -->
+                        <div class="mt-4">
+                            <label for="payment_screenshot" class="block text-sm font-medium text-gray-700 mb-1">
+                                Payment Screenshot
+                            </label>
+                            <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+                                <div class="space-y-1 text-center">
+                                    <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                                        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                    </svg>
+                                    <div class="flex flex-col sm:flex-row justify-center text-sm text-gray-600">
+                                        <label for="payment_screenshot" class="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
+                                            <span>Upload a file</span>
+                                            <input id="payment_screenshot" name="payment_screenshot" type="file" class="sr-only" accept="image/*" required>
+                                        </label>
+                                        <p class="pl-1">or drag and drop</p>
+                                    </div>
+                                    <p class="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
+                                </div>
+                            </div>
+                            <div id="preview" class="mt-2 hidden">
+                                <img id="preview_image" src="" alt="Preview" class="max-h-40 rounded-md">
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Instructions -->
-                <div class="text-sm text-gray-600">
+                <div class="text-sm text-gray-600 bg-gray-50 p-4 rounded-lg">
                     <p class="font-medium mb-2">How to pay:</p>
                     <ol class="list-decimal list-inside space-y-1">
                         <li>Open your GCash app</li>
@@ -223,23 +241,25 @@
                 </div>
 
                 <!-- Submit Payment Button -->
-                <button type="submit" class="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 mb-2">
-                    Submit Payment for Verification
-                </button>
-                
-                <button type="button" onclick="hideGcashModal()" class="w-full border border-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-                    Close
-                </button>
+                <div class="pt-4 flex flex-col sm:flex-row gap-3">
+                    <button type="submit" class="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                        Submit Payment for Verification
+                    </button>
+                    
+                    <button type="button" onclick="hideGcashModal()" class="w-full sm:w-auto border border-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                        Close
+                    </button>
+                </div>
             </div>
         </form>
     </div>
 </div>
 
 <!-- Payment Success Modal -->
-<div id="successModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-    <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+<div id="successModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-4 sm:p-6">
+    <div class="bg-white rounded-lg p-4 sm:p-6 w-full max-w-sm sm:max-w-lg md:max-w-xl mx-auto">
         <div class="flex justify-between items-center mb-4">
-            <h3 class="text-lg font-semibold text-gray-900">Payment Successful!</h3>
+            <h3 class="text-lg sm:text-xl font-semibold text-gray-900">Payment Successful!</h3>
             <button onclick="hideSuccessModal()" class="text-gray-500 hover:text-gray-700">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -292,18 +312,73 @@
     </div>
 </div>
 
+<!-- Cancellation Confirmation Modal -->
+<div id="cancelModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-4 sm:p-6">
+    <div class="bg-white rounded-lg p-4 sm:p-6 w-full max-w-md mx-auto overflow-y-auto max-h-[90vh]">
+        <div class="flex justify-between items-center mb-2">
+            <h3 class="text-lg sm:text-xl font-semibold text-gray-900">Confirm Cancellation</h3>
+            <button onclick="hideCancelModal()" class="text-gray-500 hover:text-gray-700">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+
+        <div class="p-1">
+            <div class="bg-red-50 p-4 rounded-lg mb-4">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <svg class="h-5 w-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <h3 class="text-sm font-medium text-red-800">Are you sure you want to cancel your subscription?</h3>
+                        <div class="mt-2 text-sm text-red-700">
+                            <p>This action cannot be undone. Your access to premium features will be revoked immediately.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <h4 class="font-medium text-gray-700 mb-2">You will lose access to:</h4>
+                <ul class="text-sm text-gray-600 list-disc list-inside space-y-1">
+                    <li>Manage appointments</li>
+                    <li>Accept bookings</li>
+                    <li>Access shop analytics</li>
+                    <li>Use premium features</li>
+                </ul>
+            </div>
+
+            <div class="flex justify-end space-x-3">
+                <button type="button" 
+                        onclick="hideCancelModal()" 
+                        class="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
+                    Keep Subscription
+                </button>
+                <form action="{{ route('shop.subscriptions.cancel') }}" method="POST">
+                    @csrf
+                    <button type="submit" 
+                            class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
+                        Confirm Cancellation
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 @push('scripts')
 <script>
     function showGcashModal() {
-        const modal = document.getElementById('gcashModal');
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
+        document.getElementById('gcashModal').classList.remove('hidden');
+        document.getElementById('gcashModal').classList.add('flex');
     }
 
     function hideGcashModal() {
-        const modal = document.getElementById('gcashModal');
-        modal.classList.remove('flex');
-        modal.classList.add('hidden');
+        document.getElementById('gcashModal').classList.remove('flex');
+        document.getElementById('gcashModal').classList.add('hidden');
     }
 
     // Preview uploaded image
@@ -319,37 +394,25 @@
         }
     });
 
-    // Handle form submission
-    document.getElementById('paymentForm').addEventListener('submit', async function(e) {
-        e.preventDefault();
+    // Form validation before submit
+    document.getElementById('paymentForm').addEventListener('submit', function(e) {
+        const referenceNumber = document.getElementById('reference_number').value;
+        const paymentScreenshot = document.getElementById('payment_screenshot').files[0];
         
-        const formData = new FormData(this);
-        
-        try {
-            const response = await fetch(this.action, {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                }
-            });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                hideGcashModal();
-                // Show a nicer notification instead of an alert
-                document.getElementById('successMessage').textContent = data.message;
-                document.getElementById('pendingNotification').classList.remove('hidden');
-                setTimeout(() => {
-                    window.location.reload();
-                }, 2000);
-            } else {
-                alert('Error submitting payment. Please try again.');
-            }
-        } catch (error) {
-            alert('Error submitting payment. Please try again.');
+        if (!referenceNumber.trim()) {
+            e.preventDefault();
+            alert('Please enter your GCash reference number');
+            return false;
         }
+        
+        if (!paymentScreenshot) {
+            e.preventDefault();
+            alert('Please upload a screenshot of your payment');
+            return false;
+        }
+        
+        // Form is valid, continue with submission
+        return true;
     });
 
     function showSuccessModal() {
@@ -363,6 +426,19 @@
         modal.classList.remove('flex');
         modal.classList.add('hidden');
     }
+    
+    // Cancellation Modal Functions
+    function showCancelModal() {
+        const modal = document.getElementById('cancelModal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    function hideCancelModal() {
+        const modal = document.getElementById('cancelModal');
+        modal.classList.remove('flex');
+        modal.classList.add('hidden');
+    }
 
     // Check for payment verification
     document.addEventListener('DOMContentLoaded', function() {
@@ -373,7 +449,6 @@
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get('payment_verified') === 'true') {
             showSuccessModal();
-            // Remove the query parameter without refreshing
             window.history.replaceState({}, document.title, window.location.pathname);
         }
     });

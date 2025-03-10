@@ -334,19 +334,19 @@ use Illuminate\Support\Facades\Log;
 </div>
 
 <!-- Confirmation Modal -->
-<div id="confirmationModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-    <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+<div id="confirmationModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden p-4 sm:p-6">
+    <div class="bg-white rounded-lg p-4 sm:p-6 w-full max-w-sm sm:max-w-lg md:max-w-xl lg:max-w-2xl mx-auto overflow-y-auto max-h-[90vh]">
         <!-- Normal State -->
         <div id="modalNormalState">
-            <h3 class="text-lg font-semibold mb-4">Confirm Your Booking</h3>
+            <h3 class="text-lg sm:text-xl font-semibold mb-4">Confirm Your Booking</h3>
             
             <!-- Booking Summary -->
-            <div class="mb-6 bg-gray-50 p-4 rounded-lg">
+            <div class="mb-6 bg-gray-50 p-3 sm:p-4 rounded-lg">
                 <h4 class="font-medium text-gray-800 mb-3">Booking Summary</h4>
                 
                 <!-- Date and Time -->
                 <div class="mb-3">
-                    <p class="text-sm text-gray-600">
+                    <p class="text-sm sm:text-base text-gray-600">
                         <span class="font-medium">Schedule:</span> 
                         {{ $appointmentDateTime->format('l, F j, Y') }} at {{ $appointmentDateTime->format('g:i A') }}
                     </p>
@@ -354,55 +354,82 @@ use Illuminate\Support\Facades\Log;
 
                 <!-- Services List -->
                 <div class="mb-3">
-                    <p class="text-sm font-medium text-gray-700 mb-2">Services:</p>
-                    @foreach($pets as $pet)
-                        @php
-                            $serviceId = $bookingData['pet_services'][$pet->id] ?? null;
-                            $service = $services->firstWhere('id', $serviceId);
-                            
-                            // Get price based on pet size
-                            $price = $service->base_price;
-                            if ($service && !empty($service->variable_pricing)) {
-                                $variablePricing = is_string($service->variable_pricing) ? 
-                                    json_decode($service->variable_pricing, true) : 
-                                    $service->variable_pricing;
+                    <p class="text-sm sm:text-base font-medium text-gray-700 mb-2">Services:</p>
+                    <div class="space-y-2">
+                        @foreach($pets as $pet)
+                            @php
+                                $serviceId = $bookingData['pet_services'][$pet->id] ?? null;
+                                $service = $services->firstWhere('id', $serviceId);
                                 
-                                $sizePrice = collect($variablePricing)->first(function($pricing) use ($pet) {
-                                    return strtolower($pricing['size']) === strtolower($pet->size_category);
-                                });
-                                
-                                if ($sizePrice && isset($sizePrice['price'])) {
-                                    $price = (float) $sizePrice['price'];
+                                // Get price based on pet size
+                                $price = $service->base_price;
+                                if ($service && !empty($service->variable_pricing)) {
+                                    $variablePricing = is_string($service->variable_pricing) ? 
+                                        json_decode($service->variable_pricing, true) : 
+                                        $service->variable_pricing;
+                                    
+                                    $sizePrice = collect($variablePricing)->first(function($pricing) use ($pet) {
+                                        return strtolower($pricing['size']) === strtolower($pet->size_category);
+                                    });
+                                    
+                                    if ($sizePrice && isset($sizePrice['price'])) {
+                                        $price = (float) $sizePrice['price'];
+                                    }
                                 }
-                            }
-                        @endphp
-                        @if($service)
-                            <div class="flex justify-between items-start text-sm mb-2">
-                                <div>
-                                    <p class="text-gray-800">{{ $pet->name }} - {{ $service->name }}</p>
-                                    <p class="text-xs text-gray-600">{{ ucfirst($pet->size_category) }} {{ ucfirst($pet->type) }}</p>
+                            @endphp
+                            @if($service)
+                                <div class="flex justify-between items-start text-sm sm:text-base">
+                                    <div>
+                                        <p class="text-gray-800">{{ $pet->name }} - {{ $service->name }}</p>
+                                        <p class="text-xs sm:text-sm text-gray-600">{{ ucfirst($pet->size_category) }} {{ ucfirst($pet->type) }}</p>
+                                    </div>
+                                    <span class="text-gray-700">₱{{ number_format($price, 2) }}</span>
                                 </div>
-                                <span class="text-gray-700">₱{{ number_format($price, 2) }}</span>
-                            </div>
-                        @endif
-                    @endforeach
+                            @endif
+                        @endforeach
+                    </div>
                 </div>
 
                 <!-- Total Amount -->
                 <div class="border-t border-gray-200 pt-2 mt-2">
                     <div class="flex justify-between items-center">
-                        <span class="font-medium text-gray-700">Total Amount:</span>
-                        <span class="font-semibold text-blue-600" id="modalTotalAmount">₱{{ number_format($total, 2) }}</span>
+                        <span class="font-medium text-gray-700 text-sm sm:text-base">Total Amount:</span>
+                        <span class="font-semibold text-blue-600 text-sm sm:text-base" id="modalTotalAmount">₱{{ number_format($total, 2) }}</span>
+                    </div>
+                    <div class="mt-2 text-xs sm:text-sm text-gray-600 flex items-center">
+                        <svg class="w-4 h-4 text-blue-500 mr-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span>All fees are to be paid directly to the shop upon your visit.</span>
                     </div>
                 </div>
             </div>
 
-            <p class="text-gray-600 mb-6">Please review and agree to our terms before confirming your booking.</p>
+            <p class="text-sm sm:text-base text-gray-600 mb-6">Please review and agree to our terms before confirming your booking.</p>
+            
+            <!-- Payment Information -->
+            <div class="mb-6 bg-yellow-50 p-3 sm:p-4 rounded-lg border border-yellow-100">
+                <h4 class="font-medium text-yellow-800 mb-2 text-sm sm:text-base">Payment Information</h4>
+                <div class="text-xs sm:text-sm text-yellow-700 space-y-2">
+                    <div class="flex items-start space-x-2">
+                        <svg class="w-5 h-5 flex-shrink-0 mt-0.5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <span>The appointment fee must be paid directly to the shop when you visit for your service.</span>
+                    </div>
+                    <div class="flex items-start space-x-2">
+                        <svg class="w-5 h-5 flex-shrink-0 mt-0.5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <span>Please arrive 10-15 minutes before your appointment with exact payment if possible.</span>
+                    </div>
+                </div>
+            </div>
             
             <!-- Cancellation and Reschedule Policy -->
-            <div class="mb-6 bg-blue-50 p-4 rounded-lg border border-blue-100">
-                <h4 class="font-medium text-blue-800 mb-2">Cancellation & Reschedule Policy</h4>
-                <ul class="text-sm text-blue-700 space-y-2">
+            <div class="mb-6 bg-blue-50 p-3 sm:p-4 rounded-lg border border-blue-100">
+                <h4 class="font-medium text-blue-800 mb-2 text-sm sm:text-base">Cancellation & Reschedule Policy</h4>
+                <ul class="text-xs sm:text-sm text-blue-700 space-y-2">
                     <li class="flex items-start space-x-2">
                         <svg class="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
@@ -421,7 +448,7 @@ use Illuminate\Support\Facades\Log;
             <div class="mb-6">
                 <label class="flex items-start space-x-2">
                     <input type="checkbox" id="terms" class="mt-1">
-                    <span class="text-sm text-gray-600">
+                    <span class="text-xs sm:text-sm text-gray-600">
                         I agree to the cancellation policy and understand that this booking is subject to the shop's terms and conditions.
                     </span>
                 </label>
@@ -429,12 +456,12 @@ use Illuminate\Support\Facades\Log;
             
             <div class="flex justify-end space-x-3">
                 <button onclick="hideConfirmationModal()" 
-                        class="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors">
+                        class="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors text-sm sm:text-base">
                     Cancel
                 </button>
                 <button onclick="submitBooking()" 
                         id="confirmButton"
-                        class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors">
+                        class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors text-sm sm:text-base">
                     Confirm Booking
                 </button>
             </div>
@@ -442,10 +469,10 @@ use Illuminate\Support\Facades\Log;
         
         <!-- Loading State -->
         <div id="modalLoadingState" class="hidden">
-            <div class="text-center">
+            <div class="text-center py-6">
                 <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
-                <p class="text-gray-600">Processing your booking...</p>
-                <p class="text-sm text-gray-500 mt-2">Please do not close this window.</p>
+                <p class="text-gray-600 text-sm sm:text-base">Processing your booking...</p>
+                <p class="text-xs sm:text-sm text-gray-500 mt-2">Please do not close this window.</p>
             </div>
         </div>
     </div>

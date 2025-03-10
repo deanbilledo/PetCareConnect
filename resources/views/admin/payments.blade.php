@@ -7,6 +7,7 @@
     <title>Payment Management - Pet Service Platform Admin Dashboard</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <script src="https://cdn.tailwindcss.com"></script>
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -102,7 +103,10 @@
                     </div>
                 </div>
 
-            <!-- All Subscriptions -->
+                <!-- Refund Management -->
+                
+
+                <!-- Revenue Distribution -->
                 <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 mb-6 transform hover:scale-105 transition-transform duration-300">
                 <h3 class="text-lg font-semibold mb-4">Shop Subscriptions</h3>
                     <div class="flex mb-4 space-x-4">
@@ -335,10 +339,25 @@
         // Close modals when clicking outside
         window.onclick = function(event) {
             const modal = document.getElementById('paymentDetailsModal');
-            if (event.target === modal) {
-                modal.classList.add('hidden');
-            }
+            const modalContent = document.getElementById('paymentDetailsContent');
+            
+            modalContent.innerHTML = `
+                <p><strong>Payment ID:</strong> ${payment.id}</p>
+                <p><strong>Shop Owner:</strong> ${payment.shopOwner}</p>
+                <p><strong>Shop:</strong> ${payment.shop}</p>
+                <p><strong>Date:</strong> ${payment.date}</p>
+                <p><strong>Total Amount:</strong> $${payment.amount.toFixed(2)}</p>
+                <p><strong>Commission (Platform Fee):</strong> $${payment.commission.toFixed(2)}</p>
+                <p><strong>Shop Owner Receives:</strong> $${(payment.amount - payment.commission).toFixed(2)}</p>
+                <p><strong>Status:</strong> ${payment.status}</p>
+                <p><strong>Note:</strong> The shop owner handles the full payment. The platform receives only the commission as a fee.</p>
+            `;
+            
+            modal.classList.remove('hidden');
         }
+
+        // Initialize the page with payment data
+        populateTable();
     </script>
 </body>
 </html>

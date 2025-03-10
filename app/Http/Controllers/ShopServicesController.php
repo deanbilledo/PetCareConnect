@@ -27,13 +27,43 @@ class ShopServicesController extends Controller
     public function store(Request $request)
     {
         try {
+            // Preprocess pet_types and size_ranges to ensure they have numeric indices
+            $requestData = $request->all();
+            
+            // Handle pet_types
+            if (!isset($requestData['pet_types']) || !is_array($requestData['pet_types']) || empty($requestData['pet_types'])) {
+                $requestData['pet_types'] = ['dogs', 'cats']; // Default values
+            } else {
+                // Ensure numeric keys and cast all values to strings
+                $petTypes = [];
+                foreach (array_values($requestData['pet_types']) as $i => $type) {
+                    $petTypes[$i] = (string)$type; // Explicitly cast to string
+                }
+                $requestData['pet_types'] = $petTypes;
+            }
+            
+            // Handle size_ranges
+            if (!isset($requestData['size_ranges']) || !is_array($requestData['size_ranges']) || empty($requestData['size_ranges'])) {
+                $requestData['size_ranges'] = ['small', 'medium', 'large']; // Default values
+            } else {
+                // Ensure numeric keys and cast all values to strings
+                $sizeRanges = [];
+                foreach (array_values($requestData['size_ranges']) as $i => $size) {
+                    $sizeRanges[$i] = (string)$size; // Explicitly cast to string
+                }
+                $requestData['size_ranges'] = $sizeRanges;
+            }
+            
+            // Update the request with our preprocessed data
+            $request->replace($requestData);
+            
             $validated = $request->validate([
                 'name' => 'required|string|max:255',
                 'category' => 'required|string',
                 'description' => 'nullable|string',
-                'pet_types' => 'required|array',
+                'pet_types' => 'required|array|min:1',
                 'pet_types.*' => 'string',
-                'size_ranges' => 'required|array',
+                'size_ranges' => 'required|array|min:1',
                 'size_ranges.*' => 'string',
                 'exotic_pet_service' => 'boolean',
                 'exotic_pet_species' => 'required_if:exotic_pet_service,true|array|nullable',
@@ -63,16 +93,31 @@ class ShopServicesController extends Controller
                 
                 // Remove employee_ids from validated data before creating service
                 $employeeIds = $validated['employee_ids'];
+                
+                // Filter out null or empty values
+                $employeeIds = array_filter($employeeIds, function($id) {
+                    return !is_null($id) && $id !== '';
+                });
+                
                 unset($validated['employee_ids']);
                 
                 // Ensure variable_pricing is an array
                 $validated['variable_pricing'] = $validated['variable_pricing'] ?? [];
                 
-                // Create the service
-                $service = $shop->services()->create($validated);
+                // Additional data
+                $validated['shop_id'] = $shop->id;
+                $validated['status'] = 'active';
                 
-                // Attach employees to the service
-                $service->employees()->attach($employeeIds);
+                // Create the service
+                $service = Service::create($validated);
+                
+                // Attach employees to the service if there are valid employee IDs
+                if (!empty($employeeIds)) {
+                    \Log::info('Store method: Attaching employees to service', ['service_id' => $service->id, 'employee_ids' => $employeeIds]);
+                    $service->employees()->attach($employeeIds);
+                } else {
+                    \Log::info('Store method: No employees to attach to service', ['service_id' => $service->id]);
+                }
                 
                 DB::commit();
 
@@ -105,13 +150,43 @@ class ShopServicesController extends Controller
                 ], 403);
             }
 
+            // Preprocess pet_types and size_ranges to ensure they have numeric indices
+            $requestData = $request->all();
+            
+            // Handle pet_types
+            if (!isset($requestData['pet_types']) || !is_array($requestData['pet_types']) || empty($requestData['pet_types'])) {
+                $requestData['pet_types'] = ['dogs', 'cats']; // Default values
+            } else {
+                // Ensure numeric keys and cast all values to strings
+                $petTypes = [];
+                foreach (array_values($requestData['pet_types']) as $i => $type) {
+                    $petTypes[$i] = (string)$type; // Explicitly cast to string
+                }
+                $requestData['pet_types'] = $petTypes;
+            }
+            
+            // Handle size_ranges
+            if (!isset($requestData['size_ranges']) || !is_array($requestData['size_ranges']) || empty($requestData['size_ranges'])) {
+                $requestData['size_ranges'] = ['small', 'medium', 'large']; // Default values
+            } else {
+                // Ensure numeric keys and cast all values to strings
+                $sizeRanges = [];
+                foreach (array_values($requestData['size_ranges']) as $i => $size) {
+                    $sizeRanges[$i] = (string)$size; // Explicitly cast to string
+                }
+                $requestData['size_ranges'] = $sizeRanges;
+            }
+            
+            // Update the request with our preprocessed data
+            $request->replace($requestData);
+
             $validated = $request->validate([
                 'name' => 'required|string|max:255',
                 'category' => 'required|string',
                 'description' => 'nullable|string',
-                'pet_types' => 'required|array',
+                'pet_types' => 'required|array|min:1',
                 'pet_types.*' => 'string',
-                'size_ranges' => 'required|array',
+                'size_ranges' => 'required|array|min:1',
                 'size_ranges.*' => 'string',
                 'exotic_pet_service' => 'boolean',
                 'exotic_pet_species' => 'required_if:exotic_pet_service,true|array|nullable',
@@ -131,14 +206,28 @@ class ShopServicesController extends Controller
 
             DB::beginTransaction();
             try {
-                // Remove employee_ids from validated data before updating service
+                // Get employee IDs
                 $employeeIds = $validated['employee_ids'];
+                
+                // Filter out null or empty values
+                $employeeIds = array_filter($employeeIds, function($id) {
+                    return !is_null($id) && $id !== '';
+                });
+                
                 unset($validated['employee_ids']);
                 
+                // Update the service
                 $service->update($validated);
                 
-                // Sync employees with the service
-                $service->employees()->sync($employeeIds);
+                // Sync employees - only sync if there are valid IDs
+                if (!empty($employeeIds)) {
+                    \Log::info('Update method: Syncing employees to service', ['service_id' => $service->id, 'employee_ids' => $employeeIds]);
+                    $service->employees()->sync($employeeIds);
+                } else {
+                    \Log::info('Update method: No employees to sync to service', ['service_id' => $service->id]);
+                    // Detach all employees if the array is empty
+                    $service->employees()->detach();
+                }
                 
                 DB::commit();
 

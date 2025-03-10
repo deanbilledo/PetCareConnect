@@ -75,23 +75,57 @@ class SubscriptionController extends Controller
             'payment_status' => 'pending'
         ]);
 
-        return response()->json([
-            'message' => 'Payment verification submitted successfully. Please wait for admin approval.'
-        ]);
-    }
-
-    public function cancel(Request $request)
-    {
-        $shop = Auth::user()->shop;
-        $subscription = Subscription::where('shop_id', $shop->id)->latest()->first();
-
-        if ($subscription) {
-            $subscription->update([
-                'status' => 'cancelled',
-                'subscription_ends_at' => Carbon::now()
+        if ($request->ajax()) {
+            return response()->json([
+                'message' => 'Payment verification submitted successfully. Please wait for admin approval.'
             ]);
         }
 
-        return redirect()->back()->with('success', 'Subscription cancelled successfully.');
+        return redirect()->route('shop.subscriptions.index')->with('success', 'Payment verification submitted successfully. Please wait for admin approval.');
+    }
+
+    /**
+     * Cancel the current subscription for the authenticated user's shop
+     */
+    public function cancel()
+    {
+        // Get the authenticated user's shop
+        $shop = auth()->user()->shop;
+        
+        // Get the latest subscription
+        $subscription = $shop->subscriptions()->latest()->first();
+        
+        if ($subscription) {
+            // Update the subscription status to cancelled
+            $subscription->update([
+                'status' => 'cancelled',
+                'subscription_ends_at' => now()
+            ]);
+            
+            // Notify the shop owner
+            auth()->user()->notifications()->create([
+                'type' => 'subscription_cancelled',
+                'title' => 'Subscription Cancelled',
+                'message' => 'You have successfully cancelled your subscription for ' . $shop->name . '. Your access to premium features has been revoked.',
+                'action_url' => route('shop.dashboard'),
+                'action_text' => 'Go to Dashboard',
+                'icon' => 'information-circle'
+            ]);
+            
+            // Notify all admin users
+            $adminUsers = \App\Models\User::where('role', 'admin')->get();
+            foreach ($adminUsers as $admin) {
+                $admin->notifications()->create([
+                    'type' => 'shop_subscription_cancelled',
+                    'title' => 'Shop Subscription Cancelled',
+                    'message' => $shop->name . ' has cancelled their subscription.',
+                    'action_url' => route('admin.payments'),
+                    'action_text' => 'View Payments',
+                    'icon' => 'cash'
+                ]);
+            }
+        }
+        
+        return redirect()->route('shop.subscriptions.index')->with('success', 'Subscription cancelled successfully');
     }
 } 

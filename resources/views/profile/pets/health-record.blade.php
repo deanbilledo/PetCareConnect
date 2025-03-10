@@ -3,8 +3,8 @@ use Illuminate\Support\Str;
 
 
 @endphp
+@extends(session('shop_mode') ? 'layouts.shop' : 'layouts.app')
 
-@extends('layouts.app')
 
 @section('content')
 <div class="container mx-auto px-4 py-8">
@@ -253,7 +253,8 @@ use Illuminate\Support\Str;
                     <p class="text-2xl font-semibold">
                         {{ $pet->vaccinations->concat($pet->parasiteControls)
                             ->filter(function($record) {
-                                return $record->next_due_date->isFuture() && 
+                                return $record->next_due_date && 
+                                       $record->next_due_date->isFuture() && 
                                        $record->next_due_date->diffInDays(now()) <= 30;
                             })->count() }}
                     </p>
@@ -263,7 +264,8 @@ use Illuminate\Support\Str;
                     <p class="text-2xl font-semibold text-red-600">
                         {{ $pet->vaccinations->concat($pet->parasiteControls)
                             ->filter(function($record) {
-                                return $record->next_due_date->isPast();
+                                return $record->next_due_date && 
+                                       $record->next_due_date->isPast();
                             })->count() }}
                     </p>
                 </div>

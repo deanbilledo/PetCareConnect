@@ -24,6 +24,7 @@ class CheckShopMode
             $request->routeIs('shop.mode.customer') ||
             $request->routeIs('groomingShops') ||
             $request->routeIs('petlandingpage') ||
+            $request->is('shop/setup*') || // Explicitly check for setup routes
             !$request->routeIs('shop.dashboard') ||
             !$hasApprovedShop) // If shop is not approved or suspended, ensure customer mode
         {
@@ -39,7 +40,7 @@ class CheckShopMode
         }
 
         // Check if setup is completed before allowing shop mode
-        if ($request->routeIs('shop.dashboard') && !$request->routeIs('shop.setup.*')) {
+        if ($request->routeIs('shop.dashboard')) {
             if (!$hasApprovedShop) {
                 if (auth()->user()->shop) {
                     $message = auth()->user()->shop->status === 'pending' 
@@ -53,7 +54,13 @@ class CheckShopMode
 
             // Check if setup is completed
             if (!auth()->user()->setup_completed) {
-                return redirect()->route('shop.setup.welcome');
+                // Clear shop mode if setup is not completed
+                session()->forget('shop_mode');
+                session()->save();
+                \Log::info('Shop mode cleared for incomplete setup');
+                
+                return redirect()->route('shop.setup.welcome')
+                    ->with('info', 'Please complete your shop setup first.');
             }
             
             session(['shop_mode' => true]);

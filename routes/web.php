@@ -74,7 +74,7 @@ Route::middleware(['auth'])->group(function () {
             ->middleware('auth', IsAdmin::class);
         
         // Setup routes (requires shop and checks setup status)
-        Route::middleware([HasShop::class])->group(function () {
+        Route::middleware([\App\Http\Middleware\HasShop::class, \App\Http\Middleware\CheckShopSetup::class])->group(function () {
             // Setup Welcome
             Route::get('/setup/welcome', [ShopSetupController::class, 'welcome'])->name('setup.welcome');
             
@@ -100,13 +100,13 @@ Route::middleware(['auth'])->group(function () {
             });
 
             // Subscriptions
-            Route::get('/subscriptions', [App\Http\Controllers\Shop\SubscriptionController::class, 'index'])->name('subscriptions');
+            Route::get('/subscriptions', [App\Http\Controllers\Shop\SubscriptionController::class, 'index'])->name('subscriptions.index');
             Route::post('/subscriptions/verify', [App\Http\Controllers\Shop\SubscriptionController::class, 'verifyPayment'])->name('subscriptions.verify');
             Route::post('/subscriptions/cancel', [App\Http\Controllers\Shop\SubscriptionController::class, 'cancel'])->name('subscriptions.cancel');
         });
 
         // Shop management routes (requires shop)
-        Route::middleware([HasShop::class])->group(function () {
+        Route::middleware([\App\Http\Middleware\HasShop::class])->group(function () {
             Route::get('/dashboard', [ShopDashboardController::class, 'index'])->name('dashboard');
             Route::get('/profile', [ShopProfileController::class, 'show'])->name('profile');
             Route::put('/profile', [ShopProfileController::class, 'update'])->name('profile.update');
