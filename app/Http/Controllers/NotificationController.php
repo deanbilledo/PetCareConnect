@@ -17,14 +17,29 @@ class NotificationController extends Controller
      */
     public function index()
     {
-        $notifications = auth()->user()->notifications()
-            ->orderBy('created_at', 'desc')
+        $query = auth()->user()->notifications();
+        
+        // Filter by type if provided
+        if (request()->has('type')) {
+            $query->where('type', request('type'));
+        }
+        
+        $notifications = $query->orderBy('created_at', 'desc')
             ->paginate(10);
+            
+        $unreadQuery = auth()->user()->unreadNotifications();
+        
+        // Filter unread count by type if provided
+        if (request()->has('type')) {
+            $unreadQuery->where('type', request('type'));
+        }
+        
+        $unreadCount = $unreadQuery->count();
 
         if (request()->wantsJson()) {
             return response()->json([
                 'notifications' => $notifications,
-                'unread_count' => auth()->user()->unreadNotifications()->count()
+                'unread_count' => $unreadCount
             ]);
         }
 

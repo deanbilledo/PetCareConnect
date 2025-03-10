@@ -146,4 +146,177 @@ class ShopAppointmentController extends Controller
 
         return view('shop.appointments.show', compact('appointment'));
     }
+
+    /**
+     * Display all paid appointments.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function payments(Request $request)
+    {
+        $shop = auth()->user()->shop;
+        
+        // Build query for paid appointments
+        $query = $shop->appointments()
+            ->where('payment_status', 'paid')
+            ->with(['user', 'pet', 'service', 'services', 'employee']);
+        
+        // Filter by date range
+        $dateRange = $request->input('date_range', 'all');
+        $startDate = null;
+        $endDate = now();
+        
+        switch ($dateRange) {
+            case 'this_week':
+                $startDate = now()->startOfWeek();
+                break;
+            case 'this_month':
+                $startDate = now()->startOfMonth();
+                break;
+            case 'last_month':
+                $startDate = now()->subMonth()->startOfMonth();
+                $endDate = now()->subMonth()->endOfMonth();
+                break;
+            case 'this_year':
+                $startDate = now()->startOfYear();
+                break;
+            case 'last_year':
+                $startDate = now()->subYear()->startOfYear();
+                $endDate = now()->subYear()->endOfYear();
+                break;
+            case 'custom':
+                if ($request->filled('start_date')) {
+                    $startDate = Carbon::parse($request->input('start_date'))->startOfDay();
+                }
+                if ($request->filled('end_date')) {
+                    $endDate = Carbon::parse($request->input('end_date'))->endOfDay();
+                }
+                break;
+        }
+        
+        if ($startDate) {
+            $query->where('paid_at', '>=', $startDate);
+        }
+        
+        $query->where('paid_at', '<=', $endDate);
+        
+        // Filter by employee
+        if ($request->filled('employee_id')) {
+            $query->where('employee_id', $request->input('employee_id'));
+        }
+        
+        // Save the original query for later use
+        $baseQuery = clone $query;
+        
+        // Get all appointments with applied filters except service filter
+        $allFilteredAppointments = $baseQuery->get();
+        
+        // Filter by service (handle this in PHP since the structure might be different)
+        if ($request->filled('service_id')) {
+            $serviceId = $request->input('service_id');
+            $paidAppointments = $allFilteredAppointments->filter(function($appointment) use ($serviceId) {
+                // Check if the appointment has the service directly
+                if ($appointment->service && $appointment->service->id == $serviceId) {
+                    return true;
+                }
+                
+                // Check if the appointment has the service through the many-to-many relationship
+                if ($appointment->services && $appointment->services->contains('id', $serviceId)) {
+                    return true;
+                }
+                
+                return false;
+            });
+        } else {
+            // If no service filter, use all appointments
+            $paidAppointments = $allFilteredAppointments;
+        }
+        
+        // Sort the collection by paid_at in descending order
+        $paidAppointments = $paidAppointments->sortByDesc('paid_at')->values();
+        
+        // Check if export requested
+        if ($request->has('export')) {
+            $exportFormat = $request->input('export');
+            
+            // Prepare export data
+            $exportData = $paidAppointments->map(function($appointment) {
+                return [
+                    'Date' => $appointment->paid_at->format('Y-m-d'),
+                    'Customer' => $appointment->user ? $appointment->user->name : 'Unknown',
+                    'Pet' => $appointment->pet ? $appointment->pet->name : 'Unknown',
+                    'Service' => $appointment->service ? $appointment->service->name : $appointment->service_type,
+                    'Employee' => $appointment->employee ? $appointment->employee->name : 'Unassigned',
+                    'Amount' => $appointment->service_price,
+                ];
+            });
+            
+            if ($exportFormat === 'csv') {
+                // Generate CSV file
+                $headers = [
+                    'Content-Type' => 'text/csv',
+                    'Content-Disposition' => 'attachment; filename="payment_history_'.now()->format('Y-m-d').'.csv"',
+                ];
+                
+                $callback = function() use ($exportData) {
+                    $file = fopen('php://output', 'w');
+                    
+                    // Add headers
+                    if ($exportData->count() > 0) {
+                        fputcsv($file, array_keys($exportData->first()));
+                    }
+                    
+                    // Add rows
+                    foreach ($exportData as $row) {
+                        fputcsv($file, $row);
+                    }
+                    
+                    fclose($file);
+                };
+                
+                return response()->stream($callback, 200, $headers);
+            } elseif ($exportFormat === 'pdf') {
+                // For PDF export, you would typically use a package like dompdf or barryvdh/laravel-dompdf
+                // For now, we'll just return a message that PDF export is not implemented
+                return back()->with('info', 'PDF export functionality requires additional setup.');
+            }
+        }
+        
+        // Group appointments by month
+        $groupedAppointments = $paidAppointments->groupBy(function($appointment) {
+            return $appointment->paid_at->format('F Y');
+        });
+        
+        // Calculate total revenue
+        $totalRevenue = $paidAppointments->sum('service_price');
+        
+        // Count total paid appointments
+        $totalPaidAppointments = $paidAppointments->count();
+        
+        // Get recent payments (last 30 days)
+        $thirtyDaysAgo = now()->subDays(30);
+        $recentPayments = $paidAppointments->filter(function($appointment) use ($thirtyDaysAgo) {
+            return $appointment->paid_at >= $thirtyDaysAgo;
+        });
+        
+        // Calculate recent revenue
+        $recentRevenue = $recentPayments->sum('service_price');
+        
+        // Get all employees and services for filter dropdowns
+        $employees = $shop->employees()->get();
+        $services = $shop->services()->get();
+        
+        return view('shop.payments.index', compact(
+            'groupedAppointments',
+            'totalRevenue',
+            'totalPaidAppointments',
+            'recentRevenue',
+            'employees',
+            'services',
+            'dateRange',
+            'startDate',
+            'endDate'
+        ));
+    }
 } 

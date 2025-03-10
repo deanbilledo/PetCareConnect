@@ -61,6 +61,9 @@
                             Update Rate
                         </button>
                     </div>
+                    <div id="rateUpdateSuccess" class="mt-2 text-green-600 hidden">
+                        Subscription rate updated successfully!
+                    </div>
                 </div>
             </div>
 
@@ -302,23 +305,32 @@
 
     function updateSubscriptionRate() {
         const rate = document.getElementById('subscriptionRate').value;
+        
+        if (!rate || isNaN(rate) || parseFloat(rate) <= 0) {
+            alert('Please enter a valid subscription rate');
+            return;
+        }
+
         fetch('/admin/payments/update-rate', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
             },
-            body: JSON.stringify({ rate })
+            body: JSON.stringify({ rate: rate })
         })
         .then(response => response.json())
         .then(data => {
-            alert(data.message);
-            window.location.reload();
+            const successElement = document.getElementById('rateUpdateSuccess');
+            successElement.classList.remove('hidden');
+            setTimeout(() => {
+                successElement.classList.add('hidden');
+            }, 3000);
         })
         .catch(error => {
-            alert('Error updating subscription rate');
+            alert('Error updating subscription rate. Please try again.');
         });
-        }
+    }
 
         // Close modals when clicking outside
         window.onclick = function(event) {

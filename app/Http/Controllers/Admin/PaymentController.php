@@ -43,6 +43,19 @@ class PaymentController extends Controller
             'subscription_ends_at' => Carbon::now()->addMonth(),
         ]);
 
+        // Use the custom notify method on the User model
+        $shopOwner = $subscription->shop->user;
+        if ($shopOwner) {
+            $shopOwner->notify(
+                'payment_verified',
+                'Payment Verified',
+                'Your payment of ₱' . number_format($subscription->amount, 2) . ' has been verified.',
+                route('shop.subscriptions.index', ['payment_verified' => 'true']),
+                'View Subscription',
+                'check-circle'
+            );
+        }
+
         return response()->json(['message' => 'Payment verified successfully']);
     }
 
@@ -61,8 +74,9 @@ class PaymentController extends Controller
             'rate' => 'required|numeric|min:0'
         ]);
 
-        // Update all future subscriptions with new rate
-        Subscription::where('subscription_starts_at', '>', Carbon::now())
+        // Update all subscriptions with new rate
+        Subscription::where('status', 'active')
+            ->orWhere('status', 'trial')
             ->update(['amount' => $request->rate]);
 
         return response()->json(['message' => 'Subscription rate updated successfully']);
