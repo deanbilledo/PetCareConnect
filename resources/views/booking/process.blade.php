@@ -10,7 +10,7 @@ use Illuminate\Support\Str;
     <!-- Back Button -->
     <div class="mb-4 mt-4">
         <a href="{{ url()->previous() }}" 
-           class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+           class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
             </svg>
@@ -287,13 +287,22 @@ function validateExoticSelection(checkbox) {
             box.checked = false;
             box.closest('label').classList.remove('bg-gray-50');
         });
+        
+        // Auto-select "single" appointment type
+        document.querySelector('input[name="appointment_type"][value="single"]').checked = true;
     } else {
         checkbox.closest('label').classList.remove('bg-gray-50');
     }
 }
 
+// Track selected regular pets
+let selectedRegularPetsCount = 0;
+
 document.querySelectorAll('.regular-pet').forEach(checkbox => {
     checkbox.addEventListener('change', function() {
+        const regularPets = document.querySelectorAll('.regular-pet:checked');
+        selectedRegularPetsCount = regularPets.length;
+        
         if (this.checked) {
             // Uncheck all exotic pets
             document.querySelectorAll('.exotic-pet').forEach(box => {
@@ -304,8 +313,48 @@ document.querySelectorAll('.regular-pet').forEach(checkbox => {
         } else {
             this.closest('label').classList.remove('bg-gray-50');
         }
+        
+        // Auto-select appointment type based on pet count
+        updateAppointmentTypeBasedOnSelection();
     });
 });
+
+// Initialize selection when the page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Check for any pre-selected pets (might happen if coming back from another page)
+    const regularPets = document.querySelectorAll('.regular-pet:checked');
+    selectedRegularPetsCount = regularPets.length;
+    
+    // Set initial selection state
+    updateAppointmentTypeBasedOnSelection();
+    
+    // Highlight selected pet items
+    document.querySelectorAll('.regular-pet:checked, .exotic-pet:checked').forEach(checkbox => {
+        checkbox.closest('label').classList.add('bg-gray-50');
+    });
+});
+
+// Function to update appointment type based on pet selection
+function updateAppointmentTypeBasedOnSelection() {
+    const singleRadio = document.querySelector('input[name="appointment_type"][value="single"]');
+    const multipleRadio = document.querySelector('input[name="appointment_type"][value="multiple"]');
+    
+    // Check if any exotic pet is selected
+    const exoticSelected = document.querySelectorAll('.exotic-pet:checked').length > 0;
+    
+    if (exoticSelected) {
+        // Exotic pets can only be booked with "single" appointment type
+        singleRadio.checked = true;
+        return;
+    }
+    
+    // Auto-select based on number of regular pets
+    if (selectedRegularPetsCount === 1) {
+        singleRadio.checked = true;
+    } else if (selectedRegularPetsCount >= 2 && selectedRegularPetsCount <= 3) {
+        multipleRadio.checked = true;
+    }
+}
 </script>
 
 @endsection

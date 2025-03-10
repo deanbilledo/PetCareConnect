@@ -47,6 +47,22 @@
                     </div>
                 </div>
 
+                <!-- Contact Number -->
+                <div>
+                    <label for="contact_number" class="block text-sm font-medium text-gray-700">Contact Number</label>
+                    <div class="mt-1">
+                        <input type="text" 
+                               id="contact_number" 
+                               name="contact_number" 
+                               value="{{ old('contact_number', auth()->user()->shop->contact_number) }}"
+                               class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 @error('contact_number') border-red-500 @enderror"
+                               placeholder="Enter your contact number">
+                        @error('contact_number')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+                </div>
+
                 <!-- Photo Gallery -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-4">Photo Gallery</label>

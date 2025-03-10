@@ -50,6 +50,12 @@ class HasShop
             return redirect()->route('home')
                 ->with('error', 'Shop access denied.');
         }
+        
+        // If user hasn't completed setup and trying to access shop dashboard
+        if (!$user->setup_completed && $request->is('shop/dashboard') && !$request->is('shop/setup*')) {
+            return redirect()->route('shop.setup.welcome')
+                ->with('info', 'Please complete your shop setup first.');
+        }
 
         return $next($request);
     }

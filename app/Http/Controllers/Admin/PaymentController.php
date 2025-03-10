@@ -34,38 +34,60 @@ class PaymentController extends Controller
         return view('admin.payments', compact('subscriptions', 'trialShops', 'monthlyRate'));
     }
 
+    /**
+     * Verify a payment for a subscription
+     */
     public function verifyPayment(Request $request, Subscription $subscription)
     {
+        // Calculate the end date (30 days from now)
+        $endDate = now()->addDays(30);
+        
         $subscription->update([
             'payment_status' => 'verified',
             'status' => 'active',
-            'subscription_starts_at' => Carbon::now(),
-            'subscription_ends_at' => Carbon::now()->addMonth(),
+            'subscription_starts_at' => now(),
+            'subscription_ends_at' => $endDate
         ]);
 
-        // Use the custom notify method on the User model
+        // Get the shop owner
         $shopOwner = $subscription->shop->user;
-        if ($shopOwner) {
-            $shopOwner->notify(
-                'payment_verified',
-                'Payment Verified',
-                'Your payment of ₱' . number_format($subscription->amount, 2) . ' has been verified.',
-                route('shop.subscriptions.index', ['payment_verified' => 'true']),
-                'View Subscription',
-                'check-circle'
-            );
-        }
+        
+        // Notify the shop owner
+        $shopOwner->notifications()->create([
+            'type' => 'payment_verified',
+            'title' => 'Payment Verified',
+            'message' => 'Your payment of ₱' . number_format($subscription->amount, 2) . ' has been verified. Your subscription is now active until ' . $endDate->format('F j, Y') . '.',
+            'action_url' => route('shop.subscriptions.index'),
+            'action_text' => 'View Subscription',
+            'icon' => 'check-circle'
+        ]);
 
-        return response()->json(['message' => 'Payment verified successfully']);
+        return redirect()->route('admin.payments')->with('success', 'Payment has been verified successfully.');
     }
 
+    /**
+     * Reject a payment for a subscription
+     */
     public function rejectPayment(Request $request, Subscription $subscription)
     {
         $subscription->update([
             'payment_status' => 'rejected'
         ]);
 
-        return response()->json(['message' => 'Payment rejected']);
+        // Get the shop owner
+        $shopOwner = $subscription->shop->user;
+        
+        // Notify the shop owner
+        $shopOwner->notifications()->create([
+            'type' => 'payment_rejected',
+            'title' => 'Payment Rejected',
+            'message' => 'Your payment of ₱' . number_format($subscription->amount, 2) . ' has been rejected. Please submit a new payment.',
+            'action_url' => route('shop.subscriptions.index'),
+            'action_text' => 'Resubmit Payment',
+            'icon' => 'x-circle'
+        ]);
+
+        return redirect()->route('admin.payments')->with('success', 'Payment has been rejected successfully.');
     }
 
     public function updateSubscriptionRate(Request $request)

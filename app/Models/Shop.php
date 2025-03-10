@@ -18,6 +18,8 @@ class Shop extends Model
         'name',
         'type',
         'phone',
+        'contact_number',
+        'contact_email',
         'description',
         'address',
         'latitude',
