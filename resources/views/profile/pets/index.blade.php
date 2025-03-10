@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends(session('shop_mode') ? 'layouts.shop' : 'layouts.app')
 
 @section('styles')
 <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">

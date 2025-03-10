@@ -19,7 +19,7 @@
                         <p class="font-medium text-yellow-800">Trial Period {{ $daysLeft > 0 ? 'Ending Soon' : 'Ended' }}</p>
                         <p class="text-sm text-yellow-600">
                             @if($daysLeft > 0)
-                                Your 30-day free trial ends in {{ $daysLeft }} days
+                                Your 30-day free trial ends in {{ (int)$daysLeft }} days
                             @else
                                 Your trial period has ended. Please subscribe to continue using shop features.
                             @endif
@@ -36,7 +36,7 @@
                     <div>
                         <p class="font-medium text-green-800">Active Subscription</p>
                         <p class="text-sm text-green-600">
-                            Your subscription is active until {{ $subscription->subscription_ends_at->format('F d, Y') }}
+                            Your subscription is active until {{ $subscription->subscription_ends_at->format('F j, Y') }}
                         </p>
                     </div>
                 </div>
@@ -50,6 +50,11 @@
                 <p class="text-2xl font-bold">₱{{ number_format($subscription->amount, 2) }}<span class="text-sm font-normal text-gray-600">/month</span></p>
             </div>
 
+            <!-- Pending Payment Notification -->
+            <div id="pendingNotification" class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg {{ $subscription->payment_status === 'pending' ? '' : 'hidden' }}">
+                <p id="successMessage" class="text-blue-800">Your payment is being verified. Please wait for admin approval.</p>
+            </div>
+
             <!-- GCash Payment Details -->
             <div class="bg-blue-50 p-4 rounded-lg mb-6">
                 <div class="flex items-center justify-center mb-4">
@@ -58,11 +63,11 @@
                 <div class="space-y-2">
                     <div class="flex justify-between">
                         <span class="text-gray-600">Account Name:</span>
-                        <span class="font-medium">Dean R****</span>
+                        <span class="font-medium">DE*N RE***T B.</span>
                     </div>
                     <div class="flex justify-between">
                         <span class="text-gray-600">GCash Number:</span>
-                        <span class="font-medium">0917 123 4567</span>
+                        <span class="font-medium">0970 981 3882</span>
                     </div>
                     <div class="flex justify-between font-medium">
                         <span>Total Amount:</span>
@@ -150,11 +155,11 @@
                 <div class="bg-blue-50 p-4 rounded-lg space-y-2">
                     <div class="flex justify-between">
                         <span class="text-gray-600">Account Name:</span>
-                        <span class="font-medium">Dean R****</span>
+                        <span class="font-medium">DE*N RE***T B.</span>
                     </div>
                     <div class="flex justify-between">
                         <span class="text-gray-600">GCash Number:</span>
-                        <span class="font-medium">0917 123 4567</span>
+                        <span class="font-medium">0970 981 3882</span>
                     </div>
                     <div class="flex justify-between">
                         <span class="text-gray-600">Amount:</span>
@@ -230,6 +235,63 @@
     </div>
 </div>
 
+<!-- Payment Success Modal -->
+<div id="successModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-semibold text-gray-900">Payment Successful!</h3>
+            <button onclick="hideSuccessModal()" class="text-gray-500 hover:text-gray-700">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        
+        <div class="text-center mb-6">
+            <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4">
+                <svg class="h-10 w-10 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+            </div>
+            <h3 class="text-lg leading-6 font-medium text-gray-900">Payment Verified</h3>
+            <div class="mt-2">
+                <p class="text-gray-600">
+                    Your payment has been successfully verified. Your subscription is now active.
+                </p>
+            </div>
+        </div>
+        
+        <div class="bg-gray-50 p-4 rounded-lg mb-6">
+            <div class="space-y-2">
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Subscription Plan:</span>
+                    <span class="font-medium">Partner Plan</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Amount Paid:</span>
+                    <span class="font-medium">₱{{ number_format($subscription->amount, 2) }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Status:</span>
+                    <span class="font-medium text-green-600">Active</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Valid Until:</span>
+                    <span class="font-medium">{{ $subscription->subscription_ends_at ? $subscription->subscription_ends_at->format('F j, Y') : 'Pending Verification' }}</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="text-center text-sm text-gray-600 mb-4">
+            <p>Thank you for your subscription! You now have full access to all shop features.</p>
+        </div>
+        
+        <button onclick="hideSuccessModal()" class="w-full bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+            Continue
+        </button>
+    </div>
+</div>
+
 @push('scripts')
 <script>
     function showGcashModal() {
@@ -275,14 +337,44 @@
             const data = await response.json();
 
             if (response.ok) {
-                alert(data.message);
                 hideGcashModal();
-                window.location.reload();
+                // Show a nicer notification instead of an alert
+                document.getElementById('successMessage').textContent = data.message;
+                document.getElementById('pendingNotification').classList.remove('hidden');
+                setTimeout(() => {
+                    window.location.reload();
+                }, 2000);
             } else {
                 alert('Error submitting payment. Please try again.');
             }
         } catch (error) {
             alert('Error submitting payment. Please try again.');
+        }
+    });
+
+    function showSuccessModal() {
+        const modal = document.getElementById('successModal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    function hideSuccessModal() {
+        const modal = document.getElementById('successModal');
+        modal.classList.remove('flex');
+        modal.classList.add('hidden');
+    }
+
+    // Check for payment verification
+    document.addEventListener('DOMContentLoaded', function() {
+        @if(isset($paymentVerified) && $paymentVerified)
+            showSuccessModal();
+        @endif
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('payment_verified') === 'true') {
+            showSuccessModal();
+            // Remove the query parameter without refreshing
+            window.history.replaceState({}, document.title, window.location.pathname);
         }
     });
 </script>

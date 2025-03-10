@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends(session('shop_mode') ? 'layouts.shop' : 'layouts.app')
 
 @section('content')
 <div class="container mx-auto px-4 py-8">

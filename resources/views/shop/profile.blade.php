@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends(session('shop_mode') ? 'layouts.shop' : 'layouts.app')
 
 @section('styles')
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"

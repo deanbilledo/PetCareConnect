@@ -20,12 +20,15 @@ class SubscriptionController extends Controller
             ->first();
 
         if (!$subscription) {
+            // Get the default subscription amount
+            $defaultAmount = 299.00;
+            
             // Create initial trial subscription
             $subscription = Subscription::create([
                 'shop_id' => $shop->id,
                 'status' => 'trial',
                 'trial_ends_at' => Carbon::now()->addDays(30),
-                'amount' => 299.00
+                'amount' => $defaultAmount
             ]);
         }
 
@@ -33,7 +36,23 @@ class SubscriptionController extends Controller
             ? Carbon::now()->diffInDays($subscription->trial_ends_at, false)
             : Carbon::now()->diffInDays($subscription->subscription_ends_at, false);
 
-        return view('shop.subscriptions.index', compact('subscription', 'daysLeft'));
+        // Check for payment verification notifications using the custom notification system
+        $paymentVerified = false;
+        $user = Auth::user();
+        $paymentNotification = $user->unreadNotifications()
+            ->where('type', 'payment_verified')
+            ->first();
+            
+        if ($paymentNotification) {
+            $paymentVerified = true;
+            // Mark the notification as read
+            $paymentNotification->update([
+                'status' => 'read',
+                'read_at' => now()
+            ]);
+        }
+
+        return view('shop.subscriptions.index', compact('subscription', 'daysLeft', 'paymentVerified'));
     }
 
     public function verifyPayment(Request $request)
