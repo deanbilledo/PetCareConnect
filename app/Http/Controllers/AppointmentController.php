@@ -18,18 +18,26 @@ class AppointmentController extends Controller
 
     public function index()
     {
-        $user = auth()->user();
-        $appointments = $user->appointments()
-            ->with(['shop', 'pet'])
-            ->orderBy('appointment_date', 'desc')
+        // Get appointments
+        $appointments = auth()->user()->appointments()
+            ->with(['shop', 'pet', 'employee'])
+            ->orderBy('appointment_date', 'asc')
             ->get();
-        
-        // Add debugging
-        Log::info('User ID: ' . $user->id);
-        Log::info('Appointments count: ' . $appointments->count());
-        Log::info('Raw appointments:', $appointments->toArray());
 
-        $groupedAppointments = $appointments->groupBy(function($appointment) {
+        // Auto-cancel past due appointments
+        $appointments->each(function ($appointment) {
+            $isPastDue = \Carbon\Carbon::parse($appointment->appointment_date)->addDay()->isPast();
+            if ($isPastDue && $appointment->status === 'pending') {
+                $appointment->update([
+                    'status' => 'cancelled',
+                    'cancellation_reason' => 'Automatically cancelled due to being past due',
+                    'cancelled_at' => now()
+                ]);
+            }
+        });
+
+        // Group appointments by date
+        $groupedAppointments = $appointments->groupBy(function ($appointment) {
             return $appointment->appointment_date->format('Y-m-d');
         });
 
@@ -40,10 +48,22 @@ class AppointmentController extends Controller
     {
         // Check if the user owns this appointment
         if ($appointment->user_id !== auth()->id()) {
+            if (request()->wantsJson()) {
+                return response()->json(['error' => 'Unauthorized'], 403);
+            }
             return redirect()->route('appointments.index')
                 ->with('error', 'You are not authorized to view this appointment.');
         }
 
+        // Load the relationships
+        $appointment->load(['shop', 'pet', 'employee']);
+
+        // Return JSON response for AJAX requests
+        if (request()->wantsJson()) {
+            return response()->json($appointment);
+        }
+
+        // Return view for regular requests
         return view('appointments.show', compact('appointment'));
     }
 
@@ -71,6 +91,16 @@ class AppointmentController extends Controller
             $appointment->cancellation_reason = $request->reason;
             $appointment->save();
 
+            // Create notification for cancelled appointment
+            $appointment->user->notifications()->create([
+                'type' => 'appointment_cancelled',
+                'title' => 'Appointment Cancelled',
+                'message' => "Your appointment at {$appointment->shop->name} for {$appointment->appointment_date->format('F j, Y g:i A')} has been cancelled.",
+                'action_url' => route('appointments.show', $appointment),
+                'action_text' => 'View Details',
+                'status' => 'unread'
+            ]);
+
             Log::info('Appointment cancelled successfully');
 
             return response()->json([
@@ -92,93 +122,170 @@ class AppointmentController extends Controller
 
     public function reschedule(Appointment $appointment)
     {
+        // Check if the appointment belongs to the authenticated user
         if ($appointment->user_id !== auth()->id()) {
-            abort(403);
+            abort(403, 'Unauthorized action.');
         }
 
-        if ($appointment->status !== 'pending') {
+        // Check if the appointment can be rescheduled (pending or accepted)
+        if (!in_array($appointment->status, ['pending', 'accepted'])) {
             return redirect()->route('appointments.show', $appointment)
-                ->with('error', 'Only pending appointments can be rescheduled');
+                ->with('error', 'This appointment cannot be rescheduled.');
         }
 
-        // Load shop with operating hours and services
-        $shop = $appointment->shop->load(['operatingHours', 'services']);
-        
-        // Get available time slots based on operating hours
-        $timeSlots = [];
-        $operatingHours = $shop->operatingHours->keyBy('day');
-        
-        // Get services for the shop
-        $services = $shop->services->where('status', 'active');
+        // Get available services for the shop
+        $services = $appointment->shop->services()
+            ->where('status', 'active')
+            ->get();
 
-        return view('appointments.reschedule', compact('appointment', 'operatingHours', 'services'));
+        // Get shop's operating hours
+        $operatingHours = $appointment->shop->operatingHours()
+            ->get()
+            ->keyBy('day_of_week')
+            ->toArray();
+
+        return view('appointments.reschedule', compact('appointment', 'services', 'operatingHours'));
     }
 
     public function updateSchedule(Request $request, Appointment $appointment)
     {
+        // Check if the appointment belongs to the authenticated user
+        if ($appointment->user_id !== auth()->id()) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        // Check if the appointment can be rescheduled (pending or accepted)
+        if (!in_array($appointment->status, ['pending', 'accepted'])) {
+            return redirect()->route('appointments.show', $appointment)
+                ->with('error', 'This appointment cannot be rescheduled.');
+        }
+
+        // Validate the request
+        $validated = $request->validate([
+            'new_date' => 'required|date|after:today',
+            'new_time' => 'required',
+            'employee_id' => 'required|exists:employees,id',
+            'reschedule_reason' => 'required|string|min:10'
+        ]);
+
         try {
-            // Validate user ownership and status
-            if ($appointment->user_id !== auth()->id()) {
-                abort(403);
-            }
+            // Combine date and time
+            $newDateTime = \Carbon\Carbon::parse($validated['new_date'] . ' ' . $validated['new_time']);
 
-            if ($appointment->status !== 'pending') {
-                return redirect()->route('appointments.show', $appointment)
-                    ->with('error', 'Only pending appointments can be rescheduled');
-            }
-
-            // Validate the request
-            $validated = $request->validate([
-                'new_date' => 'required|date|after:today',
-                'new_time' => 'required',
-                'service_type' => 'required|string',
-                'service_price' => 'required|numeric|min:0',
-                'reschedule_reason' => 'required|string|max:500'
-            ]);
-
-            // Get the service and calculate expected price
-            $service = $appointment->shop->services()
-                ->where('name', $validated['service_type'])
-                ->where('status', 'active')
-                ->firstOrFail();
-
-            $expectedPrice = $service->price;
+            // Update appointment with reschedule request
+            DB::beginTransaction();
             
-            // Apply size multiplier
-            switch($appointment->pet->size_category) {
-                case 'large':
-                    $expectedPrice *= 1.4;
-                    break;
-                case 'medium':
-                    $expectedPrice *= 1.2;
-                    break;
-                // small uses base price
-            }
+            $appointment->status = 'reschedule_requested';
+            $appointment->requested_date = $newDateTime;
+            $appointment->employee_id = $validated['employee_id'];
+            $appointment->reschedule_reason = $validated['reschedule_reason'];
+            $appointment->last_reschedule_at = now();
+            $appointment->save();
+            
+            DB::commit();
 
-            // Verify the price matches our calculation (allowing for small floating point differences)
-            if (abs($expectedPrice - $validated['service_price']) > 0.01) {
-                throw new \Exception('Invalid service price');
-            }
-
-            // Convert time and create datetime
-            $newDateTime = Carbon::parse($validated['new_date'] . ' ' . $validated['new_time']);
-
-            // Update appointment
-            $appointment->update([
-                'appointment_date' => $newDateTime,
-                'service_type' => $validated['service_type'],
-                'service_price' => $validated['service_price'],
-                'reschedule_reason' => $validated['reschedule_reason'],
-                'last_reschedule_at' => now()
+            // Log the reschedule request
+            \Log::info('Reschedule request submitted:', [
+                'appointment_id' => $appointment->id,
+                'new_datetime' => $newDateTime,
+                'employee_id' => $validated['employee_id'],
+                'reason' => $validated['reschedule_reason']
             ]);
 
-            return redirect()->route('appointments.index')
-                ->with('success', 'Appointment rescheduled successfully.');
+            // Return view with the updated appointment and new datetime
+            return view('appointments.reschedule-confirmation', [
+                'appointment' => $appointment->fresh(),
+                'newDateTime' => $newDateTime->format('F j, Y g:i A')
+            ])->with('success', 'Your reschedule request has been submitted successfully. Please wait for the shop\'s confirmation.');
+
         } catch (\Exception $e) {
-            Log::error('Error rescheduling appointment: ' . $e->getMessage());
-            return back()
-                ->withInput()
-                ->with('error', 'Failed to reschedule appointment. Please try again.');
+            DB::rollBack();
+            \Log::error('Reschedule error: ' . $e->getMessage(), [
+                'appointment_id' => $appointment->id,
+                'request_data' => $request->all(),
+                'error' => $e->getMessage()
+            ]);
+            return back()->with('error', 'Failed to submit reschedule request. Please try again.');
+        }
+    }
+
+    public function approveReschedule(Appointment $appointment)
+    {
+        try {
+            if (!auth()->user()->shop || $appointment->shop_id !== auth()->user()->shop->id) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Unauthorized to approve this reschedule request'
+                ], 403);
+            }
+
+            if ($appointment->status !== 'reschedule_requested') {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'This appointment is not pending reschedule'
+                ], 400);
+            }
+
+            $appointment->update([
+                'status' => 'accepted',
+                'appointment_date' => $appointment->requested_date,
+                'service_type' => $appointment->requested_service ?: $appointment->service_type,
+                'reschedule_approved_at' => now()
+            ]);
+
+            // Create notification for approved reschedule
+            $appointment->user->notifications()->create([
+                'type' => 'reschedule_approved',
+                'title' => 'Reschedule Request Approved',
+                'message' => "Your reschedule request for {$appointment->shop->name} has been approved. Your new appointment is on {$appointment->appointment_date->format('F j, Y g:i A')}.",
+                'action_url' => route('appointments.show', $appointment),
+                'action_text' => 'View Appointment',
+                'status' => 'unread'
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Reschedule request approved successfully'
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error approving reschedule request: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to approve reschedule request: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function declineReschedule(Appointment $appointment, Request $request)
+    {
+        try {
+            if ($appointment->shop_id !== auth()->user()->shop->id) {
+                return response()->json([
+                    'error' => 'Unauthorized to decline this reschedule request'
+                ], 403);
+            }
+
+            if ($appointment->status !== 'reschedule_requested') {
+                return response()->json([
+                    'error' => 'This appointment is not pending reschedule'
+                ], 400);
+            }
+
+            $appointment->update([
+                'status' => 'accepted', // Revert to previous status
+                'reschedule_rejection_reason' => $request->reason,
+                'reschedule_rejected_at' => now()
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Reschedule request declined successfully'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error declining reschedule request: ' . $e->getMessage());
+            return response()->json([
+                'error' => 'Failed to decline reschedule request'
+            ], 500);
         }
     }
 
@@ -218,6 +325,16 @@ class AppointmentController extends Controller
                 'accepted_at' => now()
             ]);
 
+            // Create notification for accepted appointment
+            $appointment->user->notifications()->create([
+                'type' => 'appointment_accepted',
+                'title' => 'Appointment Accepted',
+                'message' => "Your appointment at {$appointment->shop->name} for {$appointment->appointment_date->format('F j, Y g:i A')} has been accepted.",
+                'action_url' => route('appointments.show', $appointment),
+                'action_text' => 'View Appointment',
+                'status' => 'unread'
+            ]);
+
             Log::info('Appointment accepted successfully', [
                 'appointment_id' => $appointment->id
             ]);
@@ -252,6 +369,16 @@ class AppointmentController extends Controller
                 'status' => 'completed',
                 'payment_status' => 'paid',
                 'paid_at' => now()
+            ]);
+
+            // Create notification for completed appointment
+            $appointment->user->notifications()->create([
+                'type' => 'appointment_completed',
+                'title' => 'Appointment Completed',
+                'message' => "Your appointment at {$appointment->shop->name} has been completed. Thank you for your business!",
+                'action_url' => route('appointments.show', $appointment),
+                'action_text' => 'View Details',
+                'status' => 'unread'
             ]);
 
             return response()->json([
@@ -289,6 +416,167 @@ class AppointmentController extends Controller
             Log::error('Error cancelling appointment: ' . $e->getMessage());
             return response()->json([
                 'error' => 'Failed to cancel appointment'
+            ], 500);
+        }
+    }
+
+    public function downloadReceipt(Appointment $appointment)
+    {
+        try {
+            // Check if user is authorized (either shop owner or appointment owner)
+            if ($appointment->user_id !== auth()->id() && 
+                (!auth()->user()->shop || $appointment->shop_id !== auth()->user()->shop->id)) {
+                abort(403, 'Unauthorized to download this receipt');
+            }
+
+            // Check if appointment is either accepted or completed
+            if (!in_array($appointment->status, ['accepted', 'completed'])) {
+                abort(400, 'Receipt is only available for accepted or completed appointments');
+            }
+
+            // Load the appointment with its relationships
+            $appointment->load(['user', 'shop', 'pet']);
+
+            // Generate receipt view with appropriate template
+            $pdf = \PDF::loadView('pdfs.official-receipt', [
+                'appointment' => $appointment
+            ]);
+
+            // Generate filename
+            $filename = 'official_receipt_' . $appointment->id . '_' . Str::slug($appointment->shop->name) . '.pdf';
+
+            return $pdf->download($filename);
+        } catch (\Exception $e) {
+            Log::error('Error downloading receipt: ' . $e->getMessage());
+            return back()->with('error', 'Failed to download receipt. Please try again.');
+        }
+    }
+
+    public function addNote(Request $request, Appointment $appointment)
+    {
+        try {
+            // Check if user is authorized (must be shop owner)
+            if (!auth()->user()->shop || $appointment->shop_id !== auth()->user()->shop->id) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Unauthorized to add notes to this appointment'
+                ], 403);
+            }
+
+            // Validate the request
+            $validated = $request->validate([
+                'note' => 'required|string|max:1000',
+                'note_image' => 'nullable|image|max:5120' // Max 5MB image
+            ]);
+
+            $data = ['note' => $validated['note']];
+
+            // Handle image upload if present
+            if ($request->hasFile('note_image')) {
+                $image = $request->file('note_image');
+                $imagePath = $image->store('appointment-notes', 'public');
+                $data['image'] = $imagePath;
+            }
+
+            // Create a new note
+            $note = $appointment->appointmentNotes()->create($data);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Note added successfully',
+                'note' => $note,
+                'image_url' => $request->hasFile('note_image') ? asset('storage/' . $imagePath) : null
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error adding note to appointment: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to add note'
+            ], 500);
+        }
+    }
+
+    public function getNote(Appointment $appointment)
+    {
+        try {
+            // Check if user is authorized (must be shop owner)
+            if (!auth()->user()->shop || $appointment->shop_id !== auth()->user()->shop->id) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Unauthorized to view notes for this appointment'
+                ], 403);
+            }
+
+            // Load the appointment with necessary relationships
+            $appointment->load(['user', 'pet', 'shop', 'employee', 'appointmentNotes']);
+
+            // Get the profile photo URL
+            $profilePhotoUrl = $appointment->user->profile_photo_url ?? asset('images/default-profile.png');
+
+            return response()->json([
+                'success' => true,
+                'notes' => $appointment->appointmentNotes,
+                'appointment' => [
+                    'id' => $appointment->id,
+                    'user' => [
+                        'name' => $appointment->user->name,
+                        'email' => $appointment->user->email,
+                        'profile_photo_url' => $profilePhotoUrl
+                    ],
+                    'employee' => $appointment->employee ? [
+                        'id' => $appointment->employee->id,
+                        'name' => $appointment->employee->name,
+                        'position' => $appointment->employee->position,
+                        'profile_photo_url' => $appointment->employee->profile_photo_url ?? asset('images/default-avatar.png')
+                    ] : null,
+                    'appointment_date' => $appointment->appointment_date,
+                    'service_type' => $appointment->service_type,
+                    'status' => $appointment->status,
+                    'updated_at' => $appointment->updated_at
+                ]
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error retrieving notes for appointment: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to retrieve notes'
+            ], 500);
+        }
+    }
+
+    // Add method to check for upcoming appointments
+    public function checkUpcomingAppointments()
+    {
+        try {
+            $upcomingAppointments = Appointment::where('status', 'accepted')
+                ->where('appointment_date', '>', now())
+                ->where('appointment_date', '<=', now()->addHour())
+                ->where('reminder_sent', false)
+                ->get();
+
+            foreach ($upcomingAppointments as $appointment) {
+                // Create notification for upcoming appointment
+                $appointment->user->notifications()->create([
+                    'type' => 'appointment_reminder',
+                    'title' => 'Upcoming Appointment Reminder',
+                    'message' => "Your appointment at {$appointment->shop->name} is in less than an hour! Please be ready for your {$appointment->service_type} appointment at {$appointment->appointment_date->format('g:i A')}.",
+                    'action_url' => route('appointments.show', $appointment),
+                    'action_text' => 'View Appointment',
+                    'status' => 'unread'
+                ]);
+
+                // Mark reminder as sent
+                $appointment->update(['reminder_sent' => true]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Upcoming appointments checked successfully'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error checking upcoming appointments: ' . $e->getMessage());
+            return response()->json([
+                'error' => 'Failed to check upcoming appointments'
             ], 500);
         }
     }

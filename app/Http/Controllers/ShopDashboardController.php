@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use App\Models\Rating;
 use App\Http\Middleware\HasShop;
 
 class ShopDashboardController extends Controller
@@ -71,9 +72,39 @@ class ShopDashboardController extends Controller
     {
         session()->forget('shop_mode');
         session()->save();
+        return redirect()->route('home');
+    }
+
+    public function reviews()
+    {
+        $shop = auth()->user()->shop;
         
-        return redirect()->route('home')
-            ->with('mode_switch', true)
-            ->with('previous_mode', 'shop');
+        // Get paginated ratings instead of all at once
+        $ratings = $shop->ratings()
+            ->with(['user', 'appointment.employee', 'appointment.services'])
+            ->latest()
+            ->paginate(10);
+            
+        return view('shop.reviews.index', compact('shop', 'ratings'));
+    }
+
+    public function addComment(Request $request, Rating $rating)
+    {
+        // Validate request
+        $validated = $request->validate([
+            'shop_comment' => 'required|string|max:1000',
+        ]);
+
+        // Check if the rating belongs to the authenticated shop
+        if ($rating->shop_id !== auth()->user()->shop->id) {
+            return back()->with('error', 'You are not authorized to comment on this review.');
+        }
+
+        // Update the rating with the shop's comment
+        $rating->update([
+            'shop_comment' => $validated['shop_comment']
+        ]);
+
+        return back()->with('success', 'Your response has been added to the review.');
     }
 } 

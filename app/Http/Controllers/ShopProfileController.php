@@ -82,7 +82,7 @@ class ShopProfileController extends Controller
                 
                 $shop = auth()->user()->shop;
                 $shop->gallery()->create([
-                    'path' => $path
+                    'image_path' => $path
                 ]);
 
                 return back()->with('success', 'Photo added to gallery successfully');
@@ -102,8 +102,8 @@ class ShopProfileController extends Controller
             $photo = $shop->gallery()->findOrFail($photoId);
             
             // Delete file from storage
-            if (Storage::disk('public')->exists($photo->path)) {
-                Storage::disk('public')->delete($photo->path);
+            if (Storage::disk('public')->exists($photo->image_path)) {
+                Storage::disk('public')->delete($photo->image_path);
             }
             
             // Delete record from database

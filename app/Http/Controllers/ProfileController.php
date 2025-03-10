@@ -223,10 +223,23 @@ class ProfileController extends Controller
 
     public function showPetDetails(Pet $pet)
     {
-        // Ensure the user can only view their own pets
-        if ($pet->user_id !== auth()->id()) {
-            abort(403);
-        }
+        // Load the necessary relationships
+        $pet->load([
+            'vaccinations' => function ($query) {
+                $query->latest('administered_date');
+            },
+            'parasiteControls' => function ($query) {
+                $query->latest('treatment_date');
+            },
+            'healthIssues' => function ($query) {
+                $query->latest('identified_date');
+            },
+            'appointments' => function ($query) {
+                $query->with('shop')
+                      ->latest('appointment_date')
+                      ->take(5);
+            }
+        ]);
 
         return view('profile.pets.details', compact('pet'));
     }
@@ -304,5 +317,147 @@ class ProfileController extends Controller
     public function storeHealthIssue(Request $request, Pet $pet)
     {
         // Validation and storage logic for health issues
+    }
+
+    public function showPetDashboard()
+    {
+        $user = auth()->user();
+        $pets = $user->pets()->with(['vaccinations', 'healthIssues', 'parasiteControls'])->get();
+        
+        // Calculate upcoming appointments
+        $upcomingAppointments = $user->appointments()
+            ->where('appointment_date', '>', now())
+            ->where('status', '!=', 'cancelled')
+            ->count();
+
+        // Calculate due vaccinations
+        $dueVaccinations = 0;
+        foreach ($pets as $pet) {
+            $dueVaccinations += $pet->vaccinations()
+                ->where('next_due_date', '<=', now()->addDays(30))
+                ->count();
+        }
+
+        // Calculate monthly expenses
+        $monthlyExpenses = $user->appointments()
+            ->whereMonth('appointment_date', now()->month)
+            ->whereYear('appointment_date', now()->year)
+            ->where('status', 'completed')
+            ->sum('service_price');
+
+        // Get recent appointments
+        $recentAppointments = $user->appointments()
+            ->with(['pet', 'shop'])
+            ->latest('appointment_date')
+            ->take(5)
+            ->get();
+
+        // Calculate expense breakdown
+        $expenses = [
+            'veterinary' => $user->appointments()
+                ->where('service_type', 'veterinary')
+                ->whereMonth('appointment_date', now()->month)
+                ->sum('service_price'),
+            'grooming' => $user->appointments()
+                ->where('service_type', 'grooming')
+                ->whereMonth('appointment_date', now()->month)
+                ->sum('service_price'),
+            'supplies' => 0, // This would need to be tracked separately
+            'other' => 0,    // This would need to be tracked separately
+        ];
+
+        // Calculate care trends
+        $careTrends = [
+            [
+                'title' => 'Vaccination Compliance',
+                'description' => 'Based on scheduled vs. completed vaccinations',
+                'change' => 5, // This would need to be calculated based on historical data
+            ],
+            [
+                'title' => 'Regular Checkups',
+                'description' => 'Frequency of veterinary visits',
+                'change' => -2,
+            ],
+            [
+                'title' => 'Grooming Routine',
+                'description' => 'Consistency in grooming appointments',
+                'change' => 8,
+            ],
+        ];
+
+        // Get upcoming health tasks
+        $upcomingTasks = collect();
+        foreach ($pets as $pet) {
+            // Add vaccination due dates
+            $pet->vaccinations()
+                ->where('next_due_date', '>', now())
+                ->get()
+                ->each(function ($vaccination) use (&$upcomingTasks) {
+                    $upcomingTasks->push((object)[
+                        'title' => $vaccination->vaccine_name . ' Vaccination Due',
+                        'pet' => $vaccination->pet,
+                        'due_date' => $vaccination->next_due_date,
+                    ]);
+                });
+
+            // Add parasite control due dates
+            $pet->parasiteControls()
+                ->where('next_treatment_date', '>', now())
+                ->get()
+                ->each(function ($control) use (&$upcomingTasks) {
+                    $upcomingTasks->push((object)[
+                        'title' => $control->treatment_name . ' Treatment Due',
+                        'pet' => $control->pet,
+                        'due_date' => $control->next_treatment_date,
+                    ]);
+                });
+        }
+        $upcomingTasks = $upcomingTasks->sortBy('due_date')->take(5);
+
+        // Calculate health metrics for each pet
+        foreach ($pets as $pet) {
+            // Calculate vaccination percentage
+            $totalVaccines = $pet->vaccinations->count();
+            $upToDateVaccines = $pet->vaccinations->filter(function ($vaccination) {
+                return $vaccination->next_due_date->isFuture();
+            })->count();
+            $pet->vaccination_percentage = $totalVaccines > 0 
+                ? round(($upToDateVaccines / $totalVaccines) * 100) 
+                : 0;
+
+            // Calculate health score (example algorithm)
+            $healthFactors = [
+                'vaccinations' => $pet->vaccination_percentage,
+                'parasiteControl' => $pet->parasiteControls()
+                    ->where('next_treatment_date', '>', now())
+                    ->exists() ? 100 : 0,
+                'recentCheckup' => $pet->appointments()
+                    ->where('service_type', 'veterinary')
+                    ->where('appointment_date', '>', now()->subMonths(6))
+                    ->exists() ? 100 : 0,
+            ];
+            $pet->health_score = round(array_sum($healthFactors) / count($healthFactors));
+        }
+
+        return view('profile.pets.dashboard', compact(
+            'pets',
+            'upcomingAppointments',
+            'dueVaccinations',
+            'monthlyExpenses',
+            'recentAppointments',
+            'expenses',
+            'careTrends',
+            'upcomingTasks'
+        ));
+    }
+
+    public function showUserAddHealthRecord(Pet $pet)
+    {
+        // Ensure the user owns the pet
+        if ($pet->user_id !== auth()->id()) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        return view('profile.pets.user-add-health-record', compact('pet'));
     }
 }

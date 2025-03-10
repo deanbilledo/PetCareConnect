@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>User Management - Pet Service Platform Admin Dashboard</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <script src="https://cdn.tailwindcss.com"></script>
@@ -18,6 +19,7 @@
     <div class="flex h-screen overflow-hidden">
         <!-- Sidebar -->
         @include('admin.partials.sidebar')
+        
         <!-- Main Content -->
         <div class="flex-1 flex flex-col overflow-hidden ml-4">
             <!-- Header -->
@@ -29,304 +31,314 @@
                     </button>
                     <div class="relative">
                         <button id="profileDropdown" class="flex items-center focus:outline-none bg-gray-100 dark:bg-gray-700 p-2 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300">
-                            <img class="h-8 w-8 rounded-full object-cover mr-2" src="../images/01.jpg" alt="Admin">
-                            <span class="hidden md:block mr-1">Christian Jude Faminiano</span>
+                            <img class="h-8 w-8 rounded-full object-cover mr-2" src="{{ auth()->user()->profile_photo_url }}" alt="Admin">
+                            <span class="hidden md:block mr-1">{{ auth()->user()->name }}</span>
                             <i class="fas fa-chevron-down ml-1"></i>
                         </button>
-                        <!-- Dropdown menu (hidden by default) -->
+                        <!-- Dropdown menu -->
                         <div id="profileMenu" class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-xl z-10 hidden">
-                            <a href="profile.html" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Profile</a>
-                            <a href="settings.html" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Settings</a>
-                            <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Logout</a>
+                            <a href="{{ route('admin.profile') }}" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Profile</a>
+                            <a href="{{ route('admin.settings') }}" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Settings</a>
+                            <form method="POST" action="{{ route('logout') }}">
+                                @csrf
+                                <button type="submit" class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Logout</button>
+                            </form>
                         </div>
                     </div>
                 </div>
             </header>
 
-            <!-- User Management Content -->
+            <!-- Main Content -->
             <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 dark:bg-gray-900 p-6">
-                <!-- User Type Tabs -->
-                <div class="mb-6">  
-                    <div class="flex space-x-4">
-                        <button class="bg-blue-500 text-white px-4 py-2 rounded-lg" onclick="showUserType('shopOwners')">Shop Owners</button>
-                        <button class="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg" onclick="showUserType('customers')">Customers</button>
+                @if(session('error'))
+                    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+                        <span class="block sm:inline">{{ session('error') }}</span>
                     </div>
-                </div>
+                @endif
 
-                <!-- Shop Owners Management -->
-                <div id="shopOwners" class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 mb-6 transform hover:scale-105 transition-transform duration-300">
-                    <h3 class="text-lg font-semibold mb-4">Shop Owners</h3>
+                <!-- User Management -->
+                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 mb-6 transform hover:scale-105 transition-transform duration-300">
+                    <h3 class="text-lg font-semibold mb-4">User Management</h3>
+                    <div class="flex mb-4 gap-4">
+                        <input type="text" placeholder="Search users..." class="flex-1 p-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <select class="p-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="">All Roles</option>
+                            <option value="customer">Customer</option>
+                            <option value="shop_owner">Shop Owner</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                        <button class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 rounded-xl add-user-btn">
+                            Add User
+                                </button>
+                    </div>
                     <div class="overflow-x-auto rounded-xl">
                         <table class="w-full table-auto">
                             <thead>
                                 <tr class="bg-gray-200 dark:bg-gray-700">
                                     <th class="px-4 py-2 text-left rounded-tl-xl">Name</th>
                                     <th class="px-4 py-2 text-left">Email</th>
+                                    <th class="px-4 py-2 text-left">Role</th>
+                                    <th class="px-4 py-2 text-left">Status</th>
                                     <th class="px-4 py-2 text-left">Shop</th>
-                                    <th class="px-4 py-2 text-left">Status</th>
+                                    <th class="px-4 py-2 text-left">Joined Date</th>
                                     <th class="px-4 py-2 text-left rounded-tr-xl">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody id="shopOwnersTableBody">
-                                <!-- Table rows will be dynamically added here -->
+                            <tbody>
+                                @foreach($users as $user)
+                                <tr class="border-b dark:border-gray-700">
+                                    <td class="px-4 py-3">
+                                <div class="flex items-center">
+                                            <img class="h-8 w-8 rounded-full mr-3" src="{{ $user->profile_photo_url }}" alt="User">
+                                            <span>{{ $user->name }}</span>
+                                    </div>
+                                    </td>
+                                    <td class="px-4 py-3">{{ $user->email }}</td>
+                                    <td class="px-4 py-3">
+                                        <span class="px-2 py-1 {{ $user->role === 'admin' ? 'bg-yellow-200 text-yellow-800' : ($user->role === 'shop_owner' ? 'bg-purple-200 text-purple-800' : 'bg-blue-200 text-blue-800') }} rounded-full text-sm">
+                                            {{ ucfirst($user->role) }}
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <span class="px-2 py-1 bg-green-200 text-green-800 rounded-full text-sm">Active</span>
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        @if($user->role === 'shop_owner' && $user->shop)
+                                            <span class="px-2 py-1 bg-purple-200 text-purple-800 rounded-full text-sm">
+                                                {{ $user->shop->name }}
+                                            </span>
+                                        @else
+                                            <span class="text-gray-500">-</span>
+                                        @endif
+                                    </td>
+                                    <td class="px-4 py-3">{{ $user->created_at->format('Y-m-d') }}</td>
+                                    <td class="px-4 py-3">
+                                        <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded-lg mr-2 edit-user-btn" data-user-id="{{ $user->id }}">Edit</button>
+                                        <button class="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded-lg delete-user-btn" data-user-id="{{ $user->id }}">Delete</button>
+                                    </td>
+                                </tr>
+                            @endforeach
                             </tbody>
                         </table>
                     </div>
-                </div>
-
-                <!-- Customers Management (hidden by default) -->
-                <div id="customers" class="hidden bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 mb-6 transform hover:scale-105 transition-transform duration-300">
-                    <h3 class="text-lg font-semibold mb-4">Customers</h3>
-                    <div class="overflow-x-auto rounded-xl">
-                        <table class="w-full table-auto">
-                            <thead>
-                                <tr class="bg-gray-200 dark:bg-gray-700">
-                                    <th class="px-4 py-2 text-left rounded-tl-xl">Name</th>
-                                    <th class="px-4 py-2 text-left">Email</th>
-                                    <th class="px-4 py-2 text-left">Join Date</th>
-                                    <th class="px-4 py-2 text-left">Status</th>
-                                    <th class="px-4 py-2 text-left rounded-tr-xl">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="customersTableBody">
-                                <!-- Table rows will be dynamically added here -->
-                            </tbody>
-                        </table>
+                    <div class="mt-4">
+                        {{ $users->links() }}
                     </div>
                 </div>
             </main>
-        </div>
-    </div>
-
-    <!-- User Details Modal -->
-    <div id="userDetailsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden">
-        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
-            <div class="mt-3 text-center">
-                <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white" id="userDetailsTitle">User Details</h3>
-                <div class="mt-2 px-7 py-3">
-                    <div id="userDetailsContent" class="text-left">
-                        <!-- User details will be inserted here -->
                     </div>
                 </div>
-                <div class="items-center px-4 py-3">
-                    <button id="closeUserDetailsModal" class="px-4 py-2 bg-gray-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-300">
-                        Close
-                    </button>
+
+                <!-- User Edit Modal -->
+                <div id="userEditModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full">
+                    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
+                        <div class="mt-3">
+                            <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-white mb-4">Edit User</h3>
+                            <form id="userEditForm" class="space-y-4">
+                                @csrf
+                                @method('PUT')
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Name</label>
+                                    <input type="text" name="name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
+                                    <input type="email" name="email" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Phone</label>
+                                    <input type="text" name="phone" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Status</label>
+                                    <select name="status" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                        <option value="active">Active</option>
+                                        <option value="inactive">Inactive</option>
+                                    </select>
+                                </div>
+                                <div class="flex justify-end mt-6 gap-4">
+                                    <button type="button" onclick="closeUserEditModal()" class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600">Cancel</button>
+                                    <button type="submit" class="px-4 py-2 bg-indigo-500 text-white rounded-md hover:bg-indigo-600">Save Changes</button>
                 </div>
+                            </form>
             </div>
         </div>
     </div>
 
-    <!-- User Activity Modal -->
-    <div id="userActivityModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden">
-        <div class="relative top-20 mx-auto p-5 border w-3/4 shadow-lg rounded-md bg-white dark:bg-gray-800">
+    <!-- Add User Modal -->
+    <div id="addUserModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
             <div class="mt-3">
-                <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white" id="userActivityTitle">User Activity</h3>
-                <div class="mt-2 px-7 py-3">
-                    <div class="mb-4">
-                        <input type="text" id="activitySearch" placeholder="Search activities..." class="w-full px-3 py-2 border rounded-md">
+                <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-white mb-4">Add New User</h3>
+                <form id="addUserForm" class="space-y-4">
+                    @csrf
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">First Name</label>
+                        <input type="text" name="first_name" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                     </div>
-                    <div class="mb-4">
-                        <select id="activityFilter" class="w-full px-3 py-2 border rounded-md">
-                            <option value="all">All Activities</option>
-                            <option value="login">Logins</option>
-                            <option value="appointment">Appointments</option>
-                            <option value="transaction">Transactions</option>
-                            <option value="review">Reviews</option>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Last Name</label>
+                        <input type="text" name="last_name" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
+                        <input type="email" name="email" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Password</label>
+                        <input type="password" name="password" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Phone</label>
+                        <input type="text" name="phone" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Role</label>
+                        <select name="role" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <option value="customer">Customer</option>
+                            <option value="shop_owner">Shop Owner</option>
+                            <option value="admin">Admin</option>
                         </select>
                     </div>
-                    <div id="userActivityContent" class="text-left max-h-96 overflow-y-auto">
-                        <!-- Activity details will be inserted here -->
+                    <div class="flex justify-end gap-3">
+                        <button type="button" onclick="closeAddUserModal()" class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600">Cancel</button>
+                        <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">Add User</button>
                     </div>
+                </form>
                 </div>
-                <div class="items-center px-4 py-3">
-                    <button id="closeUserActivityModal" class="px-4 py-2 bg-gray-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-300">
-                        Close
-                    </button>
-                </div>
-            </div>
         </div>
     </div>
 
     <script>
-        // Sample data for users
-        const users = {
-            shopOwners: [
-                { name: "John Doe", email: "john@example.com", shop: "Pawsome Grooming", status: "Active" },
-                { name: "Jane Smith", email: "jane@example.com", shop: "Happy Paws", status: "Active" }
-            ],
-            customers: [
-                { name: "Charlie Brown", email: "charlie@example.com", joinDate: "2023-01-15", status: "Active" },
-                { name: "Diana Prince", email: "diana@example.com", joinDate: "2023-02-20", status: "Active" }
-            ]
-        };
+        // Dark mode toggle
+        document.getElementById('darkModeToggle').addEventListener('click', function() {
+            document.documentElement.classList.toggle('dark');
+        });
 
-        // Function to populate table with user data
-        function populateTable(userType) {
-            const tableBody = document.getElementById(`${userType}TableBody`);
-            tableBody.innerHTML = '';
-            users[userType].forEach(user => {
-                const row = document.createElement('tr');
-                row.className = 'border-b dark:border-gray-700';
-                row.innerHTML = `
-                    <td class="px-4 py-2">${user.name}</td>
-                    <td class="px-4 py-2">${user.email}</td>
-                    <td class="px-4 py-2">${user[userType === 'shopOwners' ? 'shop' : 'joinDate']}</td>
-                    <td class="px-4 py-2"><span class="px-2 py-1 bg-green-200 text-green-800 rounded-full text-sm">${user.status}</span></td>
-                    <td class="px-4 py-2">
-                        <form onsubmit="viewEditProfile('${user.name}', '${userType}'); return false;">
-                            <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded-lg mr-2">View/Edit Profile</button>
-                        </form>
-                        ${userType !== 'customers' ? `
-                        <button onclick="viewActivity('${user.name}', '${userType}')" class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-1 px-2 rounded-lg mr-2">View Activity</button>
-                        ` : ''}
-                        ${userType === 'customers' ? `
-                        <button onclick="manageComplaints('${user.name}')" class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-1 px-2 rounded-lg mr-2">Manage Complaints</button>
-                        ` : ''}
-                        <button onclick="deactivateUser('${user.name}', '${userType}')" class="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded-lg">Deactivate</button>
-                    </td>
-                `;
-                tableBody.appendChild(row);
-            });
+        // Profile dropdown
+        document.getElementById('profileDropdown').addEventListener('click', function() {
+            document.getElementById('profileMenu').classList.toggle('hidden');
+        });
+
+        // User management functions
+        let currentUserId = null;
+
+        function openUserEditModal(userId) {
+            currentUserId = userId;
+            fetch(`/admin/users/${userId}/edit`)
+                .then(response => response.json())
+                .then(data => {
+                    document.querySelector('#userEditForm [name="name"]').value = data.name;
+                    document.querySelector('#userEditForm [name="email"]').value = data.email;
+                    document.querySelector('#userEditForm [name="phone"]').value = data.phone || '';
+                    document.querySelector('#userEditForm [name="status"]').value = data.status || 'active';
+                    document.getElementById('userEditModal').classList.remove('hidden');
+                });
         }
 
-        // Function to switch between user types
-        function showUserType(userType) {
-            document.getElementById('shopOwners').classList.add('hidden');
-            document.getElementById('customers').classList.add('hidden');
-            document.getElementById(userType).classList.remove('hidden');
+        function closeUserEditModal() {
+            document.getElementById('userEditModal').classList.add('hidden');
+            currentUserId = null;
+        }
 
-            // Update button styles
-            const buttons = document.querySelectorAll('button');
-            buttons.forEach(button => {
-                if (button.textContent.toLowerCase().includes(userType)) {
-                    button.classList.remove('bg-gray-300', 'text-gray-700');
-                    button.classList.add('bg-blue-500', 'text-white');
+        function openAddUserModal() {
+            document.getElementById('addUserModal').classList.remove('hidden');
+        }
+
+        function closeAddUserModal() {
+            document.getElementById('addUserModal').classList.add('hidden');
+        }
+
+        // Form submissions
+        document.getElementById('userEditForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            if (!currentUserId) return;
+
+            const formData = new FormData(this);
+            fetch(`/admin/users/${currentUserId}`, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.reload();
                 } else {
-                    button.classList.remove('bg-blue-500', 'text-white');
-                    button.classList.add('bg-gray-300', 'text-gray-700');
+                    alert(data.message || 'Failed to update user');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to update user');
+            });
+        });
+
+        document.getElementById('addUserForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            fetch('/admin/users', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.reload();
                 }
             });
+        });
 
-            populateTable(userType);
-        }
-
-        // Function to view/edit profile
-        function viewEditProfile(name, userType) {
-            const modal = document.getElementById('userDetailsModal');
-            const modalTitle = document.getElementById('userDetailsTitle');
-            const modalContent = document.getElementById('userDetailsContent');
-            
-            modalTitle.textContent = `${name}'s Profile`;
-            const user = users[userType].find(u => u.name === name);
-            
-            modalContent.innerHTML = `
-                <p><strong>Name:</strong> ${user.name}</p>
-                <p><strong>Email:</strong> ${user.email}</p>
-                <p><strong>${userType === 'shopOwners' ? 'Shop' : 'Join Date'}:</strong> ${user[userType === 'shopOwners' ? 'shop' : 'joinDate']}</p>
-                <p><strong>Status:</strong> ${user.status}</p>
-            `;
-            
-            modal.classList.remove('hidden');
-        }
-
-        // Mock data for user activities
-        const userActivities = {
-            "John Doe": [
-                { type: "login", date: "2023-05-01 09:00:00", details: "Logged in from IP 192.168.1.1" },
-                { type: "appointment", date: "2023-05-02 14:30:00", details: "Booked grooming appointment for Fluffy" },
-                { type: "transaction", date: "2023-05-02 15:00:00", details: "Paid $50 for grooming service" },
-                { type: "review", date: "2023-05-03 10:00:00", details: "Left a 5-star review for Pawsome Grooming" }
-            ],
-            "Jane Smith": [
-                { type: "login", date: "2023-05-01 10:30:00", details: "Logged in from mobile device" },
-                { type: "appointment", date: "2023-05-03 11:00:00", details: "Booked vet checkup for Max" },
-                { type: "transaction", date: "2023-05-03 12:00:00", details: "Paid $75 for vet consultation" }
-            ]
-            // Add more mock data for other users as needed
-        };
-
-        // Function to view activity
-        function viewActivity(name, userType) {
-            const modal = document.getElementById('userActivityModal');
-            const modalTitle = document.getElementById('userActivityTitle');
-            const modalContent = document.getElementById('userActivityContent');
-            
-            modalTitle.textContent = `${name}'s Activity Log`;
-            
-            const activities = userActivities[name] || [];
-            displayActivities(activities);
-            
-            modal.classList.remove('hidden');
-        }
-
-        function displayActivities(activities) {
-            const modalContent = document.getElementById('userActivityContent');
-            modalContent.innerHTML = activities.map(activity => `
-                <div class="mb-4 p-4 bg-gray-100 dark:bg-gray-700 rounded-lg">
-                    <p><strong>Type:</strong> ${activity.type}</p>
-                    <p><strong>Date:</strong> ${activity.date}</p>
-                    <p><strong>Details:</strong> ${activity.details}</p>
-                </div>
-            `).join('');
-        }
-
-        // Filter and search functionality
-        document.getElementById('activityFilter').addEventListener('change', filterActivities);
-        document.getElementById('activitySearch').addEventListener('input', filterActivities);
-
-        function filterActivities() {
-            const filterValue = document.getElementById('activityFilter').value;
-            const searchValue = document.getElementById('activitySearch').value.toLowerCase();
-            const userName = document.getElementById('userActivityTitle').textContent.split("'")[0];
-            
-            const activities = userActivities[userName] || [];
-            const filteredActivities = activities.filter(activity => 
-                (filterValue === 'all' || activity.type === filterValue) &&
-                (activity.type.includes(searchValue) || activity.details.toLowerCase().includes(searchValue))
-            );
-            
-            displayActivities(filteredActivities);
-        }
-
-        // Function to manage complaints
-        function manageComplaints(name) {
-            alert(`Managing complaints for ${name}`);
-            // In a real application, you would show a list of complaints and options to handle them
-        }
-
-        // Function to deactivate user
-        function deactivateUser(name, userType) {
-            if (confirm(`Are you sure you want to deactivate ${name}?`)) {
-                const userIndex = users[userType].findIndex(u => u.name === name);
-                if (userIndex !== -1) {
-                    users[userType][userIndex].status = 'Inactive';
-                    populateTable(userType);
-                    alert(`${name} has been deactivated.`);
-                }
+        // Delete user function
+        function deleteUser(userId) {
+            if (confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+                fetch(`/admin/users/${userId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        window.location.reload();
+                    } else {
+                        alert(data.message);
+                    }
+                });
             }
         }
 
-        // Close user details modal when clicking the close button
-        document.getElementById('closeUserDetailsModal').addEventListener('click', function() {
-            document.getElementById('userDetailsModal').classList.add('hidden');
+        // Event listeners
+        document.querySelectorAll('.edit-user-btn').forEach(button => {
+            button.addEventListener('click', () => openUserEditModal(button.dataset.userId));
         });
 
-        // Close user activity modal when clicking the close button
-        document.getElementById('closeUserActivityModal').addEventListener('click', function() {
-            document.getElementById('userActivityModal').classList.add('hidden');
+        document.querySelectorAll('.delete-user-btn').forEach(button => {
+            button.addEventListener('click', () => deleteUser(button.dataset.userId));
         });
 
-        // Close modal when clicking outside the modal content
+        document.querySelector('.add-user-btn').addEventListener('click', openAddUserModal);
+
+        // Close modals when clicking outside
         window.onclick = function(event) {
-            const modal = document.getElementById('userDetailsModal');
-            if (event.target == modal) {
+            const modals = [
+                document.getElementById('userEditModal'),
+                document.getElementById('addUserModal')
+            ];
+            
+            modals.forEach(modal => {
+                if (event.target === modal) {
                 modal.classList.add('hidden');
             }
+            });
         }
-
-        // Initialize the page with shop owners data
-        showUserType('shopOwners');
     </script>
 </body>
 </html>

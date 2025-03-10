@@ -124,7 +124,22 @@ use Illuminate\Support\Facades\Log;
     <!-- Date and Time Selection -->
     <div class="bg-white rounded-lg shadow-md p-6 mb-6" x-data="timeSlotPicker()">
         <h2 class="text-lg font-semibold mb-4">Select Date and Time</h2>
-        <p class="text-sm text-gray-600 mb-4">Total duration of selected services: {{ $totalDuration }} minutes</p>
+        
+        <!-- Service Duration Info -->
+        <div class="mb-6 bg-blue-50 rounded-lg p-4">
+            <div class="flex items-start">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-blue-800">Service Duration Information</h3>
+                    <p class="mt-1 text-sm text-blue-600">Total duration of selected services: {{ $totalDuration }} minutes</p>
+                    <p class="mt-1 text-sm text-blue-600">Time slots are adjusted to ensure all services can be completed within the shop's operating hours.</p>
+                </div>
+            </div>
+        </div>
 
         <form action="{{ route('booking.confirm.show', $shop) }}" method="GET" id="bookingForm" onsubmit="return validateForm()">
             @csrf
@@ -159,6 +174,7 @@ use Illuminate\Support\Facades\Log;
             <!-- Time Selection -->
             <div class="mb-6">
                 <label class="block text-sm font-medium text-gray-700 mb-2">Select Time</label>
+                <p class="text-sm text-gray-500 mb-2">Each time slot ensures {{ $totalDuration }} minutes for your service(s)</p>
                 
                 <!-- Loading State -->
                 <div x-show="loading" class="text-gray-500 text-sm mb-2">
@@ -178,15 +194,43 @@ use Illuminate\Support\Facades\Log;
                 <!-- Time Slots Dropdown -->
                 <select name="appointment_time" 
                         x-model="selectedTime"
+                        @change="getAvailableEmployees"
                         class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
                         x-show="!loading && timeSlots.length > 0"
                         required>
                     <option value="">Select a time</option>
-                    <template x-for="slot in timeSlots" :key="slot">
-                        <option x-text="slot" :value="slot"></option>
+                    <template x-for="slot in timeSlots" :key="slot.time">
+                        <option :value="slot.time">
+                            <span x-text="slot.time"></span>
+                            <span x-text="' - ' + slot.available_employees + ' of ' + slot.total_employees + ' groomers available'"></span>
+                        </option>
                     </template>
                 </select>
-                
+
+                <!-- Time Slots Grid (Alternative View) -->
+                <div class="grid grid-cols-3 sm:grid-cols-4 gap-2 mt-4" x-show="!loading && timeSlots.length > 0">
+                    <template x-for="slot in timeSlots" :key="slot.time">
+                        <button type="button"
+                                @click="selectedTime = slot.time; getAvailableEmployees()"
+                                :class="{
+                                    'border rounded-lg p-3 text-center transition-colors': true,
+                                    'bg-blue-50 border-blue-200 text-blue-700': selectedTime === slot.time,
+                                    'border-gray-200 hover:bg-gray-50': selectedTime !== slot.time
+                                }">
+                            <div class="font-medium" x-text="slot.time"></div>
+                            <div class="text-xs mt-1" :class="{
+                                'text-blue-600': selectedTime === slot.time,
+                                'text-gray-500': selectedTime !== slot.time
+                            }">
+                                <span x-text="slot.available_employees"></span>
+                                <span>of</span>
+                                <span x-text="slot.total_employees"></span>
+                                <span>available</span>
+                            </div>
+                        </button>
+                    </template>
+                </div>
+
                 <!-- No Slots Available Message -->
                 <p x-show="!loading && !errorMessage && selectedDate && timeSlots.length === 0" 
                    class="text-yellow-600 text-sm mt-1">
@@ -194,11 +238,75 @@ use Illuminate\Support\Facades\Log;
                 </p>
             </div>
 
+            <!-- Employee Selection -->
+            <div class="mb-6" x-show="selectedTime && !loading">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Select Employee</label>
+                <p class="text-sm text-gray-500 mb-2">Choose an available employee for your service</p>
+
+                <!-- Employee Loading State -->
+                <div x-show="loadingEmployees" class="text-gray-500 text-sm mb-2">
+                    <svg class="animate-spin h-5 w-5 mr-2 inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Loading available employees...
+                </div>
+
+                <!-- Employee Error Message -->
+                <div x-show="employeeErrorMessage" 
+                     x-text="employeeErrorMessage"
+                     class="text-red-500 text-sm mb-2">
+                </div>
+
+                <!-- Employee Selection Cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" x-show="!loadingEmployees && availableEmployees.length > 0">
+                    <template x-for="employee in availableEmployees" :key="employee.id">
+                        <label class="relative flex items-start p-4 cursor-pointer bg-white border rounded-lg hover:bg-gray-50">
+                            <div class="flex items-center h-5">
+                                <input type="radio" 
+                                       name="employee_id" 
+                                       :value="employee.id"
+                                       x-model="selectedEmployee"
+                                       class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                                       required>
+                            </div>
+                            <div class="ml-3 flex-1">
+                                <div class="flex items-center">
+                                    <img :src="employee.profile_photo_url" 
+                                         :alt="employee.name"
+                                         class="w-12 h-12 rounded-full object-cover mr-3">
+                                    <div class="flex flex-col flex-1">
+                                        <span class="text-sm font-medium text-gray-900" x-text="employee.name"></span>
+                                        <span class="text-sm text-gray-500" x-text="employee.position"></span>
+                                        <!-- Star Rating Display -->
+                                        <div class="flex items-center mt-1">
+                                            <template x-for="i in 5" :key="i">
+                                                <svg class="w-4 h-4" :class="i <= Math.round(employee.rating) ? 'text-yellow-400' : 'text-gray-300'" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118l-2.8-2.034c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                                </svg>
+                                            </template>
+                                            <span class="ml-1 text-sm text-gray-600" x-text="employee.rating > 0 ? `${employee.rating.toFixed(1)} / 5.0 (${employee.ratings_count} ${employee.ratings_count === 1 ? 'rating' : 'ratings'})` : 'No ratings yet'"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </label>
+                    </template>
+                </div>
+
+                
+                <!-- No Available Employees Message -->
+                <p x-show="!loadingEmployees && availableEmployees.length === 0" 
+                   class="text-yellow-600 text-sm mt-1 p-4 bg-yellow-50 rounded-md">
+                    No employees available for the selected time slot. Please choose another time.
+                </p>
+            </div>
+
             <!-- Submit Button -->
             <div class="mt-6">
                 <button type="submit" 
                         class="w-full bg-blue-500 text-white py-3 rounded-lg font-medium hover:bg-blue-600 transition-colors"
-                        :disabled="!selectedTime || loading">
+                        :disabled="!selectedTime || !selectedEmployee || loading || loadingEmployees">
                     Next
                 </button>
             </div>
@@ -228,6 +336,10 @@ function timeSlotPicker() {
         selectedTime: '',
         loading: false,
         errorMessage: '',
+        availableEmployees: [],
+        selectedEmployee: null,
+        loadingEmployees: false,
+        employeeErrorMessage: '',
         
         async getTimeSlots() {
             if (!this.selectedDate) return;
@@ -236,9 +348,12 @@ function timeSlotPicker() {
             this.timeSlots = [];
             this.selectedTime = '';
             this.errorMessage = '';
+            this.availableEmployees = [];
+            this.selectedEmployee = null;
             
             try {
-                const response = await fetch(`/time-slots/shop/{{ $shop->id }}?date=${this.selectedDate}&duration={{ $totalDuration }}`, {
+                // First, get the time slots
+                const timeSlotsResponse = await fetch(`/time-slots/shop/{{ $shop->id }}?date=${this.selectedDate}&duration=${parseInt({{ $totalDuration }}, 10)}`, {
                     method: 'GET',
                     headers: {
                         'Accept': 'application/json',
@@ -248,29 +363,183 @@ function timeSlotPicker() {
                     credentials: 'same-origin'
                 });
                 
+                if (!timeSlotsResponse.ok) {
+                    const errorData = await timeSlotsResponse.json().catch(() => ({}));
+                    throw new Error(errorData.error || `Server error: ${timeSlotsResponse.status}`);
+                }
+                
+                const timeSlotsData = await timeSlotsResponse.json();
+                
+                if (timeSlotsData.error) {
+                    throw new Error(timeSlotsData.error);
+                }
+
+                // Ensure timeSlotsData is an array, if not, try to access the slots property
+                const timeSlotArray = Array.isArray(timeSlotsData) ? timeSlotsData : 
+                                    (timeSlotsData.slots || timeSlotsData.data || []);
+
+                // For each time slot, check employee availability
+                const serviceIds = @json($bookingData['pet_services'] ?? []);
+                const slots = [];
+
+                for (const slot of timeSlotArray) {
+                    const employeesResponse = await fetch(`{{ route('booking.available-employees', $shop) }}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                        },
+                        body: JSON.stringify({
+                            date: this.selectedDate,
+                            time: slot.time,
+                            duration: {{ $totalDuration }},
+                            service_ids: Object.values(serviceIds)
+                        })
+                    });
+
+                    if (!employeesResponse.ok) {
+                        continue;
+                    }
+
+                    const employeesData = await employeesResponse.json();
+                    
+                    if (employeesData.success) {
+                        // Filter out employees with time off
+                        const availableEmployees = employeesData.employees.filter(employee => {
+                            // Check for time off requests
+                            const hasTimeOff = employee.time_off_requests?.some(timeOff => {
+                                const timeOffStart = new Date(timeOff.start_date);
+                                const timeOffEnd = new Date(timeOff.end_date);
+                                timeOffStart.setHours(0, 0, 0, 0);
+                                timeOffEnd.setHours(23, 59, 59, 999);
+                                const appointmentDate = new Date(this.selectedDate);
+                                appointmentDate.setHours(0, 0, 0, 0);
+                                
+                                return (
+                                    appointmentDate >= timeOffStart && 
+                                    appointmentDate <= timeOffEnd &&
+                                    timeOff.status !== 'rejected'
+                                );
+                            });
+
+                            return !hasTimeOff;
+                        });
+
+                        slots.push({
+                            ...slot,
+                            available_employees: availableEmployees.length,
+                            total_employees: employeesData.employees.length
+                        });
+                    }
+                }
+                
+                // Keep only slots that have available employees
+                this.timeSlots = slots.filter(slot => slot.available_employees > 0);
+                
+                if (this.timeSlots.length === 0) {
+                    this.errorMessage = 'No available time slots for the selected date';
+                }
+            } catch (error) {
+                console.error('Error loading time slots:', error);
+                this.errorMessage = error.message || 'Failed to load time slots';
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        async getAvailableEmployees() {
+            if (!this.selectedTime || !this.selectedDate) return;
+
+            this.loadingEmployees = true;
+            this.availableEmployees = [];
+            this.selectedEmployee = null;
+            this.employeeErrorMessage = '';
+
+            try {
+                const serviceIds = @json($bookingData['pet_services'] ?? []);
+                const response = await fetch(`{{ route('booking.available-employees', $shop) }}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    },
+                    body: JSON.stringify({
+                        date: this.selectedDate,
+                        time: this.selectedTime,
+                        duration: {{ $totalDuration }},
+                        service_ids: Object.values(serviceIds),
+                        include_ratings: true
+                    })
+                });
+
                 if (!response.ok) {
                     const errorData = await response.json().catch(() => ({}));
                     throw new Error(errorData.error || `Server error: ${response.status}`);
                 }
-                
+
                 const data = await response.json();
                 
                 if (data.error) {
                     throw new Error(data.error);
                 }
-                
-                this.timeSlots = data.slots || [];
-                
-                if (data.message && this.timeSlots.length === 0) {
-                    this.errorMessage = data.message;
-                }
+
+                // Filter employees based on their schedules and time off requests
+                this.availableEmployees = data.employees.map(employee => ({
+                    ...employee,
+                    rating: employee.rating || 0,
+                    ratings_count: employee.ratings_count || 0
+                })).filter(employee => {
+                    const appointmentStart = new Date(`${this.selectedDate} ${this.selectedTime}`);
+                    const appointmentEnd = new Date(appointmentStart.getTime() + ({{ $totalDuration }} * 60000));
+                    
+                    // Check for time off requests
+                    const hasTimeOff = employee.time_off_requests?.some(timeOff => {
+                        const timeOffStart = new Date(timeOff.start_date);
+                        const timeOffEnd = new Date(timeOff.end_date);
+                        
+                        timeOffStart.setHours(0, 0, 0, 0);
+                        timeOffEnd.setHours(23, 59, 59, 999);
+                        
+                        const appointmentDate = new Date(this.selectedDate);
+                        appointmentDate.setHours(0, 0, 0, 0);
+                        
+                        return (
+                            appointmentDate >= timeOffStart && 
+                            appointmentDate <= timeOffEnd &&
+                            timeOff.status !== 'rejected'
+                        );
+                    });
+
+                    return !hasTimeOff;
+                });
+
+                console.log('Available employees with ratings:', this.availableEmployees);
+
             } catch (error) {
-                this.errorMessage = error.message || 'Failed to load time slots';
+                console.error('Error loading employees:', error);
+                this.employeeErrorMessage = error.message || 'Failed to load available employees';
             } finally {
-                this.loading = false;
+                this.loadingEmployees = false;
             }
         }
     }
+}
+
+// Function to calculate and format end time
+function getEndTime(startTime, duration) {
+    const [hours, minutes] = startTime.match(/(\d+):(\d+)/).slice(1);
+    const startDate = new Date();
+    startDate.setHours(parseInt(hours));
+    startDate.setMinutes(parseInt(minutes));
+    
+    const endDate = new Date(startDate.getTime() + duration * 60000);
+    return endDate.toLocaleTimeString('en-US', { 
+        hour: 'numeric', 
+        minute: '2-digit', 
+        hour12: true 
+    });
 }
 </script>
 @endpush

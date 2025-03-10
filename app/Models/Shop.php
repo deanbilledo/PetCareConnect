@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Shop extends Model
 {
@@ -43,7 +44,7 @@ class Shop extends Model
     {
         return $query->where('status', 'active');
     }
-
+    
     public function scopeVeterinary($query)
     {
         return $query->where('type', 'veterinary')->active();
@@ -102,7 +103,7 @@ class Shop extends Model
             }
 
             if (Storage::disk('public')->exists($this->image)) {
-                return Storage::disk('public')->url($this->image);
+                return asset('storage/' . $this->image);
             }
 
             return asset('images/default-shop.png');
@@ -115,8 +116,49 @@ class Shop extends Model
         }
     }
 
+    /**
+     * Get the gallery images for the shop.
+     */
     public function gallery()
     {
-        return $this->hasMany(ShopGallery::class);
+        return $this->hasMany(ShopGallery::class)->orderBy('display_order');
+    }
+
+    public function employees()
+    {
+        return $this->hasMany(Employee::class);
+    }
+
+    public function employeeSchedules()
+    {
+        return $this->hasMany(EmployeeSchedule::class);
+    }
+
+    public function timeOffRequests()
+    {
+        return $this->hasMany(TimeOffRequest::class);
+    }
+
+    /**
+     * Get the subscriptions for the shop.
+     */
+    public function subscriptions()
+    {
+        return $this->hasMany(Subscription::class);
+    }
+
+    public function latestSubscription()
+    {
+        return $this->hasOne(Subscription::class)->latest();
+    }
+
+    /**
+     * Alias for ratings relationship
+     * 
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function reviews()
+    {
+        return $this->ratings();
     }
 } 

@@ -84,47 +84,100 @@ use Illuminate\Support\Facades\Log;
             @endforeach
 
             <!-- Hidden appointment type -->
-            <input type="hidden" name="appointment_type" value="{{ request('appointment_type') }}">
+            <input type="hidden" name="appointment_type" value="{{ $bookingData['appointment_type'] ?? request('appointment_type') }}">
 
             <!-- Service selection for each pet -->
             @foreach($pets as $index => $pet)
                 <div class="mb-6 pb-6 {{ !$loop->last ? 'border-b border-gray-200' : '' }}">
-                    <h3 class="font-medium mb-4">Services for {{ $pet->name }} ({{ $pet->size_category }})</h3>
+                    <h3 class="font-medium mb-4">
+                        Services for {{ $pet->name }} 
+                        ({{ ucfirst($pet->type) }}{{ $pet->type === 'Exotic' ? ' - ' . $pet->species : '' }})
+                    </h3>
                     
+                    @php
+                        $petType = strtolower($pet->type);
+                        
+                        // Add more detailed logging for the pet data
+                        Log::info("Processing services for pet - Full pet data:", [
+                            'pet_name' => $pet->name,
+                            'pet_type' => $petType,
+                            'pet_species' => $pet->species,
+                            'pet_raw' => $pet->toArray()  // This will show all pet attributes
+                        ]);
+
+                        // Filter available services based on pet type
+                        $availableServices = $services->filter(function($service) use ($pet, $petType) {
+                            // For exotic pets
+                            if ($petType === 'exotic') {
+                                // Convert both the pet's species and service's exotic_pet_species to lowercase for comparison
+                                $petSpecies = strtolower($pet->species ?? '');  // Add null coalescing
+                                $serviceSpecies = collect($service->exotic_pet_species ?? [])->map(function($species) {
+                                    return strtolower($species);
+                                })->toArray();
+
+                                $isAvailable = $service->exotic_pet_service && 
+                                              in_array($petSpecies, $serviceSpecies);
+                                
+                                Log::info("Exotic pet check result:", [
+                                    'is_available' => $isAvailable,
+                                    'service_name' => $service->name,
+                                    'exotic_service' => $service->exotic_pet_service,
+                                    'pet_species' => $petSpecies,
+                                    'pet_species_raw' => $pet->species,  // Add raw species value
+                                    'service_species' => $serviceSpecies,
+                                    'species_match' => in_array($petSpecies, $serviceSpecies),
+                                    'pet_full' => $pet->toArray()  // Add full pet data
+                                ]);
+                                
+                                return $isAvailable;
+                            }
+                            
+                            // For regular pets - check if service supports this pet type
+                            // Check both singular and plural forms of pet type
+                            $singularType = rtrim($petType, 's'); // Remove 's' if present (e.g., "dogs" -> "dog")
+                            $pluralType = $petType . 's'; // Add 's' if not present (e.g., "dog" -> "dogs")
+                            
+                            $isAvailable = in_array($petType, $service->pet_types) || 
+                                         in_array($singularType, $service->pet_types) || 
+                                         in_array($pluralType, $service->pet_types);
+                            
+                            Log::info("Regular pet check result:", [
+                                'is_available' => $isAvailable,
+                                'service_name' => $service->name,
+                                'pet_type' => $petType,
+                                'singular_type' => $singularType,
+                                'plural_type' => $pluralType,
+                                'service_pet_types' => $service->pet_types
+                            ]);
+                            
+                            return $isAvailable;
+                        });
+
+                        // Log the final available services
+                        Log::info('Final available services for ' . $pet->name . ':', [
+                            'pet_type' => $petType,
+                            'services_found' => $availableServices->count(),
+                            'service_names' => $availableServices->pluck('name')->toArray(),
+                            'service_pet_types' => $availableServices->pluck('pet_types')->toArray()
+                        ]);
+                    @endphp
+
                     <div class="space-y-4">
-                        @php
-                            $petServices = $bookingData['pet_services'] ?? [];
-                            $selectedServiceId = $petServices[$pet->id] ?? null;
-                            $selectedAddOns = $bookingData['add_ons'][$pet->id] ?? [];
-                        @endphp
-
-                        @foreach($services as $service)
-                            @php
-                                $petTypes = is_array($service->pet_types) ? $service->pet_types : json_decode($service->pet_types, true) ?? [];
-                                $sizeRanges = is_array($service->size_ranges) ? $service->size_ranges : json_decode($service->size_ranges, true) ?? [];
-                                $addOns = is_array($service->addOns) ? $service->addOns : json_decode($service->addOns, true) ?? [];
-                                
-                                $petType = strtolower(rtrim($pet->type, 's'));
-                                $petSize = strtolower($pet->size_category);
-                                
-                                $normalizedPetTypes = array_map(function($type) {
-                                    return strtolower(rtrim($type, 's'));
-                                }, $petTypes);
-                                
-                                $normalizedSizeRanges = array_map('strtolower', $sizeRanges);
-
-                                $typeMatch = in_array($petType, $normalizedPetTypes);
-                                $sizeMatch = in_array($petSize, $normalizedSizeRanges);
-                            @endphp
-
-                            @if($typeMatch && $sizeMatch)
+                        @if($availableServices->isEmpty())
+                            <div class="bg-yellow-50 p-4 rounded-lg">
+                                <p class="text-yellow-700">
+                                    No services available for {{ ucfirst($petType) }}{{ $petType === 'exotic' ? ' - ' . $pet->species : '' }}. 
+                                    Please contact the shop for more information.
+                                </p>
+                            </div>
+                        @else
+                            @foreach($availableServices as $service)
                                 <div class="bg-gray-50 p-4 rounded-lg hover:bg-gray-100 transition-colors">
                                     <div class="flex items-start">
                                         <input type="radio" 
                                                id="service_{{ $pet->id }}_{{ $service->id }}" 
                                                name="services[{{ $pet->id }}]" 
                                                value="{{ $service->id }}"
-                                               {{ $selectedServiceId == $service->id ? 'checked' : '' }}
                                                required
                                                class="mt-1 mr-3">
                                         <label for="service_{{ $pet->id }}_{{ $service->id }}" class="flex-grow">
@@ -140,35 +193,69 @@ use Illuminate\Support\Facades\Log;
                                                     <p class="text-sm text-gray-500 mt-2">Duration: {{ $service->duration }} minutes</p>
                                                 </div>
                                                 <div class="text-right">
-                                                    <span class="font-medium text-lg">₱{{ number_format($service->base_price, 2) }}</span>
-                                                    <p class="text-xs text-gray-500">Base price</p>
+                                                    @php
+                                                        $petSize = strtolower($pet->size_category ?? 'medium');
+                                                        $price = $service->base_price;
+                                                        
+                                                        if ($service->variable_pricing) {
+                                                            foreach ($service->variable_pricing as $pricing) {
+                                                                if (strtolower($pricing['size']) === $petSize) {
+                                                                    $price = $pricing['price'];
+                                                                    break;
+                                                                }
+                                                            }
+                                                        }
+                                                    @endphp
+                                                    <span class="font-medium text-lg">₱{{ number_format($price, 2) }}</span>
+                                                    <p class="text-xs text-gray-500">
+                                                        @if($service->variable_pricing)
+                                                            Price for {{ ucfirst($petSize) }} size
+                                                        @else
+                                                            Base price
+                                                        @endif
+                                                    </p>
+                                                    
+                                                    @if($service->variable_pricing)
+                                                        <div class="mt-2 text-xs text-gray-500">
+                                                            <span class="font-medium">Other sizes:</span>
+                                                            <ul class="mt-1">
+                                                                @foreach($service->variable_pricing as $pricing)
+                                                                    @if(strtolower($pricing['size']) !== $petSize)
+                                                                        <li>{{ ucfirst($pricing['size']) }}: ₱{{ number_format($pricing['price'], 2) }}</li>
+                                                                    @endif
+                                                                @endforeach
+                                                            </ul>
+                                                        </div>
+                                                    @endif
+
+                                                    @if(!empty($service->add_ons))
+                                                        <div class="mt-3 text-xs text-gray-500">
+                                                            <span class="font-medium">Available Add-ons:</span>
+                                                            <ul class="mt-1">
+                                                                @foreach($service->add_ons as $addOn)
+                                                                    <li class="flex items-center mt-1">
+                                                                        <input type="checkbox" 
+                                                                               name="add_ons[{{ $pet->id }}][{{ $service->id }}][]" 
+                                                                               value="{{ $addOn['name'] }}"
+                                                                               class="mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                                                        <span>{{ $addOn['name'] }}: ₱{{ number_format($addOn['price'], 2) }}</span>
+                                                                    </li>
+                                                                @endforeach
+                                                            </ul>
+                                                        </div>
+                                                    @else
+                                                        <div class="mt-3 text-xs text-gray-500">
+                                                            <span class="font-medium">Add-ons:</span>
+                                                            <span class="ml-1">None available</span>
+                                                        </div>
+                                                    @endif
                                                 </div>
                                             </div>
-
-                                            <!-- Add-ons Section -->
-                                            @if(!empty($addOns))
-                                                <div class="mt-4 border-t border-gray-200 pt-4">
-                                                    <p class="text-sm font-medium text-gray-700 mb-2">Available Add-ons:</p>
-                                                    <div class="space-y-2">
-                                                        @foreach($addOns as $addOn)
-                                                            <label class="flex items-center">
-                                                                <input type="checkbox" 
-                                                                       name="add_ons[{{ $pet->id }}][{{ $service->id }}][]" 
-                                                                       value="{{ $addOn['name'] }}"
-                                                                       {{ in_array($addOn['name'], $selectedAddOns) ? 'checked' : '' }}
-                                                                       class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                                                                <span class="ml-2 text-sm text-gray-600">{{ $addOn['name'] }}</span>
-                                                                <span class="ml-auto text-sm font-medium">+₱{{ number_format($addOn['price'], 2) }}</span>
-                                                            </label>
-                                                        @endforeach
-                                                    </div>
-                                                </div>
-                                            @endif
                                         </label>
                                     </div>
                                 </div>
-                            @endif
-                        @endforeach
+                            @endforeach
+                        @endif
                     </div>
                 </div>
             @endforeach

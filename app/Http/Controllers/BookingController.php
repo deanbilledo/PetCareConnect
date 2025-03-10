@@ -10,6 +10,9 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use App\Models\Service;
+use App\Services\AppointmentNotificationService;
 
 class BookingController extends Controller
 {
@@ -48,11 +51,33 @@ class BookingController extends Controller
 
     public function process(Shop $shop)
     {
-        $pets = auth()->user()->pets;
-        return view('booking.process', compact('shop', 'pets'));
+        try {
+            $pets = auth()->user()->pets;
+            
+            // Separate exotic and non-exotic pets
+            $exoticPets = $pets->filter(function($pet) {
+                return strtolower($pet->type) === 'exotic';
+            });
+            
+            $regularPets = $pets->filter(function($pet) {
+                return strtolower($pet->type) !== 'exotic';
+            });
+            
+            // Debug log
+            Log::info('Processing pets for booking:', [
+                'total_pets' => $pets->count(),
+                'exotic_pets' => $exoticPets->count(),
+                'regular_pets' => $regularPets->count()
+            ]);
+            
+            return view('booking.process', compact('shop', 'pets', 'exoticPets', 'regularPets'));
+        } catch (\Exception $e) {
+            Log::error('Error in process method: ' . $e->getMessage());
+            return back()->with('error', 'There was an error processing your request. Please try again.');
+        }
     }
 
-    public function selectService(Shop $shop, Request $request)
+    public function selectService(Request $request, Shop $shop)
     {
         try {
             $validated = $request->validate([
@@ -61,32 +86,75 @@ class BookingController extends Controller
                 'pet_ids.*' => 'exists:pets,id'
             ]);
 
+            // Load pets with their details
             $pets = Pet::whereIn('id', $validated['pet_ids'])
                 ->where('user_id', auth()->id())
                 ->get();
+
+            // Check for mixed exotic and non-exotic pets
+            $hasExotic = $pets->contains(function($pet) {
+                return strtolower($pet->type) === 'exotic';
+            });
+            
+            $hasRegular = $pets->contains(function($pet) {
+                return strtolower($pet->type) !== 'exotic';
+            });
+
+            // If trying to book both exotic and regular pets together
+            if ($hasExotic && $hasRegular) {
+                return back()->with('error', 'Exotic pets must be booked separately from other pets.');
+            }
+
+            // If multiple exotic pets are selected
+            if ($hasExotic && $pets->count() > 1) {
+                return back()->with('error', 'Exotic pets must be booked individually.');
+            }
+
+            Log::info('Pet validation for booking:', [
+                'has_exotic' => $hasExotic,
+                'has_regular' => $hasRegular,
+                'pet_count' => $pets->count(),
+                'pet_types' => $pets->pluck('type')->toArray()
+            ]);
+
+            // Load services and debug their data
+            $services = $shop->services()
+                ->where('status', 'active')
+                ->get();
+
+            // Debug log services
+            foreach ($services as $service) {
+                Log::info('Service data:', [
+                    'id' => $service->id,
+                    'name' => $service->name,
+                    'pet_types' => $service->pet_types,
+                    'exotic_pet_service' => $service->exotic_pet_service,
+                    'exotic_pet_species' => $service->exotic_pet_species
+                ]);
+            }
 
             if ($pets->isEmpty()) {
                 return back()->with('error', 'Please select valid pets.');
             }
 
-            // Load active services
-            $services = $shop->services()
-                ->where('status', 'active')
-                ->get();
-
-            // Get any existing booking data from session
+            // Store appointment type in session
             $bookingData = session('booking', []);
+            $bookingData['appointment_type'] = $validated['appointment_type'];
+            $bookingData['pet_ids'] = $validated['pet_ids'];
+            session(['booking' => $bookingData]);
 
-            Log::info('Processing service selection:', [
-                'shop_id' => $shop->id,
-                'pet_ids' => $validated['pet_ids'],
+            // Debug log booking data
+            Log::info('Booking data stored:', [
                 'appointment_type' => $validated['appointment_type'],
-                'booking_data' => $bookingData
+                'pet_ids' => $validated['pet_ids'],
+                'session_data' => session('booking')
             ]);
 
             return view('booking.select-service', compact('shop', 'pets', 'services', 'bookingData'));
         } catch (\Exception $e) {
-            Log::error('Error in selectService: ' . $e->getMessage());
+            Log::error('Error in selectService: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
             return back()->with('error', 'There was an error processing your request. Please try again.');
         }
     }
@@ -98,7 +166,8 @@ class BookingController extends Controller
                 'pet_ids' => 'required|array',
                 'pet_ids.*' => 'exists:pets,id',
                 'services' => 'required|array',
-                'services.*' => 'exists:services,id'
+                'services.*' => 'exists:services,id',
+                'add_ons' => 'nullable|array'
             ]);
 
             // Load shop's operating hours
@@ -127,11 +196,20 @@ class BookingController extends Controller
             // Create pet services mapping
             $petServices = array_combine($validated['pet_ids'], $validated['services']);
 
+            // Get existing booking data to preserve appointment_type
+            $existingBookingData = session('booking', []);
+            
             // Store in session
             $bookingData = [
                 'pet_ids' => $validated['pet_ids'],
                 'pet_services' => $petServices,
+<<<<<<< HEAD
                 'pets' => $pets
+=======
+                'pets' => $pets,
+                'appointment_type' => $existingBookingData['appointment_type'] ?? 'single', // Default to single if not set
+                'add_ons' => $request->input('add_ons', []) // Store add-ons data
+>>>>>>> 18c55ca6c082561862df75df4fcb286b2bb43455
             ];
             
             session(['booking' => $bookingData]);
@@ -139,7 +217,8 @@ class BookingController extends Controller
             // Debug log
             Log::info('Booking data stored in session:', [
                 'booking_data' => $bookingData,
-                'session_data' => session('booking')
+                'session_data' => session('booking'),
+                'add_ons' => $bookingData['add_ons']
             ]);
 
             // Pass session data directly to view
@@ -165,11 +244,14 @@ class BookingController extends Controller
                 'services' => 'required|array',
                 'services.*' => 'exists:services,id',
                 'appointment_date' => 'required|date|after:today',
-                'appointment_time' => 'required|string'
+                'appointment_time' => 'required',
+                'employee_id' => 'required|exists:employees,id'
             ]);
 
-            // Parse the appointment date and time
-            $appointmentDateTime = Carbon::parse($validated['appointment_date'] . ' ' . $validated['appointment_time']);
+            $appointmentDateTime = Carbon::parse($request->appointment_date . ' ' . $request->appointment_time);
+            
+            // Load employee information
+            $employee = $shop->employees()->findOrFail($request->employee_id);
             
             // Load pets with their services
             $pets = Pet::whereIn('id', $validated['pet_ids'])
@@ -189,6 +271,7 @@ class BookingController extends Controller
             // Create pet services mapping
             $petServices = array_combine($validated['pet_ids'], $validated['services']);
 
+<<<<<<< HEAD
             // Calculate total amount
             $totalAmount = 0;
             $servicesBreakdown = [];
@@ -225,6 +308,11 @@ class BookingController extends Controller
                 }
             }
 
+=======
+            // Get existing booking data to preserve appointment_type and add-ons
+            $existingBookingData = session('booking', []);
+            
+>>>>>>> 18c55ca6c082561862df75df4fcb286b2bb43455
             // Store booking data
             $bookingData = [
                 'pet_ids' => $validated['pet_ids'],
@@ -232,10 +320,29 @@ class BookingController extends Controller
                 'pets' => $pets,
                 'appointment_date' => $validated['appointment_date'],
                 'appointment_time' => $validated['appointment_time'],
+<<<<<<< HEAD
                 'total_amount' => $totalAmount,
                 'services' => $servicesBreakdown
+=======
+                'appointment_type' => $existingBookingData['appointment_type'] ?? 'single',
+                'employee_id' => $employee->id,
+                'employee' => [
+                    'name' => $employee->name,
+                    'position' => $employee->position,
+                    'profile_photo_url' => $employee->profile_photo_url
+                ],
+                // Preserve add-ons data from the previous step
+                'add_ons' => $request->input('add_ons', $existingBookingData['add_ons'] ?? [])
+>>>>>>> 18c55ca6c082561862df75df4fcb286b2bb43455
             ];
-            
+
+            // Debug log the booking data
+            Log::info('Booking data in showConfirm:', [
+                'booking_data' => $bookingData,
+                'appointment_type' => $bookingData['appointment_type'],
+                'add_ons' => $bookingData['add_ons']
+            ]);
+
             session(['booking' => $bookingData]);
 
             return view('booking.confirm', compact('shop', 'pets', 'services', 'appointmentDateTime', 'bookingData'));
@@ -304,6 +411,8 @@ class BookingController extends Controller
     public function store(Shop $shop, Request $request)
     {
         try {
+            Log::info('Booking store request:', $request->all());
+
             $request->validate([
                 'pet_ids' => 'required|array',
                 'pet_ids.*' => 'exists:pets,id',
@@ -311,7 +420,11 @@ class BookingController extends Controller
                 'services.*' => 'exists:services,id',
                 'appointment_date' => 'required|date|after:today',
                 'appointment_time' => 'required',
-                'notes' => 'nullable|string|max:500'
+                'notes' => 'nullable|string|max:500',
+                'voucher_code' => 'nullable|string',
+                'discount_amount' => 'nullable|numeric',
+                'final_total' => 'nullable|numeric',
+                'add_ons' => 'nullable|array'
             ]);
 
             $appointmentDateTime = Carbon::parse($request->appointment_date . ' ' . $request->appointment_time);
@@ -327,9 +440,19 @@ class BookingController extends Controller
                 return back()->with('error', 'The shop is not open on the selected day.');
             }
 
+            // Get booking data from session with default values
+            $bookingData = session('booking', []);
+            $bookingData['appointment_type'] = $bookingData['appointment_type'] ?? 'single';
+            
+            Log::info('Session booking data:', [
+                'booking_data' => $bookingData,
+                'appointment_type' => $bookingData['appointment_type'],
+                'add_ons' => $bookingData['add_ons'] ?? []
+            ]);
+
             // Get all selected services with their prices
             $services = $shop->services()
-                ->whereIn('id', $request->services)
+                ->whereIn('id', array_values($bookingData['pet_services'] ?? []))
                 ->where('status', 'active')
                 ->get();
 
@@ -339,106 +462,143 @@ class BookingController extends Controller
 
             DB::beginTransaction();
             
-            $servicesBreakdown = [];
-            $total = 0;
+            try {
+                $servicesBreakdown = [];
+                $total = 0;
+                $currentDateTime = clone $appointmentDateTime;
 
-            // Create appointments for each pet
-            foreach ($request->pet_ids as $index => $petId) {
-                $serviceId = $request->services[$index] ?? null;
-                $service = $services->firstWhere('id', $serviceId);
-                $pet = Pet::find($petId);
-                
-                if (!$service || !$pet) {
-                    throw new \Exception('Service or pet not found');
-                }
+                // Get the employee data from the booking session
+                $employee = $shop->employees()->findOrFail($bookingData['employee_id']);
 
-                // Calculate price based on pet size
-                $price = $service->base_price;
-                if (!empty($service->variable_pricing)) {
-                    $sizePrice = collect($service->variable_pricing)
-                        ->firstWhere('size', $pet->size_category);
-                    if ($sizePrice && isset($sizePrice['price'])) {
-                        $price = $sizePrice['price'];
+                // Create appointments for each pet
+                foreach ($bookingData['pet_ids'] as $petId) {
+                    $serviceId = $bookingData['pet_services'][$petId] ?? null;
+                    $service = $services->firstWhere('id', $serviceId);
+                    $pet = Pet::find($petId);
+                    
+                    if (!$service || !$pet) {
+                        throw new \Exception("Service or pet not found for pet ID: $petId");
+                    }
+
+                    Log::info('Creating appointment:', [
+                        'pet_id' => $petId,
+                        'service_id' => $serviceId,
+                        'datetime' => $currentDateTime->format('Y-m-d H:i:s')
+                    ]);
+
+                    // Calculate price based on pet size
+                    $price = $service->getPriceForSize($pet->size_category);
+
+                    // Calculate add-ons total
+                    $addOnTotal = 0;
+                    $selectedAddOns = $bookingData['add_ons'][$petId][$serviceId] ?? [];
+                    $addOnDetails = [];
+                    
+                    if (!empty($selectedAddOns) && !empty($service->add_ons)) {
+                        foreach ($selectedAddOns as $selectedAddOn) {
+                            foreach ($service->add_ons as $addOn) {
+                                if ($addOn['name'] === $selectedAddOn) {
+                                    $addOnTotal += (float) $addOn['price'];
+                                    $addOnDetails[] = $addOn;
+                                }
+                            }
+                        }
+                    }
+
+                    // Apply discount if voucher code is present
+                    $originalPrice = $price + $addOnTotal;
+                    $finalPrice = $originalPrice;
+                    
+                    if ($request->filled('voucher_code')) {
+                        $discountedPrice = $service->getDiscountedPrice($originalPrice, $request->voucher_code);
+                        $finalPrice = $discountedPrice;
+                    }
+
+                    $total += $finalPrice;
+
+                    $appointment = Appointment::create([
+                        'user_id' => auth()->id(),
+                        'shop_id' => $shop->id,
+                        'pet_id' => $petId,
+                        'employee_id' => $employee->id,
+                        'service_type' => $service->name,
+                        'service_price' => $finalPrice,
+                        'original_price' => $originalPrice,
+                        'add_ons' => !empty($addOnDetails) ? json_encode($addOnDetails) : null,
+                        'add_ons_total' => $addOnTotal,
+                        'voucher_code' => $request->voucher_code,
+                        'discount_amount' => $request->filled('voucher_code') ? 
+                            ($originalPrice - $finalPrice) : null,
+                        'appointment_date' => $currentDateTime,
+                        'notes' => $request->notes,
+                        'status' => 'pending'
+                    ]);
+
+                    // Add to services breakdown
+                    $servicesBreakdown[] = [
+                        'pet_id' => $pet->id,
+                        'pet_name' => $pet->name,
+                        'service_name' => $service->name,
+                        'size' => $pet->size_category,
+                        'price' => $price,
+                        'add_ons' => $addOnDetails,
+                        'add_ons_total' => $addOnTotal,
+                        'final_price' => $finalPrice
+                    ];
+                    
+                    // For multiple appointments, add service duration
+                    if ($bookingData['appointment_type'] === 'multiple') {
+                        $currentDateTime->addMinutes($service->duration);
                     }
                 }
 
-                $total += $price;
+                DB::commit();
 
-                $appointment = Appointment::create([
-                    'user_id' => auth()->id(),
-                    'shop_id' => $shop->id,
-                    'pet_id' => $petId,
-                    'service_type' => $service->name,
-                    'service_price' => $price,
-                    'appointment_date' => $appointmentDateTime,
-                    'notes' => $request->notes,
-                    'status' => 'pending'
-                ]);
+                // Store booking details in session for thank you page
+                session(['booking_details' => [
+                    'shop_name' => $shop->name,
+                    'date' => $appointmentDateTime->format('F j, Y'),
+                    'time' => $appointmentDateTime->format('g:i A'),
+                    'services' => $servicesBreakdown,
+                    'total_amount' => $total,
+                    'original_total' => array_sum(array_column($servicesBreakdown, 'final_price')),
+                    'discount_amount' => $request->discount_amount,
+                    'voucher_code' => $request->voucher_code,
+                    'appointment_type' => $bookingData['appointment_type'] ?? 'single',
+                    'employee' => [
+                        'name' => $employee->name,
+                        'position' => $employee->position,
+                        'profile_photo_url' => $employee->profile_photo_url
+                    ]
+                ]]);
 
-                // Add to services breakdown
-                $servicesBreakdown[] = [
-                    'pet_name' => $pet->name,
-                    'service_name' => $service->name,
-                    'size' => $pet->size_category,
-                    'price' => $price
-                ];
+                // Clear booking session data
+                session()->forget('booking');
+
+                // Create notifications for each appointment
+                $appointments = Appointment::where('user_id', auth()->id())
+                                         ->where('shop_id', $shop->id)
+                                         ->where('status', 'pending')
+                                         ->whereNull('viewed_at')
+                                         ->whereIn('pet_id', array_column($servicesBreakdown, 'pet_id'))
+                                         ->orderBy('created_at', 'desc')
+                                         ->get();
                 
-                $appointmentDateTime->addMinutes($service->duration);
+                foreach($appointments as $appointment) {
+                    AppointmentNotificationService::createNewAppointmentNotification($appointment);
+                }
+
+                return redirect()->route('booking.thank-you', $shop)
+                    ->with('success', 'Your appointment has been booked successfully!');
+
+            } catch (\Exception $e) {
+                DB::rollBack();
+                Log::error('Transaction error: ' . $e->getMessage());
+                throw $e;
             }
-
-            DB::commit();
-
-            // Store booking details in session for thank you page
-            session(['booking_details' => [
-                'shop_name' => $shop->name,
-                'date' => $appointmentDateTime->format('F j, Y'),
-                'time' => $appointmentDateTime->format('g:i A'),
-                'services' => $servicesBreakdown,
-                'total_amount' => $total
-            ]]);
-
-            // Clear booking session data
-            session()->forget([
-                'booking.pet_ids',
-                'booking.services',
-                'booking.appointment_date',
-                'booking.appointment_time'
-            ]);
-
-            return redirect()->route('booking.thank-you', $shop)
-                ->with('success', 'Your appointment has been booked successfully!');
-
         } catch (\Exception $e) {
             Log::error('Error in store method: ' . $e->getMessage());
             return back()->with('error', 'There was an error processing your booking. Please try again.');
-        }
-    }
-
-    public function getTimeSlots(Request $request, Shop $shop)
-    {
-        try {
-            // Validate request
-            $request->validate([
-                'date' => 'required|date|after:today',
-                'duration' => 'required|integer|min:1'
-            ]);
-
-            // Parse the requested date
-            $date = Carbon::parse($request->date);
-            
-            // Get available time slots
-            $slots = $this->getAvailableTimeSlots($shop, $date, $request->duration);
-
-            return response()->json([
-                'slots' => $slots,
-                'message' => count($slots) > 0 ? null : 'No available time slots for this date'
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('Error getting time slots: ' . $e->getMessage());
-            return response()->json([
-                'error' => 'Failed to get time slots: ' . $e->getMessage()
-            ], 500);
         }
     }
 
@@ -456,6 +616,20 @@ class BookingController extends Controller
             return [];
         }
 
+        // Get all employees who can perform services
+        $employees = $shop->employees()->get();
+        $totalEmployees = $employees->count();
+
+        if ($totalEmployees === 0) {
+            return [];
+        }
+
+        // Get all appointments for the day
+        $appointments = $shop->appointments()
+            ->whereDate('appointment_date', $date)
+            ->whereIn('status', ['pending', 'accepted'])
+            ->get();
+
         $slots = [];
         $start = Carbon::parse($date->format('Y-m-d') . ' ' . $operatingHours->open_time);
         $end = Carbon::parse($date->format('Y-m-d') . ' ' . $operatingHours->close_time);
@@ -464,23 +638,148 @@ class BookingController extends Controller
         $end->subMinutes($totalDuration);
 
         while ($start <= $end) {
-            // Check if this time slot is available (not booked)
             $slotEnd = (clone $start)->addMinutes($totalDuration);
             
-            $conflictingAppointments = Appointment::where('shop_id', $shop->id)
-                ->where('appointment_date', '>=', $start)
-                ->where('appointment_date', '<', $slotEnd)
-                ->where('status', '!=', 'cancelled')
-                ->count();
+            // Count how many employees are available in this time slot
+            $busyEmployees = 0;
+            foreach ($appointments as $appointment) {
+                $appointmentStart = Carbon::parse($appointment->appointment_date);
+                $appointmentEnd = $appointmentStart->copy()->addMinutes(60); // Assuming 1-hour duration
 
-            if ($conflictingAppointments === 0) {
-                $slots[] = $start->format('g:i A'); // Changed to 12-hour format with AM/PM
+                // Check if appointment overlaps with current slot
+                if (($start >= $appointmentStart && $start < $appointmentEnd) ||
+                    ($slotEnd > $appointmentStart && $slotEnd <= $appointmentEnd) ||
+                    ($start <= $appointmentStart && $slotEnd >= $appointmentEnd)) {
+                    $busyEmployees++;
+                }
+            }
+
+            $availableEmployees = $totalEmployees - $busyEmployees;
+
+            // Only add slot if there are available employees
+            if ($availableEmployees > 0) {
+                $slots[] = [
+                    'time' => $start->format('g:i A'),
+                    'available_employees' => $availableEmployees,
+                    'total_employees' => $totalEmployees
+                ];
             }
             
             $start->addMinutes(30);
         }
 
         return $slots;
+    }
+
+    public function getTimeSlots(Request $request, Shop $shop)
+    {
+        try {
+            $validated = $request->validate([
+                'date' => 'required|date',
+                'duration' => 'required|integer|min:15'
+            ]);
+
+            $date = Carbon::parse($validated['date']);
+            $duration = (int) $validated['duration'];
+            $dayOfWeek = $date->dayOfWeek;
+
+            // Get operating hours for the selected day
+            $operatingHours = $shop->operatingHours()
+                ->where('day', $dayOfWeek)
+                ->where('is_open', true)
+                ->first();
+
+            if (!$operatingHours) {
+                return response()->json(['slots' => [], 'message' => 'Shop is closed on this day'], 200);
+            }
+
+            // Get all employees
+            $totalEmployees = $shop->employees()->count();
+            if ($totalEmployees === 0) {
+                return response()->json(['slots' => [], 'message' => 'No employees available'], 200);
+            }
+
+            // Get existing appointments for the day
+            $appointments = $shop->appointments()
+                ->whereDate('appointment_date', $date)
+                ->whereIn('status', ['pending', 'accepted'])
+                ->get();
+
+            $timeSlots = [];
+            $currentTime = Carbon::parse($date->format('Y-m-d') . ' ' . $operatingHours->open_time);
+            $closeTime = Carbon::parse($date->format('Y-m-d') . ' ' . $operatingHours->close_time);
+
+            // Ensure we don't create slots that would end after closing time
+            $closeTime = $closeTime->subMinutes($duration);
+
+            while ($currentTime <= $closeTime) {
+                $slotEnd = $currentTime->copy()->addMinutes($duration);
+                
+                // Skip if current time is in the past
+                if ($currentTime <= now()) {
+                    $currentTime->addMinutes(30);
+                    continue;
+                }
+
+                // Skip slot if it's during lunch break
+                if ($operatingHours->has_lunch_break) {
+                    $lunchStart = Carbon::parse($date->format('Y-m-d') . ' ' . $operatingHours->lunch_start);
+                    $lunchEnd = Carbon::parse($date->format('Y-m-d') . ' ' . $operatingHours->lunch_end);
+                    
+                    if (($currentTime >= $lunchStart && $currentTime < $lunchEnd) || 
+                        ($slotEnd > $lunchStart && $slotEnd <= $lunchEnd) ||
+                        ($currentTime < $lunchStart && $slotEnd > $lunchEnd)) {
+                        $currentTime = $lunchEnd;
+                        continue;
+                    }
+                }
+
+                // Count busy employees in this time slot
+                $busyEmployees = 0;
+                foreach ($appointments as $appointment) {
+                    $appointmentStart = Carbon::parse($appointment->appointment_date);
+                    $appointmentEnd = $appointmentStart->copy()->addMinutes($appointment->duration ?? 60);
+
+                    if (($currentTime >= $appointmentStart && $currentTime < $appointmentEnd) ||
+                        ($slotEnd > $appointmentStart && $slotEnd <= $appointmentEnd) ||
+                        ($currentTime < $appointmentStart && $slotEnd > $appointmentEnd)) {
+                        $busyEmployees++;
+                    }
+                }
+
+                $availableEmployees = $totalEmployees - $busyEmployees;
+
+                // Only add slot if there are available employees
+                if ($availableEmployees > 0) {
+                    $timeSlots[] = [
+                        'time' => $currentTime->format('g:i A'),
+                        'available_employees' => $availableEmployees,
+                        'total_employees' => $totalEmployees
+                    ];
+                }
+
+                $currentTime->addMinutes(30);
+            }
+
+            if (empty($timeSlots)) {
+                return response()->json([
+                    'slots' => [],
+                    'message' => 'No available time slots for the selected date'
+                ], 200);
+            }
+
+            return response()->json([
+                'slots' => $timeSlots,
+                'message' => null
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error getting time slots: ' . $e->getMessage());
+            return response()->json([
+                'slots' => [], 
+                'message' => 'Failed to get time slots: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     public function thankYou(Shop $shop)
@@ -494,5 +793,185 @@ class BookingController extends Controller
             'shop' => $shop,
             'booking_details' => session('booking_details')
         ]);
+    }
+
+    public function downloadAcknowledgement(Request $request, Shop $shop)
+    {
+        try {
+            $booking_details = session('booking_details');
+            
+            if (!$booking_details) {
+                return back()->with('error', 'Booking details not found. Please try again.');
+            }
+
+            // Generate receipt view
+            $pdf = \PDF::loadView('pdfs.acknowledgement-receipt', [
+                'booking_details' => $booking_details
+            ]);
+
+            // Generate filename
+            $filename = 'booking_acknowledgement_' . time() . '_' . Str::slug($booking_details['shop_name']) . '.pdf';
+
+            return $pdf->download($filename);
+        } catch (\Exception $e) {
+            Log::error('Error generating acknowledgement receipt: ' . $e->getMessage());
+            return back()->with('error', 'Failed to generate acknowledgement receipt. Please try again.');
+        }
+    }
+
+    public function getAvailableEmployees(Request $request, Shop $shop)
+    {
+        try {
+            $validated = $request->validate([
+                'date' => 'required|date',
+                'time' => 'required',
+                'duration' => 'required|integer|min:15',
+                'service_ids' => 'required|array',
+                'service_ids.*' => 'exists:services,id'
+            ]);
+
+            // Get all employees who can perform the requested services
+            $employees = $shop->employees()
+                ->whereHas('services', function ($query) use ($validated) {
+                    $query->whereIn('services.id', $validated['service_ids']);
+                })
+                ->with(['schedules' => function ($query) use ($validated) {
+                    $query->whereDate('start', $validated['date']);
+                }])
+                ->with(['timeOffRequests' => function ($query) use ($validated) {
+                    $query->whereDate('start_date', '<=', $validated['date'])
+                          ->whereDate('end_date', '>=', $validated['date'])
+                          ->whereIn('status', ['pending', 'approved']);
+                }])
+                ->with(['staffRatings' => function($query) {
+                    $query->select('employee_id', 'rating');
+                }])
+                ->get()
+                ->each(function ($employee) {
+                    // Append the profile_photo_url attribute
+                    $employee->append('profile_photo_url');
+                    // Calculate average rating
+                    $employee->rating = $employee->staffRatings->avg('rating') ?? 0;
+                    $employee->ratings_count = $employee->staffRatings->count();
+                    // Remove the staffRatings relationship from the response
+                    unset($employee->staffRatings);
+                });
+
+            return response()->json([
+                'success' => true,
+                'employees' => $employees
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Error getting available employees: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to get available employees'
+            ], 500);
+        }
+    }
+
+    public function validateDiscount(Request $request, Shop $shop, $code)
+    {
+        try {
+            $validated = $request->validate([
+                'services' => 'required|array',
+                'total' => 'required|numeric|min:0'
+            ]);
+
+            // Debug log the incoming request
+            Log::info('Validating discount code:', [
+                'code' => $code,
+                'shop_id' => $shop->id,
+                'services' => $validated['services'],
+                'total' => $validated['total']
+            ]);
+
+            $services = Service::whereIn('id', array_values($validated['services']))->get();
+            
+            // Debug log the services found
+            Log::info('Services found:', [
+                'service_count' => $services->count(),
+                'service_ids' => $services->pluck('id')->toArray()
+            ]);
+
+            $total = $validated['total'];
+            $discountAmount = 0;
+            $discountFound = false;
+
+            foreach ($services as $service) {
+                $activeDiscounts = $service->getActiveDiscounts();
+                
+                // Debug log active discounts for each service
+                Log::info("Active discounts for service {$service->id}:", [
+                    'service_name' => $service->name,
+                    'active_discounts' => $activeDiscounts->map(function($discount) {
+                        return [
+                            'id' => $discount->id,
+                            'voucher_code' => $discount->voucher_code,
+                            'discount_type' => $discount->discount_type,
+                            'discount_value' => $discount->discount_value,
+                            'valid_from' => $discount->valid_from,
+                            'valid_until' => $discount->valid_until,
+                            'is_active' => $discount->is_active
+                        ];
+                    })->toArray()
+                ]);
+                
+                // Case-insensitive voucher code comparison
+                $voucherDiscount = $activeDiscounts->first(function($discount) use ($code) {
+                    return strcasecmp($discount->voucher_code, $code) === 0;
+                });
+                
+                if ($voucherDiscount) {
+                    $discountFound = true;
+                    // Calculate service-specific discount
+                    $servicePrice = $service->getPriceForSize($request->input('pet_size', 'medium'));
+                    $discountedPrice = $voucherDiscount->calculateDiscountedPrice($servicePrice);
+                    $discountAmount += ($servicePrice - $discountedPrice);
+                    
+                    // Debug log discount calculation
+                    Log::info("Discount calculation for service {$service->id}:", [
+                        'service_price' => $servicePrice,
+                        'discounted_price' => $discountedPrice,
+                        'discount_amount' => $servicePrice - $discountedPrice
+                    ]);
+                }
+            }
+
+            if ($discountAmount > 0) {
+                Log::info('Discount applied successfully:', [
+                    'code' => $code,
+                    'total_discount' => $discountAmount
+                ]);
+                
+                return response()->json([
+                    'success' => true,
+                    'discount_amount' => $discountAmount,
+                    'message' => 'Discount applied successfully'
+                ]);
+            }
+
+            Log::warning('No valid discount found:', [
+                'code' => $code,
+                'discount_found' => $discountFound
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'No valid discount found for this code'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error validating discount: ' . $e->getMessage(), [
+                'code' => $code,
+                'exception' => $e,
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while validating the discount'
+            ], 500);
+        }
     }
 } 

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Shop;
 use App\Models\User;
+use App\Models\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -95,8 +96,6 @@ class ShopRegistrationController extends Controller
             'terms' => 'required|accepted'
         ]);
 
-        Log::info('Validation passed', $validated);
-
         try {
             DB::beginTransaction();
 
@@ -125,14 +124,23 @@ class ShopRegistrationController extends Controller
                 'bir_certificate' => $birCertificatePath,
                 'rating' => 0.0,
                 'terms_accepted' => true,
-                'status' => 'pending' // Set initial status to pending
+                'status' => 'pending'
             ]);
+
+            // Create notification for successful shop registration
+            $user = auth()->user();
+            $user->notify(
+                'system',
+                'Shop Registration Submitted',
+                "Your shop '{$request->shop_name}' has been successfully registered and is pending approval. We'll notify you once it's reviewed.",
+                route('shop.registration.pending'),
+                'View Status'
+            );
 
             Log::info('Shop created successfully', $shop->toArray());
 
             DB::commit();
 
-            // Redirect to a new pending approval page
             return redirect()->route('shop.registration.pending');
 
         } catch (\Exception $e) {
@@ -166,73 +174,77 @@ class ShopRegistrationController extends Controller
         return view('shopRegistration.pending-approval');
     }
 
-    public function store(Request $request)
+    // Add new methods for handling shop approval/rejection notifications
+    public function handleApproval(Shop $shop)
     {
-        $validatedData = $request->validate([
-            'name' => 'required|string|max:255',
-            'type' => 'required|string|in:grooming,veterinary,both',
-            'shop_types' => 'required|array|min:1',
-            'shop_types.*' => 'required|string|in:grooming,veterinary',
-            'phone' => 'required|string|max:20',
-            'description' => 'required|string',
-            'address' => 'required|string',
-            'latitude' => 'required|numeric',
-            'longitude' => 'required|numeric',
-            'tin' => 'nullable|string|max:255',
-            'vat_status' => 'nullable|string|max:255',
-            'bir_certificate' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
-            'terms_accepted' => 'required|accepted'
-        ]);
-
         try {
             DB::beginTransaction();
 
-            // Handle file uploads if present
-            if ($request->hasFile('bir_certificate')) {
-                $birCertificatePath = $request->file('bir_certificate')->store('bir_certificates', 'public');
-                $validatedData['bir_certificate'] = $birCertificatePath;
-            }
+            // Update shop status to approved
+            $shop->update(['status' => 'active']);
 
-            // Determine shop type and shop_types array
-            if (count($validatedData['shop_types']) > 1) {
-                $validatedData['type'] = 'both';
-            } else {
-                $validatedData['type'] = $validatedData['shop_types'][0];
-            }
+            // Create notification for shop approval with trial information
+            $shop->user->notify(
+                'system',
+                'Shop Registration Approved - Free Trial Started',
+                "Congratulations! Your shop '{$shop->name}' has been approved. Your 30-day free trial has been activated. " .
+                "After the trial period, you'll need to subscribe to continue using our platform. " .
+                "Click below to view your subscription details and payment options.",
+                route('shop.subscriptions'),
+                'View Subscription Details'
+            );
 
-            // Create the shop
-            $shop = Shop::create([
-                'user_id' => auth()->id(),
-                'name' => $validatedData['name'],
-                'type' => $validatedData['type'],
-                'shop_types' => $validatedData['shop_types'],
-                'phone' => $validatedData['phone'],
-                'description' => $validatedData['description'],
-                'address' => $validatedData['address'],
-                'latitude' => $validatedData['latitude'],
-                'longitude' => $validatedData['longitude'],
-                'tin' => $validatedData['tin'] ?? null,
-                'vat_status' => $validatedData['vat_status'] ?? null,
-                'bir_certificate' => $validatedData['bir_certificate'] ?? null,
-                'terms_accepted' => true,
-                'status' => 'pending'
-            ]);
+            // Create a second notification for shop setup
+            $shop->user->notify(
+                'system',
+                'Set Up Your Shop Profile',
+                "Start setting up your shop profile to make the most of your trial period. " .
+                "Add your services, operating hours, and other important details.",
+                route('shop.setup.welcome'),
+                'Start Shop Setup'
+            );
 
             DB::commit();
-
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Shop registration submitted successfully',
-                'redirect' => route('shop.register.pending')
-            ]);
+            return redirect()->back()->with('success', 'Shop has been approved and owner notified.');
 
         } catch (\Exception $e) {
             DB::rollBack();
-            \Log::error('Shop registration error: ' . $e->getMessage());
-            return response()->json([
-                'status' => 'error',
-                'message' => 'An error occurred while registering your shop'
-            ], 500);
+            Log::error('Error in approving shop: ' . $e->getMessage(), [
+                'shop_id' => $shop->id,
+                'error' => $e->getMessage()
+            ]);
+            return redirect()->back()->with('error', 'Failed to approve shop. Please try again.');
+        }
+    }
+
+    public function handleRejection(Shop $shop, string $reason = null)
+    {
+        try {
+            DB::beginTransaction();
+
+            // Update shop status to rejected
+            $shop->update(['status' => 'rejected']);
+
+            // Create notification for shop rejection
+            $shop->user->notify(
+                'system',
+                'Shop Registration Rejected',
+                "We regret to inform you that your shop '{$shop->name}' registration has been rejected." . 
+                ($reason ? " Reason: {$reason}" : " Please contact support for more information."),
+                route('home'),
+                'Return to Home'
+            );
+
+            DB::commit();
+            return redirect()->back()->with('success', 'Shop has been rejected and owner notified.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error in rejecting shop: ' . $e->getMessage(), [
+                'shop_id' => $shop->id,
+                'error' => $e->getMessage()
+            ]);
+            return redirect()->back()->with('error', 'Failed to reject shop. Please try again.');
         }
     }
 } 

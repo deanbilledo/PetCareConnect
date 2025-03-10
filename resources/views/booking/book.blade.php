@@ -59,7 +59,68 @@
                         <svg class="w-5 h-5 mr-2 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                         </svg>
-                        MON-SAT 8:30 AM - 5:00 PM
+                        @php
+                            $days = [
+                                0 => 'SUN',
+                                1 => 'MON',
+                                2 => 'TUE',
+                                3 => 'WED',
+                                4 => 'THU',
+                                5 => 'FRI',
+                                6 => 'SAT'
+                            ];
+                            
+                            $operatingHours = $shop->operatingHours()
+                                ->orderBy('day')
+                                ->get()
+                                ->groupBy(function($hour) {
+                                    return $hour->is_open ? 
+                                        ($hour->open_time . ' - ' . $hour->close_time . 
+                                        ($hour->has_lunch_break ? '|' . $hour->lunch_start . '-' . $hour->lunch_end : '')) : 
+                                        'closed';
+                                });
+
+                            $output = [];
+                            
+                            foreach ($operatingHours as $schedule => $hours) {
+                                if ($schedule === 'closed') continue;
+                                
+                                $dayNumbers = $hours->pluck('day')->toArray();
+                                $dayRanges = [];
+                                $start = $prev = $dayNumbers[0];
+                                
+                                for ($i = 1; $i < count($dayNumbers); $i++) {
+                                    if ($dayNumbers[$i] !== $prev + 1) {
+                                        $dayRanges[] = $start === $prev ? 
+                                            $days[$start] : 
+                                            $days[$start] . '-' . $days[$prev];
+                                        $start = $dayNumbers[$i];
+                                    }
+                                    $prev = $dayNumbers[$i];
+                                }
+                                
+                                $dayRanges[] = $start === $prev ? 
+                                    $days[$start] : 
+                                    $days[$start] . '-' . $days[$prev];
+                                
+                                foreach ($dayRanges as $range) {
+                                    $times = explode('|', $schedule);
+                                    $operatingTime = explode(' - ', $times[0]);
+                                    $output[] = $range . ' ' . 
+                                        date('g:i A', strtotime($operatingTime[0])) . ' - ' . 
+                                        date('g:i A', strtotime($operatingTime[1])) .
+                                        (isset($times[1]) ? ' (Lunch: ' . 
+                                            date('g:i A', strtotime(explode('-', $times[1])[0])) . ' - ' . 
+                                            date('g:i A', strtotime(explode('-', $times[1])[1])) . ')' : '');
+                                }
+                            }
+                            
+                            if (!empty($output)) {
+                                echo implode('<br>', $output);
+                            } else {
+                                echo 'Hours not available';
+                            }
+                        @endphp
                     </div>
                     <div class="flex items-center">
                         <svg class="w-5 h-5 mr-2 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -73,6 +134,24 @@
         </div>
     </div>
 
+    <!-- Shop Description -->
+    <div class="bg-white rounded-2xl shadow-lg overflow-hidden mb-8">
+        <div class="p-6">
+            <h2 class="text-xl font-semibold mb-4">About {{ $shop->name }}</h2>
+            <div class="prose max-w-none">
+                <p class="text-gray-600">{{ $shop->description ?: 'No description available.' }}</p>
+            </div>
+            @if($shop->contact_email)
+            <div class="mt-4 flex items-center text-gray-600">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                </svg>
+                <span>Contact: {{ $shop->contact_email }}</span>
+            </div>
+            @endif
+        </div>
+    </div>
+
     <!-- Photo Gallery Section -->
     <div class="bg-white rounded-2xl shadow-lg overflow-hidden mb-8">
         <div class="p-6">
@@ -80,73 +159,70 @@
             
             <!-- Gallery Grid -->
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                <!-- Image 1 -->
-                <div class="relative group cursor-pointer" onclick="openGalleryModal(0)">
-                    <img src="{{ asset('images/gallery/grooming1.jpg') }}" 
-                         alt="Gallery Image 1" 
-                         class="w-full h-48 object-cover rounded-lg transition-transform duration-300 group-hover:scale-105">
-                    <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity duration-300 rounded-lg"></div>
-                </div>
-
-                <!-- Image 2 -->
-                <div class="relative group cursor-pointer" onclick="openGalleryModal(1)">
-                    <img src="{{ asset('images/gallery/grooming2.jpg') }}" 
-                         alt="Gallery Image 2" 
-                         class="w-full h-48 object-cover rounded-lg transition-transform duration-300 group-hover:scale-105">
-                    <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity duration-300 rounded-lg"></div>
-                </div>
-
-                <!-- Image 3 -->
-                <div class="relative group cursor-pointer" onclick="openGalleryModal(2)">
-                        <img src="{{ asset('images/gallery/grooming3.jpg') }}" 
-                         alt="Gallery Image 3" 
-                         class="w-full h-48 object-cover rounded-lg transition-transform duration-300 group-hover:scale-105">
-                    <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity duration-300 rounded-lg"></div>
-                </div>
+                @forelse($shop->gallery as $image)
+                    <div class="relative group cursor-pointer overflow-hidden rounded-lg shadow-sm hover:shadow-md transition-all duration-300" 
+                         onclick="openGalleryModal({{ $loop->index }})">
+                        <img src="{{ asset('storage/' . $image->image_path) }}" 
+                             alt="Gallery Image {{ $loop->iteration }}" 
+                             class="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-110">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
+                            <span class="text-white text-sm font-medium">View Image</span>
+                        </div>
+                    </div>
+                @empty
+                    <div class="col-span-3 py-12 text-center">
+                        <svg class="w-16 h-16 mx-auto text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                        <p class="text-gray-500 mt-4">No gallery images available</p>
+                    </div>
+                @endforelse
             </div>
         </div>
     </div>
 
     <!-- Gallery Modal -->
-    <div id="galleryModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
-        <!-- Backdrop -->
-        <div class="fixed inset-0 bg-black bg-opacity-75 transition-opacity"></div>
-        
+    <div id="galleryModal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-black/90 backdrop-blur-sm transition-opacity duration-300">
         <!-- Modal Content -->
         <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div class="relative max-w-4xl w-full">
-                <!-- Close Button -->
-                <button onclick="closeGalleryModal()" 
-                        class="absolute top-4 right-4 text-white hover:text-gray-300 z-10">
+            <!-- Close Button -->
+            <button onclick="closeGalleryModal()" 
+                    class="absolute top-4 right-4 text-white/80 hover:text-white z-10 bg-black/30 backdrop-blur-sm p-2 rounded-full transition-all hover:bg-black/50">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+
+            <!-- Image Container -->
+            <div class="relative max-w-5xl w-full">
+                <!-- Image Counter -->
+                <div class="absolute top-4 left-4 bg-black/30 backdrop-blur-sm text-white px-4 py-2 rounded-full text-sm z-10">
+                    <span id="imageCounter"></span>
+                </div>
+
+                <!-- Previous Button -->
+                <button onclick="changeImage(-1)" 
+                        class="absolute left-4 top-1/2 transform -translate-y-1/2 text-white/80 hover:text-white bg-black/30 backdrop-blur-sm p-3 rounded-full transition-all hover:bg-black/50">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
                     </svg>
                 </button>
 
-                <!-- Image Container -->
-                <div class="relative">
-                    <!-- Previous Button -->
-                    <button onclick="changeImage(-1)" 
-                            class="absolute left-4 top-1/2 transform -translate-y-1/2 text-white hover:text-gray-300">
-                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-                        </svg>
-                    </button>
-
-                    <!-- Image -->
+                <!-- Image -->
+                <div class="relative overflow-hidden rounded-lg shadow-2xl">
                     <img id="modalImage" 
-                         src="" 
-                         alt="Gallery Image" 
-                         class="w-full h-auto max-h-[80vh] object-contain rounded-lg">
-
-                    <!-- Next Button -->
-                    <button onclick="changeImage(1)" 
-                            class="absolute right-4 top-1/2 transform -translate-y-1/2 text-white hover:text-gray-300">
-                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                        </svg>
-                    </button>
+                        src="" 
+                        alt="Gallery Image" 
+                        class="w-full h-auto max-h-[80vh] object-contain transition-opacity duration-300 opacity-0">
                 </div>
+
+                <!-- Next Button -->
+                <button onclick="changeImage(1)" 
+                        class="absolute right-4 top-1/2 transform -translate-y-1/2 text-white/80 hover:text-white bg-black/30 backdrop-blur-sm p-3 rounded-full transition-all hover:bg-black/50">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
+                </button>
             </div>
         </div>
     </div>
@@ -187,17 +263,105 @@
                         <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                         </svg>
-                        MON-SAT 8:30 AM - 5:00 PM
+                        @php
+                            $days = [
+                                0 => 'SUN',
+                                1 => 'MON',
+                                2 => 'TUE',
+                                3 => 'WED',
+                                4 => 'THU',
+                                5 => 'FRI',
+                                6 => 'SAT'
+                            ];
+                            
+                            $operatingHours = $shop->operatingHours()
+                                ->orderBy('day')
+                                ->get()
+                                ->groupBy(function($hour) {
+                                    return $hour->is_open ? 
+                                        ($hour->open_time . ' - ' . $hour->close_time . 
+                                        ($hour->has_lunch_break ? '|' . $hour->lunch_start . '-' . $hour->lunch_end : '')) : 
+                                        'closed';
+                                });
+
+                            $output = [];
+                            
+                            foreach ($operatingHours as $schedule => $hours) {
+                                if ($schedule === 'closed') continue;
+                                
+                                $dayNumbers = $hours->pluck('day')->toArray();
+                                $dayRanges = [];
+                                $start = $prev = $dayNumbers[0];
+                                
+                                for ($i = 1; $i < count($dayNumbers); $i++) {
+                                    if ($dayNumbers[$i] !== $prev + 1) {
+                                        $dayRanges[] = $start === $prev ? 
+                                            $days[$start] : 
+                                            $days[$start] . '-' . $days[$prev];
+                                        $start = $dayNumbers[$i];
+                                    }
+                                    $prev = $dayNumbers[$i];
+                                }
+                                
+                                $dayRanges[] = $start === $prev ? 
+                                    $days[$start] : 
+                                    $days[$start] . '-' . $days[$prev];
+                                
+                                foreach ($dayRanges as $range) {
+                                    $times = explode('|', $schedule);
+                                    $operatingTime = explode(' - ', $times[0]);
+                                    $output[] = $range . ' ' . 
+                                        date('g:i A', strtotime($operatingTime[0])) . ' - ' . 
+                                        date('g:i A', strtotime($operatingTime[1])) .
+                                        (isset($times[1]) ? ' (Lunch: ' . 
+                                            date('g:i A', strtotime(explode('-', $times[1])[0])) . ' - ' . 
+                                            date('g:i A', strtotime(explode('-', $times[1])[1])) . ')' : '');
+                                }
+                            }
+                            
+                            if (!empty($output)) {
+                                echo implode('<br>', $output);
+                            } else {
+                                echo 'Hours not available';
+                            }
+                        @endphp
                     </span>
                 </div>
             </div>
 
             <!-- Booking Button -->
             @auth
-                <button onclick="window.location.href='{{ route('booking.process', $shop) }}'" 
-                        class="w-full bg-blue-500 text-white py-4 rounded-xl text-lg font-medium hover:bg-blue-600 transition-all transform hover:scale-[1.02] active:scale-[0.98] shadow-lg">
-                    Book Now
-                </button>
+                @php
+                    $hasPets = auth()->user()->pets()->exists();
+                @endphp
+
+                @if($hasPets)
+                    <button onclick="window.location.href='{{ route('booking.process', $shop) }}'" 
+                            class="w-full bg-blue-500 text-white py-4 rounded-xl text-lg font-medium hover:bg-blue-600 transition-all transform hover:scale-[1.02] active:scale-[0.98] shadow-lg">
+                        Book Now
+                    </button>
+                @else
+                    <div class="space-y-4">
+                        <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg">
+                            <div class="flex">
+                                <div class="flex-shrink-0">
+                                    <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                    </svg>
+                                </div>
+                                <div class="ml-3">
+                                    <p class="text-sm text-yellow-700">
+                                        You need to add at least one pet before booking an appointment.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <button onclick="window.location.href='{{ route('profile.index') }}#pets'" 
+                                class="w-full bg-blue-500 text-white py-4 rounded-xl text-lg font-medium hover:bg-blue-600 transition-all transform hover:scale-[1.02] active:scale-[0.98] shadow-lg">
+                            Add a Pet
+                        </button>
+                    </div>
+                @endif
             @else
                 <div class="space-y-4">
                     <button onclick="window.location.href='{{ route('login') }}'" 
@@ -238,45 +402,98 @@
             @if($shop->type === 'grooming')
                 <!-- Pet Type Toggle -->
                 <div class="flex gap-4 mb-8">
-                    <button class="flex-1 py-3 px-6 rounded-xl bg-white border-2 border-blue-500 text-blue-500 font-medium hover:bg-blue-50 transition-colors">
+                    <button onclick="filterServices('dog')" 
+                            id="dogButton"
+                            class="flex-1 py-3 px-6 rounded-xl bg-blue-500 text-white font-medium hover:bg-blue-600 transition-colors">
                         Dog Services
                     </button>
-                    <button class="flex-1 py-3 px-6 rounded-xl bg-blue-500 text-white font-medium hover:bg-blue-600 transition-colors">
+                    <button onclick="filterServices('cat')"
+                            id="catButton"
+                            class="flex-1 py-3 px-6 rounded-xl bg-white border-2 border-blue-500 text-blue-500 font-medium hover:bg-blue-50 transition-colors">
                         Cat Services
                     </button>
                 </div>
+            @endif
 
                 <!-- Services Grid -->
                 <div class="grid gap-4 sm:grid-cols-2">
-                    @foreach(['Full Grooming Service' => 1499, 'Basic Bath Package' => 749, 'Nail Trimming' => 199, 'Ear Cleaning' => 499] as $service => $price)
-                    <div class="p-6 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors group cursor-pointer">
+                @forelse($shop->services()->where('status', 'active')->get() as $service)
+                    <div class="p-6 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors group cursor-pointer service-card"
+                         data-pet-types="{{ json_encode($service->pet_types) }}">
                         <div class="flex justify-between items-start mb-3">
-                            <h3 class="font-semibold text-lg group-hover:text-blue-600 transition-colors">{{ $service }}</h3>
-                            <span class="text-lg font-bold text-blue-600">₱{{ number_format($price) }}</span>
+                            <div>
+                                <h3 class="font-semibold text-lg group-hover:text-blue-600 transition-colors">{{ $service->name }}</h3>
+                                <p class="text-sm text-gray-500">{{ $service->duration }} minutes</p>
+                            </div>
+                            <span class="text-lg font-bold text-blue-600">₱{{ number_format($service->base_price, 2) }}</span>
                         </div>
-                        <p class="text-gray-600">Professional pet care service</p>
+                        <p class="text-gray-600">{{ $service->description ?: 'Professional pet care service' }}</p>
+                        
+                        @if($service->variable_pricing)
+                            <div class="mt-3 text-sm">
+                                <p class="font-medium text-gray-700">Price varies by size:</p>
+                                <ul class="list-disc list-inside text-gray-600 mt-1">
+                                    @foreach($service->variable_pricing as $pricing)
+                                        <li>{{ ucfirst($pricing['size']) }}: ₱{{ number_format($pricing['price'], 2) }}</li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @endif
+
+                        @if($service->add_ons && count($service->add_ons) > 0)
+                            <div class="mt-3 text-sm">
+                                <p class="font-medium text-gray-700">Available Add-ons:</p>
+                                <ul class="list-disc list-inside text-gray-600 mt-1">
+                                    @foreach($service->add_ons as $addon)
+                                        <li>{{ $addon['name'] }}: ₱{{ number_format($addon['price'], 2) }}</li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @endif
                     </div>
-                    @endforeach
-                </div>
-            @else
-                <!-- Veterinary Services Grid -->
-                <div class="grid gap-4 sm:grid-cols-2">
-                    @foreach([
-                        'General Check-up' => ['price' => 800, 'desc' => 'Complete Physical Examination'],
-                        'Vaccination' => ['price' => 1500, 'desc' => 'Core Vaccines Available'],
-                        'Deworming' => ['price' => 500, 'desc' => 'Internal Parasite Treatment'],
-                        'Laboratory Tests' => ['price' => 2000, 'desc' => 'Blood Work, Urinalysis, etc.']
-                    ] as $service => $details)
-                    <div class="p-6 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors group cursor-pointer">
-                        <div class="flex justify-between items-start mb-3">
-                            <h3 class="font-semibold text-lg group-hover:text-blue-600 transition-colors">{{ $service }}</h3>
-                            <span class="text-lg font-bold text-blue-600">₱{{ number_format($details['price']) }}</span>
-                        </div>
-                        <p class="text-gray-600">{{ $details['desc'] }}</p>
+                @empty
+                    <div class="col-span-2 text-center py-8 text-gray-500">
+                        <p class="text-lg">No services available at the moment</p>
                     </div>
-                    @endforeach
+                @endforelse
                 </div>
+
+            <script>
+                function filterServices(petType) {
+                    // Update button styles
+                    const dogButton = document.getElementById('dogButton');
+                    const catButton = document.getElementById('catButton');
+                    
+                    if (petType === 'dog') {
+                        dogButton.classList.remove('bg-white', 'border-2', 'border-blue-500', 'text-blue-500');
+                        dogButton.classList.add('bg-blue-500', 'text-white');
+                        catButton.classList.remove('bg-blue-500', 'text-white');
+                        catButton.classList.add('bg-white', 'border-2', 'border-blue-500', 'text-blue-500');
+                    } else {
+                        catButton.classList.remove('bg-white', 'border-2', 'border-blue-500', 'text-blue-500');
+                        catButton.classList.add('bg-blue-500', 'text-white');
+                        dogButton.classList.remove('bg-blue-500', 'text-white');
+                        dogButton.classList.add('bg-white', 'border-2', 'border-blue-500', 'text-blue-500');
+                    }
+
+                    // Filter services
+                    const services = document.querySelectorAll('.service-card');
+                    services.forEach(service => {
+                        const petTypes = JSON.parse(service.dataset.petTypes);
+                        const showService = petTypes.some(type => 
+                            type.toLowerCase().includes(petType.toLowerCase())
+                        );
+                        service.style.display = showService ? 'block' : 'none';
+                    });
+                }
+
+                // Initialize with dog services selected for grooming shops
+                @if($shop->type === 'grooming')
+                    document.addEventListener('DOMContentLoaded', () => {
+                        filterServices('dog');
+                    });
             @endif
+            </script>
         </div>
 
         <!-- Reviews Tab -->
@@ -303,29 +520,49 @@
                             @csrf
                             <div class="mb-4">
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Rating</label>
-                                <div class="flex space-x-2">
-                                    @for($i = 1; $i <= 5; $i++)
+                                <div class="flex flex-row-reverse justify-end space-x-2 space-x-reverse">
+                                    @for($i = 5; $i >= 1; $i--)
                                         <input type="radio" id="rating{{ $i }}" name="rating" value="{{ $i }}" class="hidden peer" required>
                                         <label for="rating{{ $i }}" 
-                                               class="cursor-pointer text-2xl text-gray-300 peer-checked:text-yellow-400 hover:text-yellow-400">
+                                               class="cursor-pointer text-2xl text-gray-300 hover:text-yellow-400 peer-checked:text-yellow-400 peer-hover:text-yellow-400 hover:peer-hover:text-yellow-400">
                                             ★
                                         </label>
                                     @endfor
                                 </div>
+                                @error('rating')
+                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                @enderror
                             </div>
                             <div class="mb-4">
-                                <label for="comment" class="block text-sm font-medium text-gray-700 mb-2">Your Review</label>
-                                <textarea id="comment" 
-                                          name="comment" 
+                                <label for="review" class="block text-sm font-medium text-gray-700 mb-2">Your Review</label>
+                                <textarea id="review" 
+                                          name="review" 
                                           rows="4" 
                                           required
-                                          class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"></textarea>
+                                          minlength="10"
+                                          placeholder="Tell us about your experience (minimum 10 characters)"
+                                          class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 @error('review') border-red-500 @enderror">{{ old('review') }}</textarea>
+                                @error('review')
+                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                @enderror
                             </div>
                             <button type="submit" 
                                     class="w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600 transition-colors">
                                 Submit Review
                             </button>
                         </form>
+
+                        @if(session('success'))
+                            <div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-6">
+                                {{ session('success') }}
+                            </div>
+                        @endif
+
+                        @if(session('error'))
+                            <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+                                {{ session('error') }}
+                            </div>
+                        @endif
                     @else
                         <div class="bg-gray-50 rounded-lg p-4 mb-6 text-center">
                             <p class="text-gray-600">You can only leave a review after completing an appointment with this shop.</p>
@@ -339,9 +576,10 @@
 
                 <!-- Existing Reviews -->
                 <div class="space-y-4">
-                    @forelse($shop->ratings()->with('user')->latest()->get() as $rating)
-                        <div class="border-b pb-4">
-                            <div class="flex items-start justify-between mb-2">
+                    @forelse($shop->ratings()->with(['user', 'appointment.employee', 'appointment.services'])->latest()->get() as $rating)
+                        <div class="bg-white rounded-lg shadow-lg p-6">
+                            <!-- User Info and Shop Rating -->
+                            <div class="flex items-start justify-between mb-4">
                                 <div class="flex items-center">
                                     <img src="{{ $rating->user->profile_photo_path ? asset('storage/' . $rating->user->profile_photo_path) : asset('images/default-profile.png') }}" 
                                          alt="Profile" 
@@ -351,7 +589,11 @@
                                         <div class="flex items-center">
                                             <div class="text-yellow-400">
                                                 @for($i = 1; $i <= 5; $i++)
-                                                    <span>{{ $i <= $rating->rating ? '★' : '☆' }}</span>
+                                                    @if($i <= $rating->rating)
+                                                        <span class="text-2xl">★</span>
+                                                    @else
+                                                        <span class="text-2xl text-gray-300">★</span>
+                                                    @endif
                                                 @endfor
                                             </div>
                                             <span class="text-gray-500 text-sm ml-2">{{ $rating->created_at->diffForHumans() }}</span>
@@ -359,7 +601,75 @@
                                     </div>
                                 </div>
                             </div>
-                            <p class="text-gray-700">{{ $rating->comment }}</p>
+
+                            <!-- Services -->
+                            @if($rating->appointment && $rating->appointment->services->isNotEmpty())
+                                <div class="mb-3 bg-gray-50 rounded-lg p-3">
+                                    <p class="text-sm text-gray-600 mb-2">Services:</p>
+                                    <div class="flex flex-wrap gap-2">
+                                        @foreach($rating->appointment->services as $service)
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                {{ $service->name }}
+                                            </span>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endif
+
+                            <!-- Shop Review -->
+                            <div class="mb-4">
+                                <p class="text-gray-700">{{ $rating->review }}</p>
+                            </div>
+
+                            <!-- Shop Response -->
+                            @if($rating->shop_comment)
+                                <div class="mt-4 bg-blue-50 rounded-lg p-4">
+                                    <div class="flex items-start space-x-2">
+                                        <div class="flex-shrink-0">
+                                            <img src="{{ $shop->image ? asset('storage/' . $shop->image) : asset('images/default-shop.png') }}"
+                                                 alt="{{ $shop->name }}"
+                                                 class="w-8 h-8 rounded-full object-cover">
+                                        </div>
+                                        <div class="flex-1">
+                                            <p class="text-sm font-medium text-blue-800">Shop's Response:</p>
+                                            <p class="text-sm text-gray-700 mt-1">{{ $rating->shop_comment }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
+
+                            <!-- Employee Rating -->
+                            @if($rating->appointment && $rating->appointment->employee && $rating->appointment->employee->staffRatings()->where('appointment_id', $rating->appointment_id)->exists())
+                                @php
+                                    $staffRating = $rating->appointment->employee->staffRatings()
+                                        ->where('appointment_id', $rating->appointment_id)
+                                        ->first();
+                                @endphp
+                                <div class="mt-4 bg-gray-50 rounded-lg p-4">
+                                    <div class="flex items-center mb-2">
+                                        <img src="{{ $rating->appointment->employee->profile_photo_url }}" 
+                                             alt="{{ $rating->appointment->employee->name }}" 
+                                             class="w-8 h-8 rounded-full object-cover mr-2">
+                                        <div>
+                                            <p class="font-medium text-sm">{{ $rating->appointment->employee->name }}</p>
+                                            <div class="flex items-center">
+                                                <div class="text-yellow-400">
+                                                    @for($i = 1; $i <= 5; $i++)
+                                                        @if($i <= $staffRating->rating)
+                                                            <span class="text-lg">★</span>
+                                                        @else
+                                                            <span class="text-lg text-gray-300">★</span>
+                                                        @endif
+                                                    @endfor
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    @if($staffRating->review)
+                                        <p class="text-sm text-gray-600 mt-2">{{ $staffRating->review }}</p>
+                                    @endif
+                                </div>
+                            @endif
                         </div>
                     @empty
                         <div class="text-center text-gray-500 py-8">
@@ -373,7 +683,6 @@
             </div>
         </div>
     </div>
-    <div class="mb-12"></div>
 </div>
 
     <!-- Report Shop Modal -->
@@ -399,11 +708,14 @@
                 </div>
 
                 <!-- Report Form -->
-                <form class="space-y-4">
+                <form class="space-y-4" id="reportShopForm">
+                    @csrf
+                    <input type="hidden" name="_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="shop_id" value="{{ $shop->id }}">
                     <!-- Report Type -->
                     <div>
                         <label for="reportType" class="block text-sm font-medium text-gray-700 mb-1">Report Type</label>
-                        <select id="reportType" 
+                        <select id="reportType" name="report_type"
                                 class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                             <option value="">Select a reason</option>
                             <option value="inappropriate">Inappropriate Content</option>
@@ -418,7 +730,7 @@
                     <!-- Description -->
                     <div>
                         <label for="reportDescription" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                        <textarea id="reportDescription" 
+                        <textarea id="reportDescription" name="description"
                                   rows="4" 
                                   class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                                   placeholder="Please provide more details about your report..."></textarea>
@@ -427,9 +739,11 @@
                     <!-- Submit Button -->
                     <button type="button"
                             onclick="submitReport()"
-                            class="w-full bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600 transition-colors">
+                            class="w-full bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600 transition-colors"
+                            id="submitReportBtn">
                         Submit Report
                     </button>
+                    <div id="reportStatusMessage" class="mt-2 text-center hidden"></div>
                 </form>
             </div>
         </div>
@@ -442,12 +756,180 @@
 
         function closeReportModal() {
             document.getElementById('reportModal').classList.add('hidden');
+            // Reset form
+            document.getElementById('reportShopForm').reset();
+            document.getElementById('reportStatusMessage').classList.add('hidden');
+            document.getElementById('reportStatusMessage').textContent = '';
         }
 
         function submitReport() {
-            alert('Report submitted successfully!');
-            closeReportModal();
+            const form = document.getElementById('reportShopForm');
+            const reportType = document.getElementById('reportType').value;
+            const reportDescription = document.getElementById('reportDescription').value;
+            const submitBtn = document.getElementById('submitReportBtn');
+            const statusMessage = document.getElementById('reportStatusMessage');
+            
+            // Validate form
+            if (!reportType) {
+                statusMessage.textContent = 'Please select a report type';
+                statusMessage.classList.remove('hidden', 'text-green-500');
+                statusMessage.classList.add('text-red-500');
+                return;
+            }
+            
+            if (!reportDescription || reportDescription.trim().length < 10) {
+                statusMessage.textContent = 'Please provide a detailed description (at least 10 characters)';
+                statusMessage.classList.remove('hidden', 'text-green-500');
+                statusMessage.classList.add('text-red-500');
+                return;
+            }
+            
+            // Show loading state
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Submitting...';
+            
+            // Prepare form data
+            const formData = new FormData(form);
+            
+            // Debug - log form data
+            console.log('Form data being submitted:');
+            for (let pair of formData.entries()) {
+                console.log(pair[0] + ': ' + pair[1]);
+            }
+            
+            // Send AJAX request
+            fetch('/shop/report', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                credentials: 'same-origin'
+            })
+            .then(response => {
+                console.log('Response status:', response.status);
+                if (!response.ok) {
+                    return response.json().then(data => {
+                        console.error('Error response:', data);
+                        throw new Error(data.message || 'Error submitting report');
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    statusMessage.textContent = 'Report submitted successfully!';
+                    statusMessage.classList.remove('hidden', 'text-red-500');
+                    statusMessage.classList.add('text-green-500');
+                    
+                    // Reset form after success
+                    form.reset();
+                    
+                    // Close modal after 2 seconds
+                    setTimeout(() => {
+                        closeReportModal();
+                    }, 2000);
+                } else {
+                    throw new Error(data.message || 'Failed to submit report');
+                }
+            })
+            .catch(error => {
+                console.error('Error submitting report:', error);
+                statusMessage.textContent = error.message || 'An error occurred. Please try again.';
+                statusMessage.classList.remove('hidden', 'text-green-500');
+                statusMessage.classList.add('text-red-500');
+            })
+            .finally(() => {
+                // Reset button state
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Submit Report';
+                statusMessage.classList.remove('hidden');
+            });
         }
+
+        // Store gallery images data
+        const galleryImages = @json($shop->gallery->map(function($image) {
+            return [
+                'url' => asset('storage/' . $image->image_path),
+                'alt' => 'Gallery Image'
+            ];
+        }));
+        
+        let currentImageIndex = 0;
+
+        function openGalleryModal(index) {
+            currentImageIndex = index;
+            const modal = document.getElementById('galleryModal');
+            
+            modal.classList.remove('hidden');
+            // Small delay to allow for fade-in effect
+            setTimeout(() => {
+                updateModalImage();
+            }, 50);
+            
+            // Add keyboard navigation
+            document.addEventListener('keydown', handleKeyNavigation);
+        }
+
+        function closeGalleryModal() {
+            const modal = document.getElementById('galleryModal');
+            const modalImage = document.getElementById('modalImage');
+            
+            // Fade out effect
+            modalImage.classList.add('opacity-0');
+            
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                // Remove keyboard event listener when modal is closed
+                document.removeEventListener('keydown', handleKeyNavigation);
+            }, 300);
+        }
+
+        function changeImage(direction) {
+            // Fade out current image
+            const modalImage = document.getElementById('modalImage');
+            modalImage.classList.add('opacity-0');
+            
+            setTimeout(() => {
+                currentImageIndex = (currentImageIndex + direction + galleryImages.length) % galleryImages.length;
+                updateModalImage();
+            }, 200);
+        }
+
+        function handleKeyNavigation(e) {
+            if (e.key === 'ArrowLeft') {
+                changeImage(-1);
+            } else if (e.key === 'ArrowRight') {
+                changeImage(1);
+            } else if (e.key === 'Escape') {
+                closeGalleryModal();
+            }
+        }
+
+        function updateModalImage() {
+            const modalImage = document.getElementById('modalImage');
+            const imageCounter = document.getElementById('imageCounter');
+            
+            // Update image source
+            modalImage.src = galleryImages[currentImageIndex].url;
+            modalImage.alt = galleryImages[currentImageIndex].alt;
+            
+            // Update counter
+            imageCounter.textContent = `${currentImageIndex + 1} / ${galleryImages.length}`;
+            
+            // Add loading event to ensure image is loaded before showing
+            modalImage.onload = function() {
+                modalImage.classList.remove('opacity-0');
+            };
+        }
+
+        // Close modal when clicking outside the image
+        document.getElementById('galleryModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeGalleryModal();
+            }
+        });
     </script>
 
 @endsection

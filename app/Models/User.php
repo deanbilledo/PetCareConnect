@@ -25,6 +25,7 @@ class User extends Authenticatable
         'address',
         'profile_photo_path',
         'role',
+        'status'
     ];
 
     /**
@@ -85,6 +86,26 @@ class User extends Authenticatable
         return $this->hasOne(Shop::class);
     }
 
+    public function employeeShop()
+    {
+        return $this->belongsTo(Shop::class, 'shop_id');
+    }
+
+    public function isShopOwner()
+    {
+        return $this->role === 'shop_owner';
+    }
+
+    public function isStaff()
+    {
+        return $this->role === 'staff';
+    }
+
+    public function isCustomer()
+    {
+        return $this->role === 'customer';
+    }
+
     public function appointments()
     {
         return $this->hasMany(Appointment::class);
@@ -103,5 +124,53 @@ class User extends Authenticatable
     public function isAdmin()
     {
         return $this->role === 'admin';
+    }
+
+    public function ratings()
+    {
+        return $this->hasMany(Rating::class);
+    }
+
+    /**
+     * Get all notifications for the user.
+     */
+    public function notifications()
+    {
+        return $this->morphMany(Notification::class, 'notifiable')->latest();
+    }
+
+    /**
+     * Get unread notifications for the user.
+     */
+    public function unreadNotifications()
+    {
+        return $this->notifications()->unread();
+    }
+
+    /**
+     * Create a new notification for the user.
+     */
+    public function notify($type, $title, $message, $actionUrl = null, $actionText = null, $icon = null)
+    {
+        return $this->notifications()->create([
+            'type' => $type,
+            'title' => $title,
+            'message' => $message,
+            'action_url' => $actionUrl,
+            'action_text' => $actionText,
+            'icon' => $icon,
+            'status' => 'unread'
+        ]);
+    }
+
+    /**
+     * Mark all notifications as read.
+     */
+    public function markAllNotificationsAsRead()
+    {
+        $this->unreadNotifications()->update([
+            'status' => 'read',
+            'read_at' => now()
+        ]);
     }
 }

@@ -30,6 +30,65 @@ class ShopSetupController extends Controller
         return view('shop.setup.welcome');
     }
 
+    public function details()
+    {
+        $user = auth()->user();
+        
+        // If setup is already completed, redirect to dashboard
+        if ($user->setup_completed) {
+            return redirect()->route('shop.dashboard')
+                ->with('info', 'Shop setup has already been completed.');
+        }
+        
+        return view('shop.setup.details');
+    }
+
+    public function storeDetails(Request $request)
+    {
+        $user = auth()->user();
+        
+        // If setup is already completed, redirect to dashboard
+        if ($user->setup_completed) {
+            return redirect()->route('shop.dashboard')
+                ->with('info', 'Shop setup has already been completed.');
+        }
+        
+        $validated = $request->validate([
+            'description' => 'required|string|max:1000',
+            'contact_email' => 'required|email',
+            'gallery.*' => 'required|image|mimes:jpeg,png|max:5120', // 5MB max
+            'gallery' => 'array|max:6' // Maximum 6 images
+        ]);
+
+        try {
+            DB::transaction(function () use ($request, $user) {
+                $shop = $user->shop;
+                
+                // Update shop details
+                $shop->update([
+                    'description' => $request->description,
+                    'contact_email' => $request->contact_email
+                ]);
+
+                // Handle gallery images
+                if ($request->hasFile('gallery')) {
+                    foreach ($request->file('gallery') as $image) {
+                        $path = $image->store('shop-gallery', 'public');
+                        $shop->gallery()->create([
+                            'image_path' => $path
+                        ]);
+                    }
+                }
+            });
+
+            return redirect()->route('shop.setup.employees.index');
+        } catch (\Exception $e) {
+            Log::error('Error storing shop details: ' . $e->getMessage());
+            return back()->with('error', 'Failed to save shop details. Please try again.')
+                        ->withInput();
+        }
+    }
+
     public function services()
     {
         $user = auth()->user();
@@ -41,7 +100,8 @@ class ShopSetupController extends Controller
         }
         
         $shop = $user->shop;
-        return view('shop.setup.services', compact('shop'));
+        $employees = $shop->employees()->get();
+        return view('shop.setup.services', compact('shop', 'employees'));
     }
 
     public function storeServices(Request $request)
@@ -63,7 +123,9 @@ class ShopSetupController extends Controller
             'services.*.pet_types.*' => 'string',
             'services.*.size_ranges' => 'required|array',
             'services.*.size_ranges.*' => 'string',
-            'services.*.breed_specific' => 'boolean',
+            'services.*.exotic_pet_service' => 'boolean',
+            'services.*.exotic_pet_species' => 'required_if:services.*.exotic_pet_service,true|array|nullable',
+            'services.*.exotic_pet_species.*' => 'string',
             'services.*.special_requirements' => 'nullable|string',
             'services.*.base_price' => 'required|numeric|min:0',
             'services.*.duration' => 'required|integer|min:15',
@@ -72,7 +134,9 @@ class ShopSetupController extends Controller
             'services.*.variable_pricing.*.price' => 'required_with:services.*.variable_pricing|numeric|min:0',
             'services.*.add_ons' => 'nullable|array',
             'services.*.add_ons.*.name' => 'required_with:services.*.add_ons|string',
-            'services.*.add_ons.*.price' => 'required_with:services.*.add_ons|numeric|min:0'
+            'services.*.add_ons.*.price' => 'required_with:services.*.add_ons|numeric|min:0',
+            'services.*.employee_ids' => 'nullable|array',
+            'services.*.employee_ids.*' => 'exists:employees,id'
         ]);
 
         $shop = $user->shop;
@@ -83,21 +147,32 @@ class ShopSetupController extends Controller
                 $shop->services()->delete();
 
                 // Add new services
-                foreach ($validated['services'] as $service) {
-                    $shop->services()->create([
-                        'name' => $service['name'],
-                        'category' => $service['category'],
-                        'description' => $service['description'] ?? null,
-                        'pet_types' => $service['pet_types'],
-                        'size_ranges' => $service['size_ranges'],
-                        'breed_specific' => $service['breed_specific'] ?? false,
-                        'special_requirements' => $service['special_requirements'] ?? null,
-                        'base_price' => $service['base_price'],
-                        'duration' => $service['duration'],
-                        'variable_pricing' => $service['variable_pricing'] ?? null,
-                        'add_ons' => $service['add_ons'] ?? null,
+                foreach ($validated['services'] as $serviceData) {
+                    // Extract employee IDs before creating service
+                    $employeeIds = $serviceData['employee_ids'] ?? [];
+                    unset($serviceData['employee_ids']);
+
+                    // Create service
+                    $service = $shop->services()->create([
+                        'name' => $serviceData['name'],
+                        'category' => $serviceData['category'],
+                        'description' => $serviceData['description'] ?? null,
+                        'pet_types' => $serviceData['pet_types'],
+                        'size_ranges' => $serviceData['size_ranges'],
+                        'exotic_pet_service' => $serviceData['exotic_pet_service'] ?? false,
+                        'exotic_pet_species' => $serviceData['exotic_pet_species'] ?? null,
+                        'special_requirements' => $serviceData['special_requirements'] ?? null,
+                        'base_price' => $serviceData['base_price'],
+                        'duration' => $serviceData['duration'],
+                        'variable_pricing' => $serviceData['variable_pricing'] ?? null,
+                        'add_ons' => $serviceData['add_ons'] ?? null,
                         'status' => 'active'
                     ]);
+
+                    // Attach employees to the service
+                    if (!empty($employeeIds)) {
+                        $service->employees()->attach($employeeIds);
+                    }
                 }
             });
 
@@ -135,32 +210,32 @@ class ShopSetupController extends Controller
         
         try {
             $validated = $request->validate([
-                'hours' => 'required|array',
                 'hours.*.day' => 'required|integer|between:0,6',
-                'hours.*.is_open' => 'required|in:0,1',
+                'hours.*.is_open' => 'required|boolean',
                 'hours.*.open_time' => 'required_if:hours.*.is_open,1|nullable|date_format:H:i',
-                'hours.*.close_time' => 'required_if:hours.*.is_open,1|nullable|date_format:H:i|after:hours.*.open_time'
+                'hours.*.close_time' => 'required_if:hours.*.is_open,1|nullable|date_format:H:i|after:hours.*.open_time',
+                'hours.*.has_lunch_break' => 'boolean',
+                'hours.*.lunch_start' => 'required_if:hours.*.has_lunch_break,1|nullable|date_format:H:i|after:hours.*.open_time|before:hours.*.close_time',
+                'hours.*.lunch_end' => 'required_if:hours.*.has_lunch_break,1|nullable|date_format:H:i|after:hours.*.lunch_start|before:hours.*.close_time',
             ]);
 
             $shop = $user->shop;
 
             DB::transaction(function () use ($validated, $shop, $user) {
-                // Clear existing hours
+                // Delete existing hours
                 $shop->operatingHours()->delete();
 
-                // Add new hours
+                // Create new operating hours
                 foreach ($validated['hours'] as $hour) {
-                    // Convert is_open to boolean
-                    $hour['is_open'] = (bool)$hour['is_open'];
-                    
-                    // Only set times if the day is open
-                    if (!$hour['is_open']) {
-                        $hour['open_time'] = null;
-                        $hour['close_time'] = null;
-                    }
-
-                    Log::info('Creating operating hour:', $hour);
-                    $shop->operatingHours()->create($hour);
+                    $shop->operatingHours()->create([
+                        'day' => $hour['day'],
+                        'is_open' => $hour['is_open'],
+                        'open_time' => $hour['is_open'] ? $hour['open_time'] : null,
+                        'close_time' => $hour['is_open'] ? $hour['close_time'] : null,
+                        'has_lunch_break' => $hour['is_open'] && ($hour['has_lunch_break'] ?? false),
+                        'lunch_start' => $hour['is_open'] && ($hour['has_lunch_break'] ?? false) ? $hour['lunch_start'] : null,
+                        'lunch_end' => $hour['is_open'] && ($hour['has_lunch_break'] ?? false) ? $hour['lunch_end'] : null,
+                    ]);
                 }
 
                 // Mark setup as completed
@@ -168,18 +243,14 @@ class ShopSetupController extends Controller
                 $user->save();
             });
 
-            Log::info('Shop setup completed for user: ' . $user->id);
-            
             // Set shop mode and redirect to dashboard
             session(['shop_mode' => true]);
-            session()->save();
-            
+
             return redirect()->route('shop.dashboard')
                 ->with('success', 'Shop setup completed successfully!');
         } catch (\Exception $e) {
-            Log::error('Error in storeHours: ' . $e->getMessage());
-            Log::error($e->getTraceAsString());
-            return back()->with('error', 'Failed to save operating hours. Please try again.');
+            Log::error('Failed to save operating hours: ' . $e->getMessage());
+            return back()->withInput()->withErrors(['error' => 'Failed to save operating hours. Please try again.']);
         }
     }
 } 

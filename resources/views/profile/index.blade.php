@@ -1,19 +1,21 @@
 @php
 use Illuminate\Support\Str;
 @endphp
-
-@extends('layouts.app')
+@extends(session('shop_mode') ? 'layouts.shop' : 'layouts.app')
 
 @section('styles')
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
       integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
       crossorigin="anonymous"/>
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.bootstrap5.css" rel="stylesheet">
 @endsection
 
 @section('scripts')
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
         crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
 @endsection
 
 @section('content')
@@ -293,7 +295,25 @@ use Illuminate\Support\Str;
              x-transition:leave="transition ease-in duration-300"
              x-transition:leave-start="opacity-100 transform scale-y-100"
              x-transition:leave-end="opacity-0 transform scale-y-0"
-             class="mb-6 bg-gray-50 p-4 rounded-lg border border-gray-200">
+             class="mb-6 bg-gray-50 p-4 rounded-lg border border-gray-200"
+             x-data="{ petType: '' }">
+            
+            @if ($errors->any())
+            <div class="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+                <ul class="list-disc list-inside">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+            @endif
+
+            @if (session('success'))
+            <div class="mb-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded">
+                {{ session('success') }}
+            </div>
+            @endif
+
             <form action="{{ route('profile.pets.store') }}" method="POST">
                 @csrf
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -305,12 +325,50 @@ use Illuminate\Support\Str;
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
                         <select name="type" required 
+                                x-model="petType"
                                 class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
                             <option value="">Select Type</option>
                             <option value="Dog">Dog</option>
                             <option value="Cat">Cat</option>
                             <option value="Bird">Bird</option>
-                            <option value="Other">Other</option>
+                            <option value="Exotic">Exotic</option>
+                        </select>
+                    </div>
+                    <!-- Add species field for exotic pets -->
+                    <div x-show="petType === 'Exotic'">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Species</label>
+                        <select name="species" 
+                                x-bind:required="petType === 'Exotic'"
+                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
+                            <option value="">Select Species</option>
+                            <optgroup label="Reptiles">
+                                <option value="snake">Snake</option>
+                                <option value="lizard">Lizard</option>
+                                <option value="turtle">Turtle</option>
+                                <option value="iguana">Iguana</option>
+                                <option value="gecko">Gecko</option>
+                                <option value="bearded_dragon">Bearded Dragon</option>
+                            </optgroup>
+                            <optgroup label="Small Mammals">
+                                <option value="hamster">Hamster</option>
+                                <option value="gerbil">Gerbil</option>
+                                <option value="ferret">Ferret</option>
+                                <option value="guinea_pig">Guinea Pig</option>
+                                <option value="chinchilla">Chinchilla</option>
+                                <option value="hedgehog">Hedgehog</option>
+                                <option value="sugar_glider">Sugar Glider</option>
+                            </optgroup>
+                            <optgroup label="Birds">
+                                <option value="parrot">Parrot</option>
+                                <option value="cockatiel">Cockatiel</option>
+                                <option value="macaw">Macaw</option>
+                                <option value="parakeet">Parakeet</option>
+                                <option value="lovebird">Lovebird</option>
+                            </optgroup>
+                            <optgroup label="Others">
+                                <option value="tarantula">Tarantula</option>
+                                <option value="scorpion">Scorpion</option>
+                            </optgroup>
                         </select>
                     </div>
                     <div>
@@ -453,7 +511,7 @@ use Illuminate\Support\Str;
                                             Health
                                         </a>
 
-                                        <a href="{{ route('profile.pets.add-health-record', ['pet' => $pet->id]) }}" 
+                                        <a href="{{ route('profile.pets.user-add-health-record', ['pet' => $pet->id]) }}" 
                                            class="inline-flex items-center gap-1 px-2 py-1 bg-white border border-gray-300 rounded text-xs text-gray-700 hover:bg-gray-50">
                                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -470,7 +528,8 @@ use Illuminate\Support\Str;
                             x-cloak
                             class="border-t">
                             <td colspan="6" class="py-4">
-                                <form action="{{ route('profile.pets.update', $pet) }}" method="POST" class="p-4 bg-gray-50 rounded-lg">
+                                <form action="{{ route('profile.pets.update', $pet) }}" method="POST" class="p-4 bg-gray-50 rounded-lg"
+                                      x-data="{ petType: '{{ $pet->type }}' }">
                                     @csrf
                                     @method('PUT')
                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -482,11 +541,49 @@ use Illuminate\Support\Str;
                                         <div>
                                             <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
                                             <select name="type" required 
+                                                    x-model="petType"
                                                     class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
                                                 <option value="Dog" {{ $pet->type == 'Dog' ? 'selected' : '' }}>Dog</option>
                                                 <option value="Cat" {{ $pet->type == 'Cat' ? 'selected' : '' }}>Cat</option>
                                                 <option value="Bird" {{ $pet->type == 'Bird' ? 'selected' : '' }}>Bird</option>
-                                                <option value="Other" {{ $pet->type == 'Other' ? 'selected' : '' }}>Other</option>
+                                                <option value="Exotic" {{ $pet->type == 'Exotic' ? 'selected' : '' }}>Exotic</option>
+                                            </select>
+                                        </div>
+                                        <!-- Add species field for exotic pets -->
+                                        <div x-show="petType === 'Exotic'">
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Species</label>
+                                            <select name="species" 
+                                                    x-bind:required="petType === 'Exotic'"
+                                                    class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
+                                                <option value="">Select Species</option>
+                                                <optgroup label="Reptiles">
+                                                    <option value="snake" {{ $pet->species == 'snake' ? 'selected' : '' }}>Snake</option>
+                                                    <option value="lizard" {{ $pet->species == 'lizard' ? 'selected' : '' }}>Lizard</option>
+                                                    <option value="turtle" {{ $pet->species == 'turtle' ? 'selected' : '' }}>Turtle</option>
+                                                    <option value="iguana" {{ $pet->species == 'iguana' ? 'selected' : '' }}>Iguana</option>
+                                                    <option value="gecko" {{ $pet->species == 'gecko' ? 'selected' : '' }}>Gecko</option>
+                                                    <option value="bearded_dragon" {{ $pet->species == 'bearded_dragon' ? 'selected' : '' }}>Bearded Dragon</option>
+                                                </optgroup>
+                                                <optgroup label="Small Mammals">
+                                                    <option value="hamster" {{ $pet->species == 'hamster' ? 'selected' : '' }}>Hamster</option>
+                                                    <option value="gerbil" {{ $pet->species == 'gerbil' ? 'selected' : '' }}>Gerbil</option>
+                                                    <option value="ferret" {{ $pet->species == 'ferret' ? 'selected' : '' }}>Ferret</option>
+                                                    <option value="guinea_pig" {{ $pet->species == 'guinea_pig' ? 'selected' : '' }}>Guinea Pig</option>
+                                                    <option value="chinchilla" {{ $pet->species == 'chinchilla' ? 'selected' : '' }}>Chinchilla</option>
+                                                    <option value="hedgehog" {{ $pet->species == 'hedgehog' ? 'selected' : '' }}>Hedgehog</option>
+                                                    <option value="sugar_glider" {{ $pet->species == 'sugar_glider' ? 'selected' : '' }}>Sugar Glider</option>
+                                                </optgroup>
+                                                <optgroup label="Birds">
+                                                    <option value="parrot" {{ $pet->species == 'parrot' ? 'selected' : '' }}>Parrot</option>
+                                                    <option value="cockatiel" {{ $pet->species == 'cockatiel' ? 'selected' : '' }}>Cockatiel</option>
+                                                    <option value="macaw" {{ $pet->species == 'macaw' ? 'selected' : '' }}>Macaw</option>
+                                                    <option value="parakeet" {{ $pet->species == 'parakeet' ? 'selected' : '' }}>Parakeet</option>
+                                                    <option value="lovebird" {{ $pet->species == 'lovebird' ? 'selected' : '' }}>Lovebird</option>
+                                                </optgroup>
+                                                <optgroup label="Others">
+                                                    <option value="tarantula" {{ $pet->species == 'tarantula' ? 'selected' : '' }}>Tarantula</option>
+                                                    <option value="scorpion" {{ $pet->species == 'scorpion' ? 'selected' : '' }}>Scorpion</option>
+                                                </optgroup>
                                             </select>
                                         </div>
                                         <div>
@@ -772,5 +869,50 @@ function deleteModal() {
         }
     }
 }
+<<<<<<< HEAD
+=======
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize TomSelect for species select
+    const speciesSelect = document.querySelector('select[name="species"]');
+    if (speciesSelect) {
+        new TomSelect(speciesSelect, {
+            plugins: ['remove_button'],
+            maxItems: 1,
+            valueField: 'value',
+            labelField: 'text',
+            searchField: ['text'],
+            render: {
+                item: function(data, escape) {
+                    return '<div>' + escape(data.text) + '</div>';
+                },
+                option: function(data, escape) {
+                    return '<div class="d-flex flex-column">' +
+                           '<span class="font-weight-bold">' + escape(data.text) + '</span>' +
+                           '</div>';
+                }
+            }
+        });
+    }
+
+    // Handle pet type change
+    const petTypeSelect = document.querySelector('select[name="type"]');
+    if (petTypeSelect) {
+        petTypeSelect.addEventListener('change', function() {
+            const speciesField = document.querySelector('div[x-show="petType === \'Exotic\'"]');
+            if (speciesField) {
+                if (this.value === 'Exotic') {
+                    speciesField.style.display = 'block';
+                    speciesSelect.tomselect.enable();
+                } else {
+                    speciesField.style.display = 'none';
+                    speciesSelect.tomselect.clear();
+                    speciesSelect.tomselect.disable();
+                }
+            }
+        });
+    }
+});
+>>>>>>> 18c55ca6c082561862df75df4fcb286b2bb43455
 </script>
 @endpush

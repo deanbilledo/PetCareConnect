@@ -6,6 +6,9 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Carbon\Carbon;
 
 class Pet extends Model
 {
@@ -14,31 +17,39 @@ class Pet extends Model
     protected $fillable = [
         'name',
         'type',
+        'species',
         'breed',
-        'size_category',
+        'date_of_birth',
         'weight',
+        'size_category',
         'color_markings',
         'coat_type',
-        'date_of_birth',
-        'profile_photo_path',
+        'profile_photo',
+        'death_date',
+        'death_reason',
         'user_id'
     ];
 
     protected $casts = [
-        'date_of_birth' => 'date',
-        'weight' => 'decimal:2',
+        'date_of_birth' => 'datetime',
+        'death_date' => 'datetime'
     ];
 
-    public function user()
+    protected $appends = [
+        'profile_photo_url'
+    ];
+
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
     public function getProfilePhotoUrlAttribute()
     {
-        return $this->profile_photo_path
-            ? Storage::disk('public')->url($this->profile_photo_path)
-            : asset('images/default-pet.png');
+        if ($this->profile_photo) {
+            return asset('storage/' . $this->profile_photo);
+        }
+        return asset('images/default-pet.png');
     }
 
     public function healthRecords()
@@ -46,13 +57,46 @@ class Pet extends Model
         return $this->hasMany(HealthRecord::class);
     }
 
-    public function vaccinations()
+    public function vaccinations(): HasMany
     {
         return $this->hasMany(PetVaccination::class);
+    }
+
+    public function parasiteControls(): HasMany
+    {
+        return $this->hasMany(PetParasiteControl::class);
+    }
+
+    public function healthIssues(): HasMany
+    {
+        return $this->hasMany(PetHealthIssue::class);
+    }
+
+    public function appointments(): HasMany
+    {
+        return $this->hasMany(Appointment::class);
+    }
+
+    public function updateHistories(): HasMany
+    {
+        return $this->hasMany(PetUpdateHistory::class)->latest();
     }
 
     public function getSizeCategoryAttribute($value)
     {
         return strtolower($value);
+    }
+
+    public function isDeceased(): bool
+    {
+        return !is_null($this->death_date);
+    }
+
+    public function markAsDeceased($deathDate, $reason = null)
+    {
+        $this->update([
+            'death_date' => $deathDate,
+            'death_reason' => $reason,
+        ]);
     }
 } 
