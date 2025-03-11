@@ -478,6 +478,52 @@ use Illuminate\Support\Facades\Log;
     </div>
 </div>
 
+<!-- Discount Success Modal -->
+<div id="discountSuccessModal" class="fixed inset-0 z-50 overflow-y-auto hidden" aria-modal="true" role="dialog">
+    <!-- Backdrop -->
+    <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity" aria-hidden="true"></div>
+    
+    <!-- Modal Content -->
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="relative bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:max-w-lg w-full sm:w-full sm:p-6 mx-auto">
+            <div class="bg-white">
+                <div class="flex items-center justify-center mb-4">
+                    <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
+                        <svg class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                    </div>
+                </div>
+                <div class="text-center">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900" id="discountSuccessTitle">Discount Applied!</h3>
+                    <div class="mt-2">
+                        <p class="text-sm text-gray-500" id="discountSuccessMessage">
+                            Your voucher has been applied successfully.
+                        </p>
+                    </div>
+                    <div class="mt-4 bg-gray-50 p-4 rounded-md">
+                        <div class="flex justify-between text-sm font-medium">
+                            <span class="text-gray-700">Discount Amount:</span>
+                            <span class="text-green-600" id="discountSuccessAmount">-₱0.00</span>
+                        </div>
+                        <div class="flex justify-between text-sm font-medium mt-2">
+                            <span class="text-gray-700">New Total:</span>
+                            <span class="text-blue-600" id="discountSuccessTotal">₱0.00</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-5 sm:mt-6">
+                <button type="button" 
+                        onclick="hideDiscountSuccessModal()" 
+                        class="inline-flex justify-center w-full rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:text-sm">
+                    Continue
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @push('scripts')
 <script>
 function showConfirmationModal() {
@@ -491,6 +537,33 @@ function showConfirmationModal() {
 
 function hideConfirmationModal() {
     const modal = document.getElementById('confirmationModal');
+    modal.classList.add('hidden');
+}
+
+function showDiscountSuccessModal(code, discountAmount, newTotal) {
+    const modal = document.getElementById('discountSuccessModal');
+    const title = document.getElementById('discountSuccessTitle');
+    const message = document.getElementById('discountSuccessMessage');
+    const amount = document.getElementById('discountSuccessAmount');
+    const total = document.getElementById('discountSuccessTotal');
+    
+    // Update content
+    title.textContent = 'Discount Applied!';
+    message.textContent = `Your voucher code ${code} has been applied successfully.`;
+    amount.textContent = `-₱${discountAmount.toFixed(2)}`;
+    total.textContent = `₱${newTotal.toFixed(2)}`;
+    
+    // Show modal
+    modal.classList.remove('hidden');
+    
+    // Add animation if needed
+    requestAnimationFrame(() => {
+        modal.querySelector('.bg-white').classList.add('animate-modal-content');
+    });
+}
+
+function hideDiscountSuccessModal() {
+    const modal = document.getElementById('discountSuccessModal');
     modal.classList.add('hidden');
 }
 
@@ -544,8 +617,8 @@ function applyCoupon() {
             // Update modal total amount
             document.getElementById('modalTotalAmount').textContent = `₱${newTotal.toFixed(2)}`;
             
-            // Show success message
-            alert(`Voucher ${couponCode} applied successfully!`);
+            // Show success modal instead of alert
+            showDiscountSuccessModal(couponCode, discountAmount, newTotal);
         } else {
             // Hide discount displays
             document.getElementById('discountDisplay').classList.add('hidden');

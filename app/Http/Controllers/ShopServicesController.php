@@ -468,6 +468,18 @@ class ShopServicesController extends Controller
     }
 
     /**
+     * Store a new discount for a service
+     * 
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \App\Models\Service  $service
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function storeDiscount(Request $request, Service $service)
+    {
+        return $this->addDiscount($request, $service);
+    }
+
+    /**
      * Get service details with top appointments for the modal (public API)
      *
      * @param int $serviceId

@@ -9,7 +9,12 @@ use Illuminate\Support\Facades\Storage;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable;
+    use HasFactory;
+    
+    // Only include the original trait but override its methods
+    use Notifiable {
+        notify as laravelNotify;
+    }
 
     /**
      * The attributes that are mass assignable.
@@ -63,19 +68,34 @@ class User extends Authenticatable
     public function getProfilePhotoUrlAttribute()
     {
         try {
+            // If no profile photo path is set, return default
             if (empty($this->profile_photo_path)) {
                 return asset('images/default-profile.png');
             }
 
+            // Check if profile photo starts with http or https (external URL like Facebook)
+            if (str_starts_with($this->profile_photo_path, 'http://') || 
+                str_starts_with($this->profile_photo_path, 'https://')) {
+                return $this->profile_photo_path;
+            }
+
+            // If the file exists in storage, return its URL
             if (Storage::disk('public')->exists($this->profile_photo_path)) {
                 return Storage::disk('public')->url($this->profile_photo_path);
             }
+
+            // Log a warning if the file doesn't exist but should
+            \Log::warning('Profile photo file does not exist', [
+                'user_id' => $this->id,
+                'photo_path' => $this->profile_photo_path
+            ]);
 
             return asset('images/default-profile.png');
         } catch (\Exception $e) {
             \Log::error('Error in getProfilePhotoUrlAttribute: ' . $e->getMessage(), [
                 'user_id' => $this->id,
-                'photo_path' => $this->profile_photo_path
+                'photo_path' => $this->profile_photo_path,
+                'exception' => $e
             ]);
             return asset('images/default-profile.png');
         }
@@ -148,9 +168,10 @@ class User extends Authenticatable
     }
 
     /**
+     * Original notify method - renamed to createNotification
      * Create a new notification for the user.
      */
-    public function notify($type, $title, $message, $actionUrl = null, $actionText = null, $icon = null)
+    public function createNotification($type, $title, $message, $actionUrl = null, $actionText = null, $icon = null)
     {
         return $this->notifications()->create([
             'type' => $type,
@@ -161,6 +182,72 @@ class User extends Authenticatable
             'icon' => $icon,
             'status' => 'unread'
         ]);
+    }
+    
+    /**
+     * Send the given notification.
+     *
+     * @param  mixed  $instance
+     * @return void
+     */
+    public function notify($instance)
+    {
+        // For Laravel's built-in notifications (objects)
+        if (is_object($instance)) {
+            // Just use Laravel's built-in notification system
+            return $this->laravelNotify($instance);
+        }
+        
+        // For our custom notification system (strings and parameters)
+        return $this->createNotification(...func_get_args());
+    }
+    
+    /**
+     * Get the notification routing information for the given driver.
+     *
+     * @param  string  $driver
+     * @param  \Illuminate\Notifications\Notification|null  $notification
+     * @return mixed
+     */
+    public function routeNotificationFor($driver, $notification = null)
+    {
+        if ($driver === 'mail' || $driver === 'testmail') {
+            return $this->email;
+        }
+        
+        if ($driver === 'database') {
+            return $this->notifications();
+        }
+        
+        $method = 'routeNotificationFor'.ucfirst($driver);
+        
+        if (method_exists($this, $method)) {
+            return $this->$method($notification);
+        }
+        
+        return null;
+    }
+
+    /**
+     * Route notifications for the mail channel.
+     *
+     * @param  \Illuminate\Notifications\Notification  $notification
+     * @return string
+     */
+    public function routeNotificationForMail($notification)
+    {
+        return $this->email;
+    }
+    
+    /**
+     * Route notifications for the database channel.
+     *
+     * @param  \Illuminate\Notifications\Notification  $notification
+     * @return array|string
+     */
+    public function routeNotificationForDatabase($notification)
+    {
+        return $this->notifications();
     }
 
     /**

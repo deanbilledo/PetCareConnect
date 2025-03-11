@@ -65,4 +65,9 @@ class Employee extends Model
     {
         return $this->hasMany(StaffRating::class);
     }
+
+    public function availability()
+    {
+        return $this->hasMany(EmployeeAvailability::class);
+    }
 }

@@ -9,6 +9,7 @@
         "barryvdh/laravel-dompdf": "^2.0",
         "laravel/framework": "^11.9",
         "laravel/sanctum": "^4.0",
+        "laravel/socialite": "^5.18",
         "laravel/tinker": "^2.9",
         "laravel/ui": "^4.5",
         "maatwebsite/excel": "^1.1"
