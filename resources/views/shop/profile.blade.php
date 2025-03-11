@@ -19,11 +19,11 @@
 <div class="container mx-auto px-4 py-8">
     <!-- Back Button -->
     <div class="mb-6 mt-8">
-        <a href="{{ route('profile.index') }}" class="flex items-center text-gray-600 hover:text-gray-900">
+        <a href="{{ url()->previous() }}" class="flex items-center text-gray-600 hover:text-gray-900">
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
             </svg>
-            Back to Profile
+            Back 
         </a>
     </div>
 
@@ -110,6 +110,17 @@
                            name="phone" 
                            value="{{ old('phone', $shop->phone) }}" 
                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Contact Email</label>
+                    <input type="email" 
+                           name="contact_email" 
+                           value="{{ old('contact_email', $shop->contact_email) }}" 
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 @error('contact_email') border-red-500 @enderror">
+                    @error('contact_email')
+                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
                 </div>
 
                 <div class="md:col-span-2">

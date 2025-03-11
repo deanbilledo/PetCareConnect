@@ -27,6 +27,7 @@ use App\Http\Controllers\ShopSettingsController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ShopReportController;
 use App\Http\Controllers\UserReportController;
+use App\Http\Controllers\Auth\SocialAuthController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -54,6 +55,10 @@ Route::get('/pet-care-tips', function () {
 
 // Authentication routes
 Auth::routes();
+
+// Social authentication routes
+Route::get('login/facebook', [SocialAuthController::class, 'redirectToFacebook'])->name('login.facebook');
+Route::get('login/facebook/callback', [SocialAuthController::class, 'handleFacebookCallback']);
 
 // Protected routes
 Route::middleware(['auth'])->group(function () {
@@ -133,6 +138,10 @@ Route::middleware(['auth'])->group(function () {
                 // Employee analytics routes
                 Route::post('/analytics', [ShopEmployeeController::class, 'analytics'])->name('analytics');
                 Route::post('/{employee}/detailed-stats', [ShopEmployeeController::class, 'detailedStats'])->name('detailed-stats');
+                
+                // Employee availability routes
+                Route::get('/{employee}/availability', [ShopEmployeeController::class, 'getAvailability'])->name('availability');
+                Route::put('/{employee}/availability', [ShopEmployeeController::class, 'updateAvailability'])->name('update-availability');
             });
             
             // Services management routes

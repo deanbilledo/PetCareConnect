@@ -301,46 +301,63 @@
                     <!-- Availability Settings Card -->
                     <div class="bg-white rounded-lg shadow-sm p-6">
                         <h3 class="text-lg font-semibold text-gray-900 mb-4">Availability Settings</h3>
-                        <div class="space-y-4">
-                            @foreach(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] as $day)
-                            <div class="p-4 bg-gray-50 rounded-lg">
-                                <div class="flex justify-between items-center mb-3">
-                                    <span class="font-medium text-gray-900">{{ $day }}</span>
-                                    <label class="flex items-center">
-                                        <input type="checkbox" 
-                                               data-day="{{ strtolower($day) }}"
-                                               class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50" 
-                                               checked>
-                                        <span class="ml-2 text-sm text-gray-600">Available</span>
-                                    </label>
-                                </div>
-                                <div class="flex items-center space-x-3">
-                                    <select data-day="{{ strtolower($day) }}" 
-                                            data-type="start"
-                                            class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
-                                        @foreach(range(6, 22) as $hour)
-                                            <option value="{{ sprintf('%02d:00', $hour) }}">{{ sprintf('%02d:00', $hour) }}</option>
-                                        @endforeach
-                                    </select>
-                                    <span class="text-gray-500">to</span>
-                                    <select data-day="{{ strtolower($day) }}" 
-                                            data-type="end"
-                                            class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
-                                        @foreach(range(6, 22) as $hour)
-                                            <option value="{{ sprintf('%02d:00', $hour) }}" 
-                                                    {{ $hour === 17 ? 'selected' : '' }}>
-                                                {{ sprintf('%02d:00', $hour) }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                            </div>
-                            @endforeach
+                        <div x-show="!selectedEmployee" class="text-center py-6 bg-gray-50 rounded-lg">
+                            <p class="text-gray-600 mb-2">Please select an employee to manage their availability</p>
+                            <svg class="w-12 h-12 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                            </svg>
                         </div>
-                        <button @click="saveAvailability()" 
-                                class="mt-6 w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-150">
-                            Save Availability
-                        </button>
+                        <div x-show="selectedEmployee" class="space-y-4">
+                            <div x-show="availabilityLoading" class="flex justify-center py-6">
+                                <svg class="animate-spin h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                            </div>
+                            <div x-show="!availabilityLoading">
+                                @foreach(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] as $day)
+                                <div class="p-4 bg-gray-50 rounded-lg">
+                                    <div class="flex justify-between items-center mb-3">
+                                        <span class="font-medium text-gray-900">{{ $day }}</span>
+                                        <label class="flex items-center">
+                                            <input type="checkbox" 
+                                                   data-day="{{ strtolower($day) }}"
+                                                   class="day-available rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50" 
+                                                   :checked="employeeAvailability['{{ strtolower($day) }}'] ? employeeAvailability['{{ strtolower($day) }}'].is_available : true">
+                                            <span class="ml-2 text-sm text-gray-600">Available</span>
+                                        </label>
+                                    </div>
+                                    <div class="flex items-center space-x-3">
+                                        <select data-day="{{ strtolower($day) }}" 
+                                                data-type="start"
+                                                class="time-select flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
+                                            @foreach(range(6, 22) as $hour)
+                                                <option value="{{ sprintf('%02d:00', $hour) }}" 
+                                                        x-bind:selected="employeeAvailability['{{ strtolower($day) }}'] && employeeAvailability['{{ strtolower($day) }}'].start_time === '{{ sprintf('%02d:00:00', $hour) }}'">
+                                                    {{ sprintf('%02d:00', $hour) }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                        <span class="text-gray-500">to</span>
+                                        <select data-day="{{ strtolower($day) }}" 
+                                                data-type="end"
+                                                class="time-select flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
+                                            @foreach(range(6, 22) as $hour)
+                                                <option value="{{ sprintf('%02d:00', $hour) }}" 
+                                                        x-bind:selected="employeeAvailability['{{ strtolower($day) }}'] && employeeAvailability['{{ strtolower($day) }}'].end_time === '{{ sprintf('%02d:00:00', $hour) }}'">
+                                                    {{ sprintf('%02d:00', $hour) }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>
+                                @endforeach
+                            </div>
+                            <button @click="saveAvailability()" 
+                                    class="mt-6 w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-150">
+                                Save Availability
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Time Off Management Card -->
@@ -780,6 +797,8 @@ function employeeManager() {
         showEmployeeDetailsModal: false,
         selectedEmployee: null,
         comparisonChart: null,
+        availabilityLoading: false,
+        employeeAvailability: {},
 
         init() {
             console.log('Component initialized'); // Debug log
@@ -823,6 +842,20 @@ function employeeManager() {
                     this.$nextTick(() => {
                         this.initializeComparisonChart();
                     });
+                }
+            });
+
+            this.$watch('selectedEmployee', (value) => {
+                if (this.calendar) {
+                    this.loadEvents();
+                }
+                
+                // Load employee availability when an employee is selected
+                if (value && this.currentTab === 'schedule') {
+                    this.loadEmployeeAvailability();
+                } else {
+                    // Clear availability data when no employee is selected
+                    this.employeeAvailability = {};
                 }
             });
         },
@@ -1486,6 +1519,84 @@ function employeeManager() {
             } catch (e) {
                 console.error('Error formatting date:', e);
                 return dateString || 'Unknown Date';
+            }
+        },
+
+        async loadEmployeeAvailability() {
+            try {
+                this.availabilityLoading = true;
+                const response = await fetch(`/shop/employees/${this.selectedEmployee}/availability`, {
+                    method: 'GET',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load employee availability');
+                }
+
+                const data = await response.json();
+                if (data.success) {
+                    this.employeeAvailability = data.availability;
+                } else {
+                    throw new Error(data.error || 'Failed to load employee availability');
+                }
+            } catch (error) {
+                console.error('Error loading employee availability:', error);
+                this.employeeAvailability = {};
+            } finally {
+                this.availabilityLoading = false;
+            }
+        },
+
+        async saveAvailability() {
+            try {
+                if (!this.selectedEmployee) {
+                    alert('Please select an employee first');
+                    return;
+                }
+                
+                // Collect availability data from the form
+                const availabilityData = {};
+                const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+                
+                days.forEach(day => {
+                    const isAvailable = document.querySelector(`input[data-day="${day}"].day-available`).checked;
+                    const startTime = document.querySelector(`select[data-day="${day}"][data-type="start"]`).value;
+                    const endTime = document.querySelector(`select[data-day="${day}"][data-type="end"]`).value;
+                    
+                    availabilityData[day] = {
+                        is_available: isAvailable,
+                        start_time: startTime + ':00',
+                        end_time: endTime + ':00'
+                    };
+                });
+                
+                const response = await fetch(`/shop/employees/${this.selectedEmployee}/availability`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    },
+                    body: JSON.stringify(availabilityData)
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to save employee availability');
+                }
+
+                const data = await response.json();
+                if (data.success) {
+                    alert('Availability saved successfully');
+                    this.loadEmployeeAvailability();
+                    this.calendar.refetchEvents();
+                } else {
+                    throw new Error(data.error || 'Failed to save employee availability');
+                }
+            } catch (error) {
+                console.error('Error saving employee availability:', error);
+                alert('Failed to save employee availability: ' + error.message);
             }
         }
     }

@@ -33,7 +33,7 @@ use Illuminate\Support\Str;
     <!-- Profile Header -->
     <div class="flex flex-col items-center mb-8">
         <div class="relative inline-block">
-            <img src="{{ $user->profile_photo_path ? asset('storage/' . $user->profile_photo_path) : asset('images/default-profile.png') }}" 
+            <img src="{{ $user->profile_photo_url }}" 
                  alt="Profile Photo" 
                  class="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg"
                  onerror="this.src='{{ asset('images/default-profile.png') }}'">

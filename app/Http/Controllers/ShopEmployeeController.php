@@ -7,6 +7,7 @@ use App\Models\TimeOffRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Validator;
 
 class ShopEmployeeController extends Controller
 {
@@ -641,6 +642,136 @@ class ShopEmployeeController extends Controller
                 'recent_appointments' => $recentAppointments,
                 'reviews' => $reviews
             ]
+        ]);
+    }
+
+    /**
+     * Get employee availability settings
+     */
+    public function getAvailability(Employee $employee)
+    {
+        // Check if the employee belongs to the authenticated user's shop
+        if ($employee->shop_id !== auth()->user()->shop->id) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Unauthorized access'
+            ], 403);
+        }
+
+        // Get the employee's availability settings
+        $availability = [];
+        $dayMap = [
+            'sunday' => 0,
+            'monday' => 1,
+            'tuesday' => 2,
+            'wednesday' => 3,
+            'thursday' => 4,
+            'friday' => 5,
+            'saturday' => 6,
+        ];
+
+        // Fetch existing availability records
+        $records = $employee->availability()->get();
+
+        // Create a structured response with all days
+        foreach ($dayMap as $dayName => $dayValue) {
+            $record = $records->where('day_of_week', $dayValue)->first();
+            
+            if ($record) {
+                $availability[$dayName] = [
+                    'is_available' => (bool) $record->is_available,
+                    'start_time' => $record->start_time,
+                    'end_time' => $record->end_time,
+                ];
+            } else {
+                // Default values if no record exists
+                $availability[$dayName] = [
+                    'is_available' => true,
+                    'start_time' => '09:00:00',
+                    'end_time' => '17:00:00',
+                ];
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'availability' => $availability
+        ]);
+    }
+
+    /**
+     * Update employee availability settings
+     */
+    public function updateAvailability(Request $request, Employee $employee)
+    {
+        // Check if the employee belongs to the authenticated user's shop
+        if ($employee->shop_id !== auth()->user()->shop->id) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Unauthorized access'
+            ], 403);
+        }
+
+        // Validate the availability data
+        $validator = Validator::make($request->all(), [
+            'monday.is_available' => 'required|boolean',
+            'monday.start_time' => 'required|string',
+            'monday.end_time' => 'required|string',
+            'tuesday.is_available' => 'required|boolean',
+            'tuesday.start_time' => 'required|string',
+            'tuesday.end_time' => 'required|string',
+            'wednesday.is_available' => 'required|boolean',
+            'wednesday.start_time' => 'required|string',
+            'wednesday.end_time' => 'required|string',
+            'thursday.is_available' => 'required|boolean',
+            'thursday.start_time' => 'required|string',
+            'thursday.end_time' => 'required|string',
+            'friday.is_available' => 'required|boolean',
+            'friday.start_time' => 'required|string',
+            'friday.end_time' => 'required|string',
+            'saturday.is_available' => 'required|boolean',
+            'saturday.start_time' => 'required|string',
+            'saturday.end_time' => 'required|string',
+            'sunday.is_available' => 'required|boolean',
+            'sunday.start_time' => 'required|string',
+            'sunday.end_time' => 'required|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Invalid availability data',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $dayMap = [
+            'sunday' => 0,
+            'monday' => 1,
+            'tuesday' => 2,
+            'wednesday' => 3,
+            'thursday' => 4,
+            'friday' => 5,
+            'saturday' => 6,
+        ];
+
+        // Update each day's availability
+        foreach ($dayMap as $dayName => $dayValue) {
+            $data = $request->input($dayName);
+            
+            $employee->availability()->updateOrCreate(
+                ['day_of_week' => $dayValue],
+                [
+                    'is_available' => $data['is_available'],
+                    'start_time' => $data['start_time'],
+                    'end_time' => $data['end_time'],
+                ]
+            );
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Availability updated successfully'
         ]);
     }
 }

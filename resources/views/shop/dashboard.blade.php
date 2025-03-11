@@ -66,11 +66,13 @@ use Illuminate\Support\Facades\Storage;
         <!-- Shop Header -->
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
             <div class="flex items-center space-x-4">
-                <img 
-                    src="{{ $shop->image_url }}" 
-                    alt="{{ $shop->name }}" 
-                    class="w-12 h-12 sm:w-16 sm:h-16 rounded-full object-cover"
-                >
+                <a href="{{ route('shop.profile') }}" class="block">
+                    <img 
+                        src="{{ $shop->image_url }}" 
+                        alt="{{ $shop->name }}" 
+                        class="w-12 h-12 sm:w-16 sm:h-16 rounded-full object-cover hover:opacity-80 transition-opacity cursor-pointer"
+                    >
+                </a>
                 <div>
                     <h1 class="text-xl sm:text-2xl font-bold">{{ $shop->name }}</h1>
                     <p class="text-gray-600">{{ ucfirst($shop->type) }} Shop</p>

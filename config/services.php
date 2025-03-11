@@ -35,4 +35,16 @@ return [
         ],
     ],
 
+    'testmail' => [
+        'api_key' => env('TESTMAIL_API_KEY'),
+        'namespace' => env('TESTMAIL_NAMESPACE'),
+    ],
+
+    'facebook' => [
+        'client_id' => env('FACEBOOK_CLIENT_ID'),
+        'client_secret' => env('FACEBOOK_CLIENT_SECRET'),
+        'redirect' => env('FACEBOOK_REDIRECT'),
+        'scopes' => ['email', 'public_profile'],
+    ],
+
 ];

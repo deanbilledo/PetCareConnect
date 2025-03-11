@@ -129,7 +129,7 @@ class ShopRegistrationController extends Controller
 
             // Create notification for successful shop registration
             $user = auth()->user();
-            $user->notify(
+            $user->createNotification(
                 'system',
                 'Shop Registration Submitted',
                 "Your shop '{$request->shop_name}' has been successfully registered and is pending approval. We'll notify you once it's reviewed.",
@@ -184,7 +184,7 @@ class ShopRegistrationController extends Controller
             $shop->update(['status' => 'active']);
 
             // Create notification for shop approval with trial information
-            $shop->user->notify(
+            $shop->user->createNotification(
                 'system',
                 'Shop Registration Approved - Free Trial Started',
                 "Congratulations! Your shop '{$shop->name}' has been approved. Your 30-day free trial has been activated. " .
@@ -195,7 +195,7 @@ class ShopRegistrationController extends Controller
             );
 
             // Create a second notification for shop setup
-            $shop->user->notify(
+            $shop->user->createNotification(
                 'system',
                 'Set Up Your Shop Profile',
                 "Start setting up your shop profile to make the most of your trial period. " .
@@ -226,7 +226,7 @@ class ShopRegistrationController extends Controller
             $shop->update(['status' => 'rejected']);
 
             // Create notification for shop rejection
-            $shop->user->notify(
+            $shop->user->createNotification(
                 'system',
                 'Shop Registration Rejected',
                 "We regret to inform you that your shop '{$shop->name}' registration has been rejected." . 

@@ -139,6 +139,14 @@
                     <h3 class="text-sm font-medium text-gray-500">Service</h3>
                     <p class="mt-1 text-lg">{{ $appointment->service_type }}</p>
                     <p class="text-blue-600 font-medium">PHP {{ number_format($appointment->service_price, 2) }}</p>
+                    
+                    <!-- Additional Notes from Booking -->
+                    @if($appointment->notes)
+                        <div class="mt-4">
+                            <h4 class="text-sm font-medium text-gray-500">Additional Notes from Booking</h4>
+                            <p class="mt-1 text-gray-700 bg-gray-50 p-3 rounded-md">{{ $appointment->notes }}</p>
+                        </div>
+                    @endif
                 </div>
                 
                 <!-- Employee -->
@@ -440,7 +448,7 @@
         <div class="p-6">
             <div class="flex flex-wrap justify-end gap-3">
                 @if($appointment->status === 'pending')
-                    <button onclick="acceptAppointment({{ $appointment->id }})" 
+                    <button onclick="showAcceptModal({{ $appointment->id }})" 
                             class="px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700">
                         Accept
                     </button>
@@ -451,7 +459,7 @@
                 @endif
                 
                 @if($appointment->status === 'accepted')
-                    <button onclick="markAsPaid({{ $appointment->id }})" 
+                    <button onclick="showMarkAsPaidModal({{ $appointment->id }})" 
                             class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 {{ $appointment->payment_status === 'paid' ? 'opacity-50 cursor-not-allowed' : '' }}"
                             {{ $appointment->payment_status === 'paid' ? 'disabled' : '' }}>
                         {{ $appointment->payment_status === 'paid' ? 'Already Paid' : 'Mark as Paid' }}
@@ -467,6 +475,59 @@
                         Add Note
                     </button>
                 @endif
+            </div>
+        </div>
+    </div>
+
+    <!-- Accept Confirmation Modal -->
+    <div id="acceptModal" 
+         class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 hidden">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3 text-center">
+                <h3 class="text-lg leading-6 font-medium text-gray-900">Accept Appointment</h3>
+                <div class="mt-2 px-7 py-3">
+                    <p class="text-sm text-gray-500">
+                        Are you sure you want to accept this appointment? This will confirm the booking with the customer.
+                    </p>
+                </div>
+                <div class="flex justify-center gap-4 mt-4">
+                    <button onclick="hideAcceptModal()"
+                            class="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200">
+                        Cancel
+                    </button>
+                    <button id="confirmAcceptBtn"
+                            class="px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700">
+                        Yes, Accept
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mark as Paid Confirmation Modal -->
+    <div id="markAsPaidModal" 
+         class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 hidden">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3 text-center">
+                <h3 class="text-lg leading-6 font-medium text-gray-900">Mark as Paid</h3>
+                <div class="mt-2 px-7 py-3">
+                    <p class="text-sm text-gray-500">
+                        Are you sure you want to mark this appointment as paid? This action cannot be undone.
+                    </p>
+                    <p class="text-sm font-medium text-blue-600 mt-2">
+                        Amount: PHP {{ number_format($appointment->service_price, 2) }}
+                    </p>
+                </div>
+                <div class="flex justify-center gap-4 mt-4">
+                    <button onclick="hideMarkAsPaidModal()"
+                            class="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200">
+                        Cancel
+                    </button>
+                    <button id="confirmMarkAsPaidBtn"
+                            class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
+                        Yes, Mark as Paid
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -589,6 +650,86 @@
 
 @push('scripts')
 <script>
+let currentAppointmentId = null;
+
+// Accept Modal Functions
+function showAcceptModal(appointmentId) {
+    currentAppointmentId = appointmentId;
+    const modal = document.getElementById('acceptModal');
+    modal.classList.remove('hidden');
+    
+    // Add event listener to confirm button
+    document.getElementById('confirmAcceptBtn').onclick = function() {
+        acceptAppointment(currentAppointmentId);
+    };
+}
+
+function hideAcceptModal() {
+    const modal = document.getElementById('acceptModal');
+    modal.classList.add('hidden');
+    currentAppointmentId = null;
+}
+
+// Mark as Paid Modal Functions
+function showMarkAsPaidModal(appointmentId) {
+    currentAppointmentId = appointmentId;
+    const modal = document.getElementById('markAsPaidModal');
+    modal.classList.remove('hidden');
+    
+    // Add event listener to confirm button
+    document.getElementById('confirmMarkAsPaidBtn').onclick = function() {
+        markAsPaid(currentAppointmentId);
+    };
+}
+
+function hideMarkAsPaidModal() {
+    const modal = document.getElementById('markAsPaidModal');
+    modal.classList.add('hidden');
+    currentAppointmentId = null;
+}
+
+// Updated Mark as Paid Function
+async function markAsPaid(appointmentId) {
+    try {
+        // Disable confirm button and show loading state
+        const confirmBtn = document.getElementById('confirmMarkAsPaidBtn');
+        confirmBtn.disabled = true;
+        confirmBtn.textContent = 'Processing...';
+
+        const response = await fetch(`/appointments/${appointmentId}/mark-as-paid`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'Accept': 'application/json'
+            }
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+            // Hide modal first
+            hideMarkAsPaidModal();
+            // Show success message
+            alert('Payment recorded successfully');
+            // Reload the page to show updated status
+            window.location.reload();
+        } else {
+            alert(data.error || 'Failed to record payment');
+            // Reset button state
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = 'Yes, Mark as Paid';
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('An error occurred while recording the payment');
+        // Reset button state
+        const confirmBtn = document.getElementById('confirmMarkAsPaidBtn');
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = 'Yes, Mark as Paid';
+    }
+}
+
 // Report User Functions
 function reportUser() {
     document.getElementById('reportUserModal').classList.remove('hidden');
