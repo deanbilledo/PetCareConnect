@@ -18,7 +18,7 @@
         const userId = "{{ auth()->id() }}";
     </script>
     <script src="{{ asset('js/notifications.js') }}"></script>
-    
+    <script src="{{ asset('js/loading-screen.js') }}"></script>
     <style>
         [x-cloak] { 
             display: none !important; 
@@ -78,6 +78,16 @@
     @yield('styles')
 </head>
 <body class="font-sans text-gray-800 bg-gray-100 antialiased" x-data="{ sidebarOpen: false }">
+    <!-- Global Loading Overlay (hidden by default) -->
+    <div id="globalLoadingOverlay" class="hidden">
+        <x-loading-screen 
+            fullScreen="true"
+            message="Hold Tight..." 
+            subMessage="Catho is spinning up... Getting things ready for you!..."
+            size="lg"
+            class="backdrop-blur-sm bg-white/30">
+        </x-loading-screen>
+    </div>
     <!-- Toast Notifications -->
     <div 
         x-data="{

@@ -493,4 +493,190 @@ class PetController extends Controller
             }
         }
     }
+
+    /**
+     * Check grooming status for a specific pet and create notification if needed
+     */
+    public function checkGroomingStatus(Pet $pet)
+    {
+        try {
+            // Ensure the pet belongs to the authenticated user
+            if ($pet->user_id !== auth()->id()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized access to pet.'
+                ], 403);
+            }
+            
+            // Get grooming preference for this pet (default to 30 days if not set)
+            $groomingInterval = $pet->grooming_interval ?? 30;
+            $cutoffDate = now()->subDays($groomingInterval);
+            
+            // Debug flag
+            $debug = [];
+            
+            // Approach 1: Look through services relationship
+            $lastGroomingViaServices = $pet->appointments()
+                ->where('status', 'completed')
+                ->whereHas('services', function($query) {
+                    $query->where('category', 'grooming')
+                          ->orWhere('name', 'like', '%groom%');
+                })
+                ->latest('appointment_date')
+                ->first();
+                
+            // Approach 2: Check for grooming in the service_type or name
+            $lastGroomingViaType = $pet->appointments()
+                ->where('status', 'completed')
+                ->where(function($query) {
+                    $query->where('service_type', 'like', '%groom%')
+                          ->orWhere('service_type', 'like', '%Exotic%')
+                          ->orWhere('notes', 'like', '%groom%');
+                })
+                ->latest('appointment_date')
+                ->first();
+                
+            // Get the most recent of the two approaches
+            $lastGrooming = null;
+            if ($lastGroomingViaServices && $lastGroomingViaType) {
+                $lastGrooming = $lastGroomingViaServices->appointment_date->gt($lastGroomingViaType->appointment_date) 
+                    ? $lastGroomingViaServices 
+                    : $lastGroomingViaType;
+            } else {
+                $lastGrooming = $lastGroomingViaServices ?? $lastGroomingViaType;
+            }
+            
+            // Log debugging info
+            \Log::info('Grooming status check for ' . $pet->name, [
+                'found_via_services' => $lastGroomingViaServices ? true : false,
+                'found_via_type' => $lastGroomingViaType ? true : false,
+                'last_grooming_date' => $lastGrooming ? $lastGrooming->appointment_date->format('Y-m-d') : 'none'
+            ]);
+            
+            $needsGrooming = !$lastGrooming || $lastGrooming->appointment_date->lt($cutoffDate);
+            
+            if ($needsGrooming) {
+                // Determine timeframe message
+                if ($lastGrooming) {
+                    $daysSince = $lastGrooming->appointment_date->diffInDays(now());
+                    $timeframe = $this->formatTimeframeSinceLastGrooming($daysSince);
+                    $lastGroomingDate = $lastGrooming->appointment_date->format('M d, Y');
+                    $message = "{$pet->name} hasn't been groomed in {$timeframe}. Last grooming was on {$lastGroomingDate}.";
+                } else {
+                    $message = "{$pet->name} has no record of grooming appointments. Regular grooming is important for your pet's health.";
+                }
+                
+                // Create notification if not created in the last week
+                $recentNotification = auth()->user()->notifications()
+                    ->where('type', 'pet_care')
+                    ->where('created_at', '>=', now()->subWeek())
+                    ->where('message', 'like', "%{$pet->name}%grooming%")
+                    ->exists();
+                    
+                if (!$recentNotification) {
+                    auth()->user()->notifications()->create([
+                        'type' => 'pet_care',
+                        'title' => 'Grooming Reminder',
+                        'message' => $message,
+                        'action_url' => route('profile.pets.show', $pet),
+                        'action_text' => 'View Pet Details',
+                        'status' => 'unread'
+                    ]);
+                }
+                
+                return response()->json([
+                    'success' => true,
+                    'needs_grooming' => true,
+                    'message' => $message,
+                    'last_grooming_date' => $lastGrooming ? $lastGrooming->appointment_date->format('Y-m-d') : null,
+                    'days_since_last_grooming' => $lastGrooming ? $lastGrooming->appointment_date->diffInDays(now()) : null
+                ]);
+            }
+            
+            return response()->json([
+                'success' => true,
+                'needs_grooming' => false,
+                'message' => "{$pet->name} is up to date with grooming.",
+                'last_grooming_date' => $lastGrooming ? $lastGrooming->appointment_date->format('Y-m-d') : null,
+                'days_since_last_grooming' => $lastGrooming ? $lastGrooming->appointment_date->diffInDays(now()) : null,
+                'next_recommended_grooming' => $lastGrooming ? $lastGrooming->appointment_date->addDays($groomingInterval)->format('Y-m-d') : null
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error checking pet grooming status: ' . $e->getMessage(), [
+                'pet_id' => $pet->id,
+                'exception' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while checking grooming status.'
+            ], 500);
+        }
+    }
+    
+    /**
+     * Update grooming preference for a pet
+     */
+    public function updateGroomingPreference(Request $request, Pet $pet)
+    {
+        try {
+            // Ensure the pet belongs to the authenticated user
+            if ($pet->user_id !== auth()->id()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized access to pet.'
+                ], 403);
+            }
+            
+            // Validate the interval
+            $validated = $request->validate([
+                'grooming_interval' => 'required|integer|min:7|max:180'
+            ]);
+            
+            // Update the pet's grooming interval
+            $pet->update([
+                'grooming_interval' => $validated['grooming_interval']
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => "Grooming reminder interval updated to {$validated['grooming_interval']} days."
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error updating pet grooming preferences: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while updating grooming preferences.'
+            ], 500);
+        }
+    }
+    
+    /**
+     * Format timeframe for grooming notifications
+     */
+    private function formatTimeframeSinceLastGrooming($days)
+    {
+        if ($days < 7) {
+            return "{$days} days";
+        } elseif ($days < 30) {
+            $weeks = floor($days / 7);
+            return $weeks == 1 ? "1 week" : "{$weeks} weeks";
+        } elseif ($days < 365) {
+            $months = floor($days / 30);
+            return $months == 1 ? "1 month" : "{$months} months";
+        } else {
+            $years = floor($days / 365);
+            $extraMonths = floor(($days % 365) / 30);
+            
+            if ($extraMonths == 0) {
+                return $years == 1 ? "1 year" : "{$years} years";
+            } else {
+                $yearText = $years == 1 ? "1 year" : "{$years} years";
+                $monthText = $extraMonths == 1 ? "1 month" : "{$extraMonths} months";
+                return "{$yearText} and {$monthText}";
+            }
+        }
+    }
 } 

@@ -3,22 +3,84 @@
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <!-- Grooming Services (2 cards) -->
         @php
-            // Get top 2 grooming services
-            // Using a raw query to count appointments through the pivot table
-            $topGroomingServices = App\Models\Service::where('category', 'grooming')
-                ->select('services.*')
-                ->selectRaw('(SELECT COUNT(*) FROM appointment_services WHERE services.id = appointment_services.service_id) as appointment_count')
+            // Import DB facade
+            use Illuminate\Support\Facades\DB;
+            use App\Models\Service;
+            use Illuminate\Support\Str;
+            
+            // Get all appointment data first to check if any appointments exist
+            $appointmentCheck = DB::table('appointment_services')
+                ->selectRaw('COUNT(*) as total_count')
+                ->first();
+                
+            \Illuminate\Support\Facades\Log::info('Database Check:', [
+                'total_appointments_in_pivot' => $appointmentCheck->total_count ?? 0
+            ]);
+            
+            // Get top 2 grooming services with simplified counting
+            $groomingServicesData = DB::table('services')
+                ->select('services.id', 
+                        DB::raw('COALESCE(ac.appointment_count, 0) as appointment_count'))
+                ->leftJoin(DB::raw('(
+                    SELECT 
+                        service_id, 
+                        COUNT(*) as appointment_count
+                    FROM 
+                        appointment_services
+                    GROUP BY 
+                        service_id
+                ) as ac'), 'services.id', '=', 'ac.service_id')
+                ->where('services.category', '=', 'grooming')
+                ->whereNull('services.deleted_at')
                 ->orderBy('appointment_count', 'desc')
                 ->take(2)
                 ->get();
+                
+            // Log the raw data
+            \Illuminate\Support\Facades\Log::info('Raw Query Results:', [
+                'grooming_services_data' => json_decode(json_encode($groomingServicesData), true)
+            ]);
+                
+            // Get the service models
+            $topGroomingServices = [];
+            $serviceIds = [];
             
-            // Fallback to latest if no appointments exist
-            if ($topGroomingServices->isEmpty()) {
-                $topGroomingServices = App\Models\Service::where('category', 'grooming')
+            foreach($groomingServicesData as $data) {
+                $serviceIds[] = $data->id;
+            }
+            
+            if (!empty($serviceIds)) {
+                $services = Service::whereIn('id', $serviceIds)->get()->keyBy('id');
+                
+                // Combine the data
+                foreach($groomingServicesData as $data) {
+                    if (isset($services[$data->id])) {
+                        $service = $services[$data->id];
+                        $service->appointment_count = (int)$data->appointment_count;
+                        $topGroomingServices[] = $service;
+                    }
+                }
+            }
+            
+            // Fallback if empty
+            if (empty($topGroomingServices)) {
+                $topGroomingServices = Service::where('category', 'grooming')
                     ->latest()
                     ->take(2)
                     ->get();
+                    
+                foreach($topGroomingServices as $service) {
+                    $service->appointment_count = 0;
+                }
             }
+            
+            // Convert to collection if needed
+            $topGroomingServices = collect($topGroomingServices);
+            
+            // Log for debugging
+            \Illuminate\Support\Facades\Log::info('Top Grooming Services Result:', [
+                'services' => $topGroomingServices->toArray()
+            ]);
         @endphp
         
         @foreach($topGroomingServices as $index => $service)
@@ -28,7 +90,7 @@
                 <p class="text-sm mb-2">GROOMING SERVICE</p>
                 <h3 class="font-bold text-2xl mb-4">{{ $service->name }}</h3>
                 <p class="text-sm mb-2">{{ $service->appointment_count ?? 0 }} appointments</p>
-                <p class="mb-4 flex-grow">{{ Str::limit($service->description, 100) }}</p>
+                <p class="mb-4 flex-grow">{{ Str::limit($service->description ?? '', 100) }}</p>
                 <a href="/book/{{ $service->shop_id }}?service={{ $service->id }}" 
                    class="block text-center bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-full transition duration-300">
                     Book Now
@@ -39,22 +101,65 @@
         
         <!-- Veterinary Services (2 cards) -->
         @php
-            // Get top 2 veterinary services
-            // Using a raw query to count appointments through the pivot table
-            $topVetServices = App\Models\Service::where('category', 'veterinary')
-                ->select('services.*')
-                ->selectRaw('(SELECT COUNT(*) FROM appointment_services WHERE services.id = appointment_services.service_id) as appointment_count')
+            // Get top 2 veterinary services with simplified counting
+            $vetServicesData = DB::table('services')
+                ->select('services.id', 
+                        DB::raw('COALESCE(ac.appointment_count, 0) as appointment_count'))
+                ->leftJoin(DB::raw('(
+                    SELECT 
+                        service_id, 
+                        COUNT(*) as appointment_count
+                    FROM 
+                        appointment_services
+                    GROUP BY 
+                        service_id
+                ) as ac'), 'services.id', '=', 'ac.service_id')
+                ->where('services.category', '=', 'veterinary')
+                ->whereNull('services.deleted_at')
                 ->orderBy('appointment_count', 'desc')
                 ->take(2)
                 ->get();
                 
-            // Fallback to latest if no appointments exist
-            if ($topVetServices->isEmpty()) {
-                $topVetServices = App\Models\Service::where('category', 'veterinary')
+            // Get the service models
+            $topVetServices = [];
+            $serviceIds = [];
+            
+            foreach($vetServicesData as $data) {
+                $serviceIds[] = $data->id;
+            }
+            
+            if (!empty($serviceIds)) {
+                $services = Service::whereIn('id', $serviceIds)->get()->keyBy('id');
+                
+                // Combine the data
+                foreach($vetServicesData as $data) {
+                    if (isset($services[$data->id])) {
+                        $service = $services[$data->id];
+                        $service->appointment_count = (int)$data->appointment_count;
+                        $topVetServices[] = $service;
+                    }
+                }
+            }
+            
+            // Fallback if empty
+            if (empty($topVetServices)) {
+                $topVetServices = Service::where('category', 'veterinary')
                     ->latest()
                     ->take(2)
                     ->get();
+                    
+                foreach($topVetServices as $service) {
+                    $service->appointment_count = 0;
+                }
             }
+            
+            // Convert to collection if needed
+            $topVetServices = collect($topVetServices);
+            
+            // Log for debugging
+            \Illuminate\Support\Facades\Log::info('Top Veterinary Services Result:', [
+                'services' => $topVetServices->toArray()
+            ]);
         @endphp
         
         @foreach($topVetServices as $index => $service)
@@ -64,7 +169,7 @@
                 <p class="text-sm mb-2">VETERINARY SERVICE</p>
                 <h3 class="font-bold text-2xl mb-4">{{ $service->name }}</h3>
                 <p class="text-sm mb-2">{{ $service->appointment_count ?? 0 }} appointments</p>
-                <p class="mb-4 flex-grow">{{ Str::limit($service->description, 100) }}</p>
+                <p class="mb-4 flex-grow">{{ Str::limit($service->description ?? '', 100) }}</p>
                 <a href="/book/{{ $service->shop_id }}?service={{ $service->id }}" 
                    class="block text-center bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-full transition duration-300">
                     Book Now
