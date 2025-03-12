@@ -35,7 +35,7 @@
                 </div>
             </div>
             <div class="w-full lg:w-1/2 relative">
-                <img src="{{ asset('images/petdog.png') }}" alt="Happy dog" class="w-full h-auto object-cover rounded-lg">
+                <img src="{{ asset('images/petdog2.png') }}" alt="Happy dog" class="w-full h-auto object-cover rounded-lg">
             </div>
         </div>
     </section>

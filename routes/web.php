@@ -200,6 +200,10 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/pets/{pet}/mark-deceased', [PetController::class, 'markDeceased'])->name('pets.mark-deceased');
         Route::get('/pets/{pet}/health-record', [PetController::class, 'showHealthRecord'])->name('pets.health-record');
         Route::get('/pets/{pet}/add-health-record', [PetController::class, 'createHealthRecord'])->name('pets.add-health-record');
+        
+        // New grooming reminder routes
+        Route::get('/pets/{pet}/grooming-status', [PetController::class, 'checkGroomingStatus'])->name('pets.grooming-status');
+        Route::post('/pets/{pet}/grooming-preference', [PetController::class, 'updateGroomingPreference'])->name('pets.grooming-preference');
     });
 
     // Booking routes
@@ -254,6 +258,9 @@ Route::middleware(['auth'])->group(function () {
 
     // Other customer routes
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings');
+    Route::put('/settings/update-email', [SettingsController::class, 'updateEmail'])->name('settings.update-email');
+    Route::put('/settings/update-password', [SettingsController::class, 'updatePassword'])->name('settings.update-password');
+    Route::delete('/settings/delete-account', [SettingsController::class, 'deleteAccount'])->name('settings.delete-account');
     Route::get('/favorites', [FavoriteController::class, 'index'])->name('favorites.index');
     Route::post('/favorites/{shop}', [FavoriteController::class, 'toggle'])->name('favorites.toggle');
     Route::get('/favorites/{shop}/check', [FavoriteController::class, 'check'])->name('favorites.check');

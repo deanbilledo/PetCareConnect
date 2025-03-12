@@ -172,17 +172,21 @@ use Illuminate\Support\Str;
         </div>
     </div>
 
-    <!-- Health Records Card -->
+    <!-- Grooming Status - Add before health records section -->
+    @if(!$pet->isDeceased())
+        <x-pet-grooming-status :pet="$pet" />
+    @endif
+
+    <!-- Pet Health Records -->
     <div class="bg-white rounded-lg shadow-md p-6 mb-8">
         <div class="flex items-center justify-between mb-6">
             <h2 class="text-xl font-semibold">Health Records</h2>
-            <div class="flex gap-4">
-                <a href="{{ route('profile.pets.health-record', $pet) }}" 
-                   class="text-blue-600 hover:text-blue-800">
-                    View Health Record
-                </a>
-                
-            </div>
+            <a href="{{ route('profile.pets.health-record', $pet->id) }}" class="inline-flex items-center text-teal-500 hover:text-teal-600">
+                <span>View Complete Records</span>
+                <svg class="w-5 h-5 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+            </a>
         </div>
 
         <!-- Vaccination History -->

@@ -26,6 +26,17 @@
     @yield('styles')
 </head>
 <body class="bg-gray-100 font-[Poppins] min-h-screen min-h-screen flex flex-col">
+    <!-- Global Loading Overlay (hidden by default) -->
+    <div id="globalLoadingOverlay" class="hidden">
+        <x-loading-screen 
+            fullScreen="true"
+            message="Hold Tight..." 
+            subMessage="Catho is spinning up... Getting things ready for you!..."
+            size="lg"
+            class="backdrop-blur-sm">
+        </x-loading-screen>
+    </div>
+
     @php
         $showSidebar = auth()->check() && 
                       auth()->user()->shop && 
@@ -193,6 +204,8 @@
 
     <!-- Scripts -->
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="{{ asset('js/app.js') }}" defer></script>
+    <script src="{{ asset('js/loading-screen.js') }}"></script>
     
     <!-- Initialize Session Messages as Toast Notifications -->
     <script>

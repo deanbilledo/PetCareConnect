@@ -469,11 +469,17 @@ use Illuminate\Support\Facades\Log;
         
         <!-- Loading State -->
         <div id="modalLoadingState" class="hidden">
-            <div class="text-center py-6">
-                <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
-                <p class="text-gray-600 text-sm sm:text-base">Processing your booking...</p>
-                <p class="text-xs sm:text-sm text-gray-500 mt-2">Please do not close this window.</p>
-            </div>
+            <x-loading-screen 
+                message="Catho is Securing Your Spot..." 
+                subMessage="Hang tight! We're finalizing your appointment details..."
+                size="md">
+                <p class="text-xs sm:text-sm text-gray-500 mt-2 flex items-center justify-center">
+                    <svg class="w-4 h-4 mr-1 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    Please do not close this window
+                </p>
+            </x-loading-screen>
         </div>
     </div>
 </div>
@@ -658,41 +664,52 @@ function submitBooking() {
     modalNormalState.classList.add('hidden');
     modalLoadingState.classList.remove('hidden');
     
-    // Add the discount information to the form
-    const form = document.getElementById('confirmForm');
-    const discountDisplay = document.getElementById('discountDisplay');
-    
-    if (!discountDisplay.classList.contains('hidden')) {
-        // Add voucher code
-        const voucherInput = document.createElement('input');
-        voucherInput.type = 'hidden';
-        voucherInput.name = 'voucher_code';
-        voucherInput.value = document.getElementById('couponCode').value.trim().toUpperCase();
-        form.appendChild(voucherInput);
+    // Make sure the GIF is preloaded before showing loading screen
+    const loadingGif = new Image();
+    loadingGif.src = "{{ asset('images/loadingscreen.gif') }}";
+    loadingGif.onload = function() {
+        // Add the discount information to the form
+        const form = document.getElementById('confirmForm');
+        const discountDisplay = document.getElementById('discountDisplay');
         
-        // Add discount amount
-        const discountAmount = document.getElementById('discountAmount').textContent
-            .replace('₱', '').replace('-', '').trim();
-        const discountInput = document.createElement('input');
-        discountInput.type = 'hidden';
-        discountInput.name = 'discount_amount';
-        discountInput.value = discountAmount;
-        form.appendChild(discountInput);
+        if (!discountDisplay.classList.contains('hidden')) {
+            // Add voucher code
+            const voucherInput = document.createElement('input');
+            voucherInput.type = 'hidden';
+            voucherInput.name = 'voucher_code';
+            voucherInput.value = document.getElementById('couponCode').value.trim().toUpperCase();
+            form.appendChild(voucherInput);
+            
+            // Add discount amount
+            const discountAmount = document.getElementById('discountAmount').textContent
+                .replace('₱', '').replace('-', '').trim();
+            const discountInput = document.createElement('input');
+            discountInput.type = 'hidden';
+            discountInput.name = 'discount_amount';
+            discountInput.value = discountAmount;
+            form.appendChild(discountInput);
+            
+            // Add final total
+            const finalTotal = document.getElementById('finalTotal').textContent
+                .replace('₱', '').trim();
+            const totalInput = document.createElement('input');
+            totalInput.type = 'hidden';
+            totalInput.name = 'final_total';
+            totalInput.value = finalTotal;
+            form.appendChild(totalInput);
+        }
         
-        // Add final total
-        const finalTotal = document.getElementById('finalTotal').textContent
-            .replace('₱', '').trim();
-        const totalInput = document.createElement('input');
-        totalInput.type = 'hidden';
-        totalInput.name = 'final_total';
-        totalInput.value = finalTotal;
-        form.appendChild(totalInput);
-    }
+        // Submit the form after a short delay to show loading state
+        setTimeout(() => {
+            form.submit();
+        }, 500);
+    };
     
-    // Submit the form after a short delay to show loading state
-    setTimeout(() => {
-        form.submit();
-    }, 500);
+    // Fallback if image doesn't load for some reason
+    loadingGif.onerror = function() {
+        // Submit form anyway
+        document.getElementById('confirmForm').submit();
+    };
 }
 
 document.getElementById('confirmForm').addEventListener('submit', function(e) {

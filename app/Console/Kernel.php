@@ -41,6 +41,9 @@ class Kernel extends ConsoleKernel
         $schedule->command('pets:check-health-due-dates')
                 ->dailyAt('08:00')
                 ->withoutOverlapping();
+
+        // Check for pets that need grooming - run daily at 8:00 AM
+        $schedule->command('pets:check-grooming')->dailyAt('08:00');
     }
 
     /**

@@ -27,7 +27,8 @@ class Pet extends Model
         'profile_photo',
         'death_date',
         'death_reason',
-        'user_id'
+        'user_id',
+        'grooming_interval'
     ];
 
     protected $casts = [
