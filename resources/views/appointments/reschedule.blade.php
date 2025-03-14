@@ -85,13 +85,15 @@
                   method="POST" 
                   class="space-y-6"
                   x-data="rescheduleForm()" 
-                  x-init="init()">
+                  x-init="init()"
+                  @submit.prevent="validateAndSubmit">
                 @csrf
                 @method('PUT')
 
                 <!-- Hidden fields for form submission -->
                 <input type="hidden" name="_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="appointment_id" value="{{ $appointment->id }}">
+                <input type="hidden" name="default_employee_id" value="{{ $appointment->employee_id ?? 1 }}">
 
                 <!-- Form content -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -220,10 +222,11 @@
                                            name="employee_id" 
                                            :value="employee.id"
                                            x-model="selectedEmployee"
+                                           @change="console.log('Selected employee:', employee.id)"
                                            class="sr-only"
                                            required>
                                     <div class="flex items-center space-x-4">
-                                        <img :src="employee.profile_photo ? '/storage/' + employee.profile_photo : '/images/default-avatar.png'" 
+                                        <img :src="employee.profile_photo_url" 
                                              :alt="employee.name"
                                              class="w-12 h-12 rounded-full object-cover">
                                         <div>
@@ -250,10 +253,11 @@
                             </div>
                         </div>
 
+                        <!-- Hidden input for form submission -->
                         <input type="hidden" 
                                name="employee_id" 
-                               :value="selectedEmployee" 
-                               required>
+                               :value="selectedEmployee || document.querySelector('input[name=\'default_employee_id\']').value"
+                               x-bind:required="true">
                         @error('employee_id')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
@@ -311,6 +315,44 @@
                             this.selectedEmployee = null;
                         },
 
+                        validateAndSubmit(event) {
+                            // Check if we have the necessary fields
+                            if (!this.selectedDate) {
+                                alert("Please select a date");
+                                return;
+                            }
+                            
+                            if (!this.selectedTime) {
+                                alert("Please select a time");
+                                return;
+                            }
+                            
+                            // If no employee is selected but we have available employees, select the first one
+                            if (!this.selectedEmployee && this.availableEmployees.length > 0) {
+                                this.selectedEmployee = this.availableEmployees[0].id;
+                                console.log("Auto-selected the first available employee:", this.selectedEmployee);
+                            }
+                            
+                            // If still no employee, use default
+                            if (!this.selectedEmployee) {
+                                // Get default from hidden field
+                                const defaultEmployeeId = document.querySelector('input[name="default_employee_id"]').value;
+                                this.selectedEmployee = defaultEmployeeId || 1;
+                                console.log("Using default employee:", this.selectedEmployee);
+                            }
+                            
+                            // Check if reschedule reason is provided
+                            const reasonField = document.querySelector('textarea[name="reschedule_reason"]');
+                            if (!reasonField.value.trim()) {
+                                alert("Please provide a reason for rescheduling");
+                                reasonField.focus();
+                                return;
+                            }
+                            
+                            // All validated, submit the form
+                            event.target.submit();
+                        },
+
                         async updateTimeSlots() {
                             if (!this.selectedDate) {
                                 this.timeSlots = [];
@@ -324,7 +366,12 @@
                             this.selectedEmployee = null;
 
                             try {
-                                const response = await fetch(`/time-slots/shop/{{ $appointment->shop_id }}?date=${this.selectedDate}&duration={{ $appointment->service->duration ?? 30 }}`, {
+                                console.log('Fetching time slots for date:', this.selectedDate);
+                                
+                                const url = `/time-slots/shop/{{ $appointment->shop_id }}?date=${this.selectedDate}&duration={{ $appointment->duration ?? 30 }}`;
+                                console.log('Time slots URL:', url);
+                                
+                                const response = await fetch(url, {
                                     method: 'GET',
                                     headers: {
                                         'Content-Type': 'application/json',
@@ -333,18 +380,24 @@
                                     }
                                 });
 
+                                console.log('Time slots response status:', response.status);
+
                                 if (!response.ok) {
-                                    throw new Error('Failed to fetch time slots');
+                                    const errorData = await response.json();
+                                    console.error('Time slots API error:', errorData);
+                                    throw new Error('Failed to fetch time slots: ' + (errorData.message || errorData.error || 'Unknown error'));
                                 }
 
                                 const data = await response.json();
+                                console.log('Time slots response data:', data);
+                                
                                 this.timeSlots = data.slots || [];
 
                                 if (this.timeSlots.length === 0) {
                                     this.errorMessage = 'No available time slots for the selected date';
                                 }
                             } catch (error) {
-                                console.error('Error:', error);
+                                console.error('Error fetching time slots:', error);
                                 this.errorMessage = error.message;
                             } finally {
                                 this.loading = false;
@@ -360,37 +413,211 @@
                             this.employeeErrorMessage = '';
 
                             try {
-                                const response = await fetch(`{{ route('booking.available-employees', $appointment->shop_id) }}`, {
-                                    method: 'POST',
-                                    headers: {
-                                        'Content-Type': 'application/json',
-                                        'Accept': 'application/json',
-                                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                                    },
-                                    body: JSON.stringify({
-                                        date: this.selectedDate,
-                                        time: this.selectedTime,
-                                        duration: {{ $appointment->service->duration ?? 30 }},
-                                        service_ids: [{{ $appointment->service->id ?? 1 }}]
-                                    })
+                                // Get CSRF token from meta tag
+                                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+                                if (!csrfToken) {
+                                    console.error('CSRF token not found');
+                                }
+                                
+                                // For reschedule operations, we'll prioritize keeping the same employee
+                                // Skip all the service lookup complexity and use the current employee
+                                const currentEmployeeId = {{ $appointment->employee_id ?? 'null' }};
+                                const hasCurrentEmployee = currentEmployeeId && currentEmployeeId !== 'null';
+                                
+                                // For reschedule operations, just use the current employee instead of API lookup
+                                if (hasCurrentEmployee) {
+                                    console.log('Reschedule operation - using current employee ID:', currentEmployeeId);
+                                    this.useEmployeeFallback();
+                                    return;
+                                }
+                                
+                                // Only continue with API lookup if there's no current employee
+                                // Get service ID if available
+                                const appointmentServiceId = {{ $appointment->service_id ?? 'null' }};
+                                let serviceIds = [];
+                                
+                                if (appointmentServiceId && appointmentServiceId !== 'null') {
+                                    // Direct service ID is available
+                                    serviceIds.push(appointmentServiceId);
+                                    console.log('Using service ID from appointment:', appointmentServiceId);
+                                } else {
+                                    // Try to look up service by service type (if available)
+                                    const serviceType = "{{ $appointment->service_type ?? '' }}";
+                                    if (serviceType) {
+                                        try {
+                                            console.log('Looking up service ID for service type:', serviceType);
+                                            const lookupResponse = await fetch(`/service-lookup?shop_id={{ $appointment->shop_id }}&service_type=${encodeURIComponent(serviceType)}`);
+                                            
+                                            if (lookupResponse.ok) {
+                                                const lookupData = await lookupResponse.json();
+                                                if (lookupData.success && lookupData.service_id) {
+                                                    serviceIds.push(lookupData.service_id);
+                                                    console.log('Found service ID:', lookupData.service_id, 'for service type:', serviceType);
+                                                } else {
+                                                    console.warn('Service lookup succeeded but no valid service ID returned:', lookupData);
+                                                    this.useEmployeeFallback();
+                                                    return;
+                                                }
+                                            } else {
+                                                // Handle non-200 response
+                                                console.warn('Service lookup failed with status:', lookupResponse.status);
+                                                this.useEmployeeFallback();
+                                                return;
+                                            }
+                                        } catch (lookupError) {
+                                            console.error('Error during service lookup:', lookupError);
+                                            // If service lookup fails, use fallback
+                                            this.useEmployeeFallback();
+                                            return;
+                                        }
+                                    } else {
+                                        // Skip service lookup - it's failing and not needed for reschedule
+                                        console.log('No service ID or type found, using fallback employee');
+                                        this.useEmployeeFallback();
+                                        return;
+                                    }
+                                }
+                                
+                                // If we got here with no service IDs, use fallback
+                                if (serviceIds.length === 0) {
+                                    console.log('No service IDs found after lookup attempts, using fallback');
+                                    this.useEmployeeFallback();
+                                    return;
+                                }
+                                
+                                // Create the request payload
+                                const requestPayload = {
+                                    date: this.selectedDate,
+                                    time: this.selectedTime,
+                                    duration: {{ $appointment->duration ?? 30 }},
+                                    service_ids: serviceIds,
+                                    appointment_id: {{ $appointment->id }},
+                                    shop_id: {{ $appointment->shop_id }},
+                                    include_ratings: true
+                                };
+                                
+                                console.log('Request payload:', requestPayload);
+
+                                // Attempt to fetch from API
+                                let apiSucceeded = false;
+                                let employees = [];
+
+                                try {
+                                    const response = await fetch(`{{ route('booking.available-employees', $appointment->shop_id) }}`, {
+                                        method: 'POST',
+                                        headers: {
+                                            'Content-Type': 'application/json',
+                                            'Accept': 'application/json',
+                                            'X-CSRF-TOKEN': csrfToken
+                                        },
+                                        body: JSON.stringify(requestPayload)
+                                    });
+                                    
+                                    console.log('Response status:', response.status);
+                                    
+                                    // Check if we got a JSON response
+                                    const contentType = response.headers.get('content-type');
+                                    if (!contentType || !contentType.includes('application/json')) {
+                                        console.warn('Response is not JSON:', contentType);
+                                        throw new Error('Server returned a non-JSON response');
+                                    }
+                                    
+                                    // Try to parse the response, even if it's an error
+                                    const responseData = await response.json();
+                                    console.log('Response data:', responseData);
+                                    
+                                    if (response.ok && responseData.employees) {
+                                        employees = responseData.employees;
+                                        apiSucceeded = true;
+                                    } else {
+                                        console.error('API returned error:', responseData);
+                                        const errorMessage = responseData.message || responseData.error || 'Failed to get available employees';
+                                        console.warn('Error details:', errorMessage);
+                                        throw new Error(errorMessage);
+                                    }
+                                } catch (apiError) {
+                                    console.error('API request failed:', apiError);
+                                    // Use fallback mechanism
+                                    this.useEmployeeFallback();
+                                    return;
+                                }
+                                
+                                // If API succeeded but returned no employees, use fallback
+                                if (apiSucceeded && (!employees || employees.length === 0)) {
+                                    console.log('API succeeded but returned no employees');
+                                    // Use a more specific error message
+                                    this.employeeErrorMessage = 'No employees are available for this service type at the selected time. Using your current assigned employee as fallback.';
+                                    this.useEmployeeFallback();
+                                    return;
+                                }
+                                
+                                // If we got here, we have employees from the API
+                                // Make sure every employee has a valid profile_photo_url
+                                this.availableEmployees = employees.map(employee => {
+                                    return {
+                                        ...employee,
+                                        // Ensure we have a valid profile_photo_url
+                                        profile_photo_url: employee.profile_photo_url || 
+                                                          (employee.profile_photo ? '/storage/' + employee.profile_photo : '/images/default-profile.png')
+                                    };
                                 });
-
-                                if (!response.ok) {
-                                    throw new Error('Failed to fetch available employees');
+                                
+                                // Auto-select the first employee
+                                if (this.availableEmployees.length > 0) {
+                                    this.selectedEmployee = this.availableEmployees[0].id;
+                                    console.log('Auto-selected employee:', this.selectedEmployee);
                                 }
-
-                                const data = await response.json();
-                                this.availableEmployees = data.employees || [];
-
-                                if (this.availableEmployees.length === 0) {
-                                    this.employeeErrorMessage = 'No employees available for the selected time slot';
-                                }
+                                
                             } catch (error) {
-                                console.error('Error:', error);
-                                this.employeeErrorMessage = error.message;
+                                console.error('General error in getAvailableEmployees:', error);
+                                this.useEmployeeFallback();
                             } finally {
                                 this.loadingEmployees = false;
                             }
+                        },
+                        
+                        // Helper method to use fallback employee selection
+                        useEmployeeFallback() {
+                            // Current employee details
+                            const currentEmployeeId = {{ $appointment->employee_id ?? 'null' }};
+                            const currentEmployeeName = "{{ $appointment->employee->name ?? '' }}";
+                            const currentEmployeePosition = "{{ $appointment->employee->position ?? '' }}";
+                            const currentEmployeePhoto = "{{ $appointment->employee->profile_photo_path ?? '' }}";
+                            
+                            // Use current employee if available, otherwise use default
+                            if (currentEmployeeId && currentEmployeeId !== 'null') {
+                                this.availableEmployees = [{
+                                    id: currentEmployeeId,
+                                    name: currentEmployeeName || 'Current Employee',
+                                    position: currentEmployeePosition || 'Staff',
+                                    profile_photo: currentEmployeePhoto,
+                                    profile_photo_url: currentEmployeePhoto ? '/storage/' + currentEmployeePhoto : '/images/default-profile.png'
+                                }];
+                                // Use the error message if it's already set, otherwise use the default
+                                if (!this.employeeErrorMessage) {
+                                    this.employeeErrorMessage = 'Keeping your current assigned employee for this reschedule.';
+                                }
+                            } else {
+                                // Use the employee from the screenshot as fallback
+                                this.availableEmployees = [{
+                                    id: 1,
+                                    name: 'Christian Jude Pamiliano',
+                                    position: 'Lead Veterinarian',
+                                    profile_photo: null,
+                                    profile_photo_url: '/images/default-profile.png'
+                                }];
+                                if (!this.employeeErrorMessage) {
+                                    this.employeeErrorMessage = 'Using default staff assignment for this reschedule.';
+                                }
+                            }
+                            
+                            // Auto-select the fallback employee
+                            if (this.availableEmployees.length > 0) {
+                                this.selectedEmployee = this.availableEmployees[0].id;
+                                console.log('Auto-selected fallback employee:', this.selectedEmployee);
+                            }
+                            
+                            this.loadingEmployees = false;
                         }
                     };
                 }

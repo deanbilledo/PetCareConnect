@@ -51,6 +51,20 @@
                         <span class="text-gray-500 text-sm">Appointment #{{ $appointment->id }}</span>
                     </div>
 
+                    <!-- Cancellation Reason (if applicable) -->
+                    @if($appointment->status === 'cancelled' && $appointment->cancellation_reason)
+                    <div class="mb-6 p-4 bg-red-50 border border-red-100 rounded-lg">
+                        <h3 class="text-sm font-medium text-red-800 mb-2">Cancellation Reason:</h3>
+                        <p class="text-red-700">{{ $appointment->cancellation_reason }}</p>
+                        @if($appointment->cancelled_by)
+                        <p class="mt-2 text-sm text-red-600">Cancelled by: {{ $appointment->cancelled_by === 'shop' ? 'Shop' : 'Customer' }}</p>
+                        @endif
+                        @if($appointment->cancelled_at)
+                        <p class="mt-1 text-sm text-red-600">Cancelled on: {{ $appointment->cancelled_at->format('F j, Y g:i A') }}</p>
+                        @endif
+                    </div>
+                    @endif
+
                     <!-- Details Grid -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <!-- Date & Time -->

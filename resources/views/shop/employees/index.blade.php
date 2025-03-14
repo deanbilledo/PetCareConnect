@@ -175,11 +175,14 @@
         </div>
 
         <!-- Performance Comparison Section -->
-        <div class="mb-8">
+        <div class="mb-8" x-show="currentTab === 'analytics'">
             <h2 class="text-xl font-semibold mb-4">Employee Performance Comparison</h2>
             <div class="bg-white p-6 rounded-lg shadow">
-                <div class="h-80">
-                    <canvas id="employeeComparisonChart"></canvas>
+                <div class="h-80 relative" id="chart-container">
+                    <div x-show="!employeeAnalytics.length" class="absolute inset-0 flex items-center justify-center">
+                        <p class="text-gray-500">No employee data available for comparison</p>
+                    </div>
+                    <canvas x-ref="chartCanvas" id="comparison-chart" class="h-full w-full"></canvas>
                 </div>
             </div>
         </div>
@@ -719,7 +722,6 @@
                         <div class="mb-4">
                             <label class="block text-sm font-medium text-gray-700">Type</label>
                             <select x-model="eventData.type" class="mt-1 block w-full rounded-md border-gray-300">
-                                <option value="shift">Shift</option>
                                 <option value="time_off">Time Off</option>
                             </select>
                         </div>
@@ -749,8 +751,8 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 
 <script>
-function employeeManager() {
-    return {
+document.addEventListener('alpine:init', () => {
+    Alpine.data('employeeManager', () => ({
         currentTab: 'list',
         showModal: false,
         showTimeOffModal: false,
@@ -818,7 +820,9 @@ function employeeManager() {
                 });
             }
 
+            // Watch for tab changes
             this.$watch('currentTab', (value) => {
+                console.log('Tab changed to:', value); // Debug log
                 if (value === 'schedule') {
                     this.$nextTick(() => {
                         if (!this.calendar && document.getElementById('calendar')) {
@@ -826,35 +830,40 @@ function employeeManager() {
                         }
                     });
                 } else if (value === 'analytics') {
+                    // Load analytics data when switching to analytics tab
                     this.loadAnalyticsData();
                 }
             });
 
+            // Watch for analytics period or service type changes
+            this.$watch('analyticsPeriod', () => {
+                if (this.currentTab === 'analytics') {
+                    this.loadAnalyticsData();
+                }
+            });
+
+            this.$watch('analyticsServiceType', () => {
+                if (this.currentTab === 'analytics') {
+                    this.loadAnalyticsData();
+                }
+            });
+            
+            // Watch for calendar view changes
             this.$watch('calendarView', (value) => {
                 if (this.calendar) {
                     this.calendar.changeView(value);
                 }
             });
             
-            // Watch for analytics data changes to update the chart
-            this.$watch('employeeAnalytics', () => {
-                if (this.currentTab === 'analytics') {
-                    this.$nextTick(() => {
-                        this.initializeComparisonChart();
-                    });
-                }
-            });
-
+            // Watch for selected employee changes
             this.$watch('selectedEmployee', (value) => {
                 if (this.calendar) {
                     this.loadEvents();
                 }
                 
-                // Load employee availability when an employee is selected
                 if (value && this.currentTab === 'schedule') {
                     this.loadEmployeeAvailability();
                 } else {
-                    // Clear availability data when no employee is selected
                     this.employeeAvailability = {};
                 }
             });
@@ -897,94 +906,148 @@ function employeeManager() {
         },
         
         initializeComparisonChart() {
-            const ctx = document.getElementById('employeeComparisonChart');
-            if (!ctx) return;
+            console.log('Chart initialization started');
             
-            // Destroy existing chart instance if it exists
-            if (this.comparisonChart) {
-                this.comparisonChart.destroy();
+            // Ensure we're on the analytics tab and have data
+            if (this.currentTab !== 'analytics') {
+                console.log('Not on analytics tab, skipping chart');
+                return;
             }
             
-            // Extract employee names and metrics for the chart
-            const labels = this.employeeAnalytics.map(employee => employee.name);
-            const completedData = this.employeeAnalytics.map(employee => employee.completed);
-            const revenueData = this.employeeAnalytics.map(employee => employee.revenue);
-            const ratingData = this.employeeAnalytics.map(employee => employee.avg_rating);
+            if (!this.employeeAnalytics || this.employeeAnalytics.length === 0) {
+                console.log('No employee data available, skipping chart');
+                return;
+            }
             
-            this.comparisonChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        {
-                            label: 'Completed Appointments',
-                            data: completedData,
-                            backgroundColor: 'rgba(66, 153, 225, 0.5)',
-                            borderColor: 'rgb(66, 153, 225)',
-                            borderWidth: 1
-                        },
-                        {
-                            label: 'Revenue (₱)',
-                            data: revenueData,
-                            backgroundColor: 'rgba(72, 187, 120, 0.5)',
-                            borderColor: 'rgb(72, 187, 120)',
-                            borderWidth: 1,
-                            hidden: true // Hidden by default
-                        },
-                        {
-                            label: 'Average Rating',
-                            data: ratingData,
-                            backgroundColor: 'rgba(245, 158, 11, 0.5)',
-                            borderColor: 'rgb(245, 158, 11)',
-                            borderWidth: 1
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true
-                        }
+            console.log('Employee data available:', this.employeeAnalytics.length, 'employees');
+            
+            // Clean up any existing chart
+            if (this.comparisonChart) {
+                console.log('Destroying existing chart');
+                this.comparisonChart.destroy();
+                this.comparisonChart = null;
+            }
+            
+            // Manually create and insert a new canvas to avoid any potential issues
+            const container = document.getElementById('chart-container');
+            if (!container) {
+                console.error('Chart container not found');
+                return;
+            }
+            
+            // Ensure any existing canvas is removed
+            const existingCanvas = document.getElementById('comparison-chart');
+            if (existingCanvas) {
+                existingCanvas.remove();
+            }
+            
+            // Create a fresh canvas
+            const canvas = document.createElement('canvas');
+            canvas.id = 'comparison-chart';
+            canvas.classList.add('h-full', 'w-full');
+            container.appendChild(canvas);
+            
+            try {
+                // Get canvas context
+                const ctx = canvas.getContext('2d');
+                if (!ctx) {
+                    console.error('Failed to get canvas context');
+                    return;
+                }
+                
+                // Log data values for debugging
+                const labels = this.employeeAnalytics.map(employee => employee.name);
+                const completedData = this.employeeAnalytics.map(employee => employee.completed);
+                const revenueData = this.employeeAnalytics.map(employee => employee.revenue);
+                const ratingData = this.employeeAnalytics.map(employee => employee.avg_rating);
+                
+                console.log('Chart data prepared:', {
+                    labels,
+                    completedData,
+                    revenueData,
+                    ratingData
+                });
+                
+                // Create chart
+                this.comparisonChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Completed Appointments',
+                                data: completedData,
+                                backgroundColor: 'rgba(66, 153, 225, 0.5)',
+                                borderColor: 'rgb(66, 153, 225)',
+                                borderWidth: 1
+                            },
+                            {
+                                label: 'Revenue (₱)',
+                                data: revenueData,
+                                backgroundColor: 'rgba(72, 187, 120, 0.5)',
+                                borderColor: 'rgb(72, 187, 120)',
+                                borderWidth: 1,
+                                hidden: true
+                            },
+                            {
+                                label: 'Average Rating',
+                                data: ratingData,
+                                backgroundColor: 'rgba(245, 158, 11, 0.5)',
+                                borderColor: 'rgb(245, 158, 11)',
+                                borderWidth: 1
+                            }
+                        ]
                     },
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: 'Employee Performance Metrics Comparison',
-                            font: {
-                                size: 16
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true
                             }
                         },
-                        legend: {
-                            position: 'top',
-                            labels: {
-                                boxWidth: 12
-                            }
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    let label = context.dataset.label || '';
-                                    if (label) {
-                                        label += ': ';
-                                    }
-                                    if (context.parsed.y !== null) {
-                                        if (label.includes('Revenue')) {
-                                            label += '₱' + context.parsed.y.toLocaleString();
-                                        } else if (label.includes('Rating')) {
-                                            label += context.parsed.y.toFixed(1) + ' / 5';
-                                        } else {
-                                            label += context.parsed.y;
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Employee Performance Metrics Comparison',
+                                font: {
+                                    size: 16
+                                }
+                            },
+                            legend: {
+                                position: 'top',
+                                labels: {
+                                    boxWidth: 12
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.dataset.label || '';
+                                        if (label) {
+                                            label += ': ';
                                         }
+                                        if (context.parsed.y !== null) {
+                                            if (label.includes('Revenue')) {
+                                                label += '₱' + context.parsed.y.toLocaleString();
+                                            } else if (label.includes('Rating')) {
+                                                label += context.parsed.y.toFixed(1) + ' / 5';
+                                            } else {
+                                                label += context.parsed.y;
+                                            }
+                                        }
+                                        return label;
                                     }
-                                    return label;
                                 }
                             }
                         }
                     }
-                }
-            });
+                });
+                
+                console.log('Chart successfully initialized');
+            } catch (error) {
+                console.error('Error creating chart:', error);
+            }
         },
 
         loadEvents(info, successCallback) {
@@ -1149,7 +1212,8 @@ function employeeManager() {
                 method: method,
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Accept': 'application/json'
                 },
                 body: JSON.stringify(eventData)
             })
@@ -1409,6 +1473,8 @@ function employeeManager() {
         
         async loadAnalyticsData() {
             try {
+                console.log('Loading analytics data...');
+                
                 const response = await fetch('/shop/employees/analytics', {
                     method: 'POST',
                     headers: {
@@ -1422,20 +1488,26 @@ function employeeManager() {
                 });
 
                 if (!response.ok) {
-                    throw new Error('Failed to load analytics data');
+                    throw new Error(`Failed to load analytics data: ${response.status}`);
                 }
 
                 const data = await response.json();
                 
                 if (data.success) {
+                    console.log('Analytics data received successfully');
+                    
                     this.totalStats = data.stats.total;
                     this.employeeAnalytics = data.stats.employees;
                     
-                    // Update the chart if we're on the analytics tab
+                    console.log(`Data loaded: ${this.employeeAnalytics.length} employees`);
+                    
+                    // Initialize chart after data is loaded and we're on the right tab
                     if (this.currentTab === 'analytics') {
-                        this.$nextTick(() => {
+                        console.log('On analytics tab, initializing chart');
+                        // Give the DOM time to update
+                        setTimeout(() => {
                             this.initializeComparisonChart();
-                        });
+                        }, 100);
                     }
                 } else {
                     throw new Error(data.error || 'Failed to load analytics data');
@@ -1599,8 +1671,8 @@ function employeeManager() {
                 alert('Failed to save employee availability: ' + error.message);
             }
         }
-    }
-}
+    }))
+});
 </script>
 @endpush
 

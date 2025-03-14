@@ -25,6 +25,7 @@
     currentFilter: 'all',
     dateFilter: '',
     serviceTypeFilter: 'all',
+    employeeFilter: 'all',
     showNoteModal: false,
     currentAppointmentId: null,
     currentShopType: null,
@@ -33,10 +34,11 @@
     activeTab: 'appointments',
     dismissNotification: false,
     
-    isAppointmentVisible(status, date, serviceType) {
+    isAppointmentVisible(status, date, serviceType, employeeId) {
         if (this.currentFilter !== 'all' && status !== this.currentFilter) return false;
         if (this.dateFilter && date !== this.dateFilter) return false;
         if (this.serviceTypeFilter !== 'all' && serviceType !== this.serviceTypeFilter) return false;
+        if (this.employeeFilter !== 'all' && employeeId !== this.employeeFilter) return false;
         return true;
     },
 
@@ -126,7 +128,7 @@
          x-transition:enter-start="opacity-0 transform -translate-y-2"
          x-transition:enter-end="opacity-100 transform translate-y-0"
          class="bg-white rounded-lg shadow-md p-6 mb-6">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <!-- Status Filter -->
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
@@ -147,6 +149,18 @@
                     <option value="all">All Services</option>
                     <option value="veterinary">Veterinary</option>
                     <option value="grooming">Grooming</option>
+                </select>
+            </div>
+
+            <!-- Employee Filter -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Employee</label>
+                <select x-model="employeeFilter"
+                        class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    <option value="all">All Employees</option>
+                    @foreach($employees as $employee)
+                        <option value="{{ $employee->id }}">{{ $employee->name }}</option>
+                    @endforeach
                 </select>
             </div>
 
@@ -191,6 +205,17 @@
                     </span>
                 @endif
             </button>
+            <button @click="activeTab = 'recent_cancellations'"
+                    :class="{'border-b-2 border-blue-500 text-blue-600': activeTab === 'recent_cancellations',
+                            'text-gray-500 hover:text-gray-700': activeTab !== 'recent_cancellations'}"
+                    class="px-3 py-2 text-sm font-medium">
+                Recent Cancellations
+                @if($recentlyCancelled->count() > 0)
+                    <span class="ml-2 px-2 py-0.5 text-xs bg-red-100 text-red-800 rounded-full">
+                        {{ $recentlyCancelled->count() }}
+                    </span>
+                @endif
+            </button>
         </nav>
     </div>
 
@@ -231,6 +256,19 @@
          x-transition:leave-end="opacity-0"
          class="space-y-6">
         @include('shop.appointments.partials._reschedule_requests_table', ['rescheduleRequests' => $rescheduleRequests])
+    </div>
+
+    <!-- Recent Cancellations Tab -->
+    <div x-show="activeTab === 'recent_cancellations'"
+         x-cloak
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-100"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         class="space-y-6">
+        @include('shop.appointments.partials._recent_cancellations_table', ['recentlyCancelled' => $recentlyCancelled])
     </div>
 
     <!-- Note Modal -->
@@ -507,34 +545,43 @@ async function approveCancellation(id) {
             title: 'Approve Cancellation',
             content: 'Are you sure you want to approve this cancellation request?',
             onConfirm: async () => {
-    try {
-        const response = await fetch(`/appointments/cancellation/${id}/approve`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-            }
-        });
-        
-        const data = await response.json();
-        if (data.success) {
+                try {
+                    const response = await fetch(`/appointments/cancellation/${id}/approve`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                            'Accept': 'application/json'
+                        }
+                    });
+                    
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        console.error('Server error response:', errorText);
+                        throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+                    }
+                    
+                    const data = await response.json();
+                    if (data.success) {
                         window.dispatchEvent(new CustomEvent('toast', {
                             detail: {
                                 type: 'success',
                                 message: 'Cancellation request approved successfully'
                             }
                         }));
-            window.location.reload();
-        } else {
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1000);
+                    } else {
                         window.dispatchEvent(new CustomEvent('toast', {
                             detail: {
                                 type: 'error',
                                 message: data.error || 'Failed to approve cancellation request'
                             }
                         }));
-        }
-    } catch (error) {
-        console.error('Error:', error);
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
                     window.dispatchEvent(new CustomEvent('toast', {
                         detail: {
                             type: 'error',
@@ -572,35 +619,44 @@ async function declineCancellation(id) {
                     return;
                 }
     
-    try {
-        const response = await fetch(`/appointments/cancellation/${id}/decline`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-            },
-            body: JSON.stringify({ reason })
-        });
-        
-        const data = await response.json();
-        if (data.success) {
+                try {
+                    const response = await fetch(`/appointments/cancellation/${id}/decline`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({ reason })
+                    });
+                    
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        console.error('Server error response:', errorText);
+                        throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+                    }
+                    
+                    const data = await response.json();
+                    if (data.success) {
                         window.dispatchEvent(new CustomEvent('toast', {
                             detail: {
                                 type: 'success',
-                                message: 'Cancellation request declined'
+                                message: 'Cancellation request declined successfully'
                             }
                         }));
-            window.location.reload();
-        } else {
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1000);
+                    } else {
                         window.dispatchEvent(new CustomEvent('toast', {
                             detail: {
                                 type: 'error',
                                 message: data.error || 'Failed to decline cancellation request'
                             }
                         }));
-        }
-    } catch (error) {
-        console.error('Error:', error);
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
                     window.dispatchEvent(new CustomEvent('toast', {
                         detail: {
                             type: 'error',

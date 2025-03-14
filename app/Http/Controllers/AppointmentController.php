@@ -74,6 +74,8 @@ class AppointmentController extends Controller
                 'appointment_id' => $appointment->id,
                 'user_id' => auth()->id(),
                 'reason' => $request->reason,
+                'is_last_minute' => $request->boolean('is_last_minute'),
+                'auto_approved' => $request->boolean('auto_approved'),
                 'request_data' => $request->all()
             ]);
 
@@ -87,8 +89,36 @@ class AppointmentController extends Controller
                 return response()->json(['error' => 'Appointment is already cancelled'], 400);
             }
 
+            // Check if this is a last-minute cancellation that needs approval
+            if ($request->boolean('is_last_minute') && !$request->boolean('auto_approved')) {
+                // Set status to cancellation_requested instead of cancelled
+                $appointment->status = 'cancellation_requested';
+                $appointment->cancellation_reason = $request->reason;
+                $appointment->cancellation_requested_at = now();
+                $appointment->save();
+                
+                // Notify shop owner about cancellation request
+                $appointment->shop->user->notifications()->create([
+                    'type' => 'cancellation_requested',
+                    'title' => 'Cancellation Request',
+                    'message' => "A customer has requested to cancel their appointment scheduled for {$appointment->appointment_date->format('F j, Y g:i A')}. Reason: {$request->reason}",
+                    'action_url' => route('shop.appointments.show', $appointment),
+                    'action_text' => 'View Request',
+                    'status' => 'unread'
+                ]);
+                
+                Log::info('Cancellation request submitted successfully');
+                
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Cancellation request submitted successfully'
+                ]);
+            }
+            
+            // Regular cancellation
             $appointment->status = 'cancelled';
             $appointment->cancellation_reason = $request->reason;
+            $appointment->cancelled_at = now();
             $appointment->save();
 
             // Create notification for cancelled appointment
@@ -97,6 +127,16 @@ class AppointmentController extends Controller
                 'title' => 'Appointment Cancelled',
                 'message' => "Your appointment at {$appointment->shop->name} for {$appointment->appointment_date->format('F j, Y g:i A')} has been cancelled.",
                 'action_url' => route('appointments.show', $appointment),
+                'action_text' => 'View Details',
+                'status' => 'unread'
+            ]);
+            
+            // Also notify the shop owner about the cancellation
+            $appointment->shop->user->notifications()->create([
+                'type' => 'customer_cancelled_appointment',
+                'title' => 'Appointment Cancelled by Customer',
+                'message' => "The appointment for {$appointment->user->name} scheduled for {$appointment->appointment_date->format('F j, Y g:i A')} has been cancelled by the customer. Reason: " . ($request->reason ?: 'No reason provided'),
+                'action_url' => route('shop.appointments.show', $appointment),
                 'action_text' => 'View Details',
                 'status' => 'unread'
             ]);
@@ -115,6 +155,133 @@ class AppointmentController extends Controller
             
             return response()->json([
                 'error' => 'Failed to cancel appointment',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Approve a cancellation request for an appointment
+     * 
+     * @param Appointment $appointment
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function approveCancellation(Appointment $appointment)
+    {
+        try {
+            // Check if the user is authorized (must be shop owner)
+            if ($appointment->shop_id !== auth()->user()->shop->id) {
+                return response()->json([
+                    'error' => 'Unauthorized to approve this cancellation request'
+                ], 403);
+            }
+
+            // Check if the appointment is in the cancellation_requested status
+            if ($appointment->status !== 'cancellation_requested') {
+                return response()->json([
+                    'error' => 'This appointment is not pending cancellation'
+                ], 400);
+            }
+
+            // Update the appointment status to cancelled
+            $appointment->update([
+                'status' => 'cancelled',
+                'cancelled_at' => now(),
+                'cancelled_by' => 'shop',
+                'cancellation_approved_at' => now()
+            ]);
+
+            // Create notification for the customer
+            $appointment->user->notifications()->create([
+                'type' => 'cancellation_approved',
+                'title' => 'Cancellation Request Approved',
+                'message' => "Your cancellation request for the appointment at {$appointment->shop->name} scheduled for {$appointment->appointment_date->format('F j, Y g:i A')} has been approved.",
+                'action_url' => route('appointments.show', $appointment),
+                'action_text' => 'View Details',
+                'status' => 'unread'
+            ]);
+
+            Log::info('Cancellation request approved', [
+                'appointment_id' => $appointment->id,
+                'approved_by' => auth()->id()
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Cancellation request approved successfully'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error approving cancellation request: ' . $e->getMessage(), [
+                'exception' => $e,
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'error' => 'Failed to approve cancellation request',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Decline a cancellation request for an appointment
+     * 
+     * @param Appointment $appointment
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function declineCancellation(Appointment $appointment, Request $request)
+    {
+        try {
+            // Check if the user is authorized (must be shop owner)
+            if ($appointment->shop_id !== auth()->user()->shop->id) {
+                return response()->json([
+                    'error' => 'Unauthorized to decline this cancellation request'
+                ], 403);
+            }
+
+            // Check if the appointment is in the cancellation_requested status
+            if ($appointment->status !== 'cancellation_requested') {
+                return response()->json([
+                    'error' => 'This appointment is not pending cancellation'
+                ], 400);
+            }
+
+            // Update the appointment status back to accepted
+            $appointment->update([
+                'status' => 'accepted', // Revert to previous accepted status
+                'cancellation_rejected_at' => now(),
+                'cancellation_rejection_reason' => $request->reason
+            ]);
+
+            // Create notification for the customer
+            $appointment->user->notifications()->create([
+                'type' => 'cancellation_declined',
+                'title' => 'Cancellation Request Declined',
+                'message' => "Your cancellation request for the appointment at {$appointment->shop->name} scheduled for {$appointment->appointment_date->format('F j, Y g:i A')} has been declined. Reason: {$request->reason}",
+                'action_url' => route('appointments.show', $appointment),
+                'action_text' => 'View Details',
+                'status' => 'unread'
+            ]);
+
+            Log::info('Cancellation request declined', [
+                'appointment_id' => $appointment->id,
+                'declined_by' => auth()->id(),
+                'reason' => $request->reason
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Cancellation request declined successfully'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error declining cancellation request: ' . $e->getMessage(), [
+                'exception' => $e,
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'error' => 'Failed to decline cancellation request',
                 'message' => $e->getMessage()
             ], 500);
         }

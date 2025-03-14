@@ -16,17 +16,23 @@ class ShopAppointmentController extends Controller
         
         // Get appointments grouped by date
         $appointments = $shop->appointments()
-            ->with(['user', 'pet'])
+            ->with(['user', 'pet', 'employee'])
             ->orderBy('appointment_date', 'desc')
             ->get()
             ->groupBy(function($appointment) {
                 return $appointment->appointment_date->format('Y-m-d');
             });
 
-        // Get cancellation requests
+        // Get employees for filter
+        $employees = $shop->employees()
+            ->orderBy('name')
+            ->get();
+
+        // Get cancellation requests - these are just appointments with the right status
         $cancellationRequests = $shop->appointments()
             ->where('status', 'cancellation_requested')
-            ->with(['user', 'pet'])
+            ->with(['user', 'pet', 'service'])
+            ->orderBy('cancellation_requested_at', 'desc')
             ->get();
 
         // Get reschedule requests with necessary relationships
@@ -45,15 +51,22 @@ class ShopAppointmentController extends Controller
 
         $rescheduleRequests = $rescheduleRequestsQuery->get();
 
+        // Get count of unread reschedule requests
+        $unreadRescheduleCount = $rescheduleRequests->filter(function($request) {
+            return !$request->viewed_at;
+        })->count();
+
         // Log reschedule requests for debugging
         Log::debug('Reschedule requests:', [
             'count' => $rescheduleRequests->count(),
+            'unread_count' => $unreadRescheduleCount,
             'requests' => $rescheduleRequests->map(function($req) {
                 return [
                     'id' => $req->id,
                     'status' => $req->status,
                     'appointment_date' => $req->appointment_date,
                     'requested_date' => $req->requested_date ?? null,
+                    'viewed_at' => $req->viewed_at
                 ];
             })
         ]);
@@ -69,9 +82,29 @@ class ShopAppointmentController extends Controller
             ->where('created_at', '>=', Carbon::now()->subHours(24))
             ->count();
 
+        // Get recently cancelled appointments (within the last 48 hours)
+        $recentlyCancelled = $shop->appointments()
+            ->where('status', 'cancelled')
+            ->where('cancelled_by', '!=', 'shop') // Only customer cancellations
+            ->where('cancelled_at', '>=', Carbon::now()->subHours(48))
+            ->with(['user', 'pet', 'service'])
+            ->orderBy('cancelled_at', 'desc')
+            ->get();
+
         // If we have any new appointments, update the session to track that we've shown the notification
         if ($newAppointments > 0) {
             session()->put('shown_new_appointments_notification', true);
+        }
+
+        // If we have new reschedule requests, add a flash message to notify the shop owner
+        if ($unreadRescheduleCount > 0) {
+            session()->flash('reschedule_notification', [
+                'count' => $unreadRescheduleCount,
+                'message' => "You have {$unreadRescheduleCount} new reschedule " . 
+                            ($unreadRescheduleCount == 1 ? 'request' : 'requests') . 
+                            " that " . ($unreadRescheduleCount == 1 ? 'requires' : 'require') . 
+                            " your attention."
+            ]);
         }
 
         return view('shop.appointments.index', compact(
@@ -80,7 +113,10 @@ class ShopAppointmentController extends Controller
             'rescheduleRequests',
             'pendingCancellations',
             'pendingReschedules',
-            'newAppointments'
+            'newAppointments',
+            'unreadRescheduleCount',
+            'employees',
+            'recentlyCancelled'
         ));
     }
 
@@ -104,6 +140,87 @@ class ShopAppointmentController extends Controller
             'success' => true,
             'message' => 'Appointment marked as viewed'
         ]);
+    }
+
+    /**
+     * Mark a reschedule request as viewed.
+     *
+     * @param Appointment $appointment
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function markRescheduleAsViewed(Appointment $appointment)
+    {
+        // Check if the user has permission to view this appointment
+        if ($appointment->shop_id !== auth()->user()->shop->id) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        // Ensure it's a reschedule request
+        if ($appointment->status !== 'reschedule_requested') {
+            return response()->json(['error' => 'This is not a reschedule request'], 400);
+        }
+
+        // Mark the appointment as viewed
+        $appointment->viewed_at = now();
+        $appointment->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Reschedule request marked as viewed'
+        ]);
+    }
+
+    /**
+     * Create a notification for the shop owner when a reschedule request is received.
+     * This method should be called from the AppointmentController when a reschedule request is submitted.
+     *
+     * @param Appointment $appointment
+     * @return bool
+     */
+    public static function createRescheduleNotification(Appointment $appointment)
+    {
+        try {
+            // Get the shop owner
+            $shop = $appointment->shop;
+            $shopOwner = $shop->user;
+            
+            if (!$shopOwner) {
+                Log::error('Shop owner not found for appointment reschedule notification', [
+                    'appointment_id' => $appointment->id,
+                    'shop_id' => $shop->id
+                ]);
+                return false;
+            }
+            
+            // Format dates for notification
+            $oldDate = $appointment->appointment_date->format('F j, Y g:i A');
+            $newDate = \Carbon\Carbon::parse($appointment->requested_date)->format('F j, Y g:i A');
+            
+            // Create a notification for the shop owner
+            $notification = $shopOwner->notifications()->create([
+                'type' => 'appointment_reschedule',
+                'title' => 'Appointment Reschedule Request',
+                'message' => "{$appointment->user->name} has requested to reschedule their appointment from {$oldDate} to {$newDate}.",
+                'action_url' => route('shop.appointments.show', $appointment),
+                'action_text' => 'View Details',
+                'status' => 'unread'
+            ]);
+            
+            Log::info('Created reschedule notification', [
+                'notification_id' => $notification->id,
+                'appointment_id' => $appointment->id,
+                'shop_owner_id' => $shopOwner->id
+            ]);
+            
+            return true;
+        } catch (\Exception $e) {
+            Log::error('Failed to create reschedule notification', [
+                'appointment_id' => $appointment->id,
+                'error' => $e->getMessage()
+            ]);
+            
+            return false;
+        }
     }
 
     /**
@@ -318,5 +435,90 @@ class ShopAppointmentController extends Controller
             'startDate',
             'endDate'
         ));
+    }
+
+    /**
+     * Reassign an appointment to a different employee
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function reassignEmployee(Request $request, $id)
+    {
+        try {
+            $appointment = Appointment::findOrFail($id);
+            
+            // Check if the shop owner has permission to modify this appointment
+            if ($appointment->shop_id !== auth()->user()->shop->id) {
+                return response()->json([
+                    'success' => false, 
+                    'message' => 'You are not authorized to modify this appointment.'
+                ], 403);
+            }
+            
+            // Check if the appointment status allows reassignment
+            if (!in_array($appointment->status, ['pending', 'accepted'])) {
+                return response()->json([
+                    'success' => false, 
+                    'message' => 'Only pending or accepted appointments can be reassigned.'
+                ], 400);
+            }
+            
+            // Validate the request
+            $validated = $request->validate([
+                'employee_id' => 'required|exists:employees,id'
+            ]);
+            
+            // Update the appointment
+            $oldEmployeeId = $appointment->employee_id;
+            $appointment->employee_id = $validated['employee_id'];
+            $appointment->save();
+            
+            // Get the old and new employee names for the notification
+            $oldEmployee = null;
+            $newEmployee = null;
+            
+            if ($oldEmployeeId) {
+                $oldEmployee = \App\Models\Employee::find($oldEmployeeId);
+            }
+            
+            if ($appointment->employee_id) {
+                $newEmployee = \App\Models\Employee::find($appointment->employee_id);
+            }
+            
+            // Create notification for the user about employee reassignment
+            $appointment->user->notifications()->create([
+                'type' => 'employee_reassigned',
+                'title' => 'Appointment Employee Reassigned',
+                'message' => "Your appointment at {$appointment->shop->name} for {$appointment->appointment_date->format('F j, Y g:i A')} has been reassigned to " . ($newEmployee ? $newEmployee->name : 'a new employee') . ".",
+                'action_url' => route('appointments.show', $appointment),
+                'action_text' => 'View Appointment',
+                'status' => 'unread'
+            ]);
+            
+            // Log the reassignment
+            Log::info('Appointment reassigned', [
+                'appointment_id' => $appointment->id,
+                'old_employee_id' => $oldEmployeeId,
+                'new_employee_id' => $appointment->employee_id,
+                'modified_by' => auth()->user()->id
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Appointment reassigned successfully'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error reassigning appointment', [
+                'appointment_id' => $id,
+                'error' => $e->getMessage()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while reassigning the appointment: ' . $e->getMessage()
+            ], 500);
+        }
     }
 } 

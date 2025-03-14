@@ -761,66 +761,74 @@ function appointmentsData() {
             try {
                 const token = document.querySelector('meta[name=csrf-token]').content;
                 
-                const appointmentResponse = await fetch(`/appointments/${this.appointmentToCancel}`);
-                const appointmentData = await appointmentResponse.json();
+                // Fetch appointment details with proper headers
+                const appointmentResponse = await fetch(`/appointments/${this.appointmentToCancel}`, {
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                
+                if (!appointmentResponse.ok) {
+                    throw new Error(`Failed to fetch appointment: ${appointmentResponse.status}`);
+                }
+                
+                let appointmentData;
+                try {
+                    appointmentData = await appointmentResponse.json();
+                } catch (e) {
+                    console.error('Error parsing appointment JSON:', e);
+                    throw new Error('The server returned an invalid response when fetching appointment details');
+                }
                 
                 const appointmentDate = new Date(appointmentData.appointment_date);
                 const now = new Date();
                 const hoursDifference = (appointmentDate - now) / (1000 * 60 * 60);
                 
-                if (hoursDifference > 24) {
-                    const response = await fetch(`/appointments/${this.appointmentToCancel}/cancel`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': token,
-                            'Accept': 'application/json',
-                            'X-Requested-With': 'XMLHttpRequest'
-                        },
-                        credentials: 'same-origin',
-                        body: JSON.stringify({
-                            _token: token,
-                            reason: reason,
-                            auto_approved: true
-                        })
-                    });
+                // Always use the cancel endpoint, but pass different parameters based on timing
+                const response = await fetch(`/appointments/${this.appointmentToCancel}/cancel`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': token,
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({
+                        reason: reason,
+                        is_last_minute: hoursDifference <= 24,
+                        auto_approved: hoursDifference > 24
+                    })
+                });
 
-                    const data = await response.json();
-                    
-                    if (data.success) {
-                        window.location.reload();
-                    } else {
-                        alert(data.error || 'Failed to cancel appointment');
-                    }
-                } else {
-                    const response = await fetch(`/appointments/${this.appointmentToCancel}/request-cancellation`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': token,
-                            'Accept': 'application/json',
-                            'X-Requested-With': 'XMLHttpRequest'
-                        },
-                        credentials: 'same-origin',
-                        body: JSON.stringify({
-                            _token: token,
-                            reason: reason,
-                            is_last_minute: true
-                        })
-                    });
-
-                    const data = await response.json();
-                    
-                    if (data.success) {
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Server error response:', errorText);
+                    throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+                }
+                
+                let data;
+                try {
+                    data = await response.json();
+                } catch (e) {
+                    console.error('Error parsing JSON:', e);
+                    throw new Error('The server returned an invalid response');
+                }
+                
+                if (data.success) {
+                    if (hoursDifference <= 24) {
                         alert('Your cancellation request has been submitted and is pending approval from the shop.');
-                        window.location.reload();
                     } else {
-                        alert(data.error || 'Failed to submit cancellation request');
+                        alert('Your appointment has been cancelled successfully.');
                     }
+                    window.location.reload();
+                } else {
+                    alert(data.error || 'Failed to cancel appointment');
                 }
             } catch (error) {
                 console.error('Error:', error);
-                alert('An error occurred while processing the cancellation');
+                alert(`An error occurred while processing the cancellation: ${error.message}`);
             }
             
             this.showCancelModal = false;

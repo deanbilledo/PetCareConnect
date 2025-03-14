@@ -4,12 +4,28 @@
     </div>
 @else
     <div class="bg-white rounded-lg shadow-md overflow-hidden">
-        
+        @if(isset($unreadRescheduleCount) && $unreadRescheduleCount > 0)
+            <div class="bg-orange-50 border-l-4 border-orange-500 p-4">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <svg class="h-5 w-5 text-orange-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm text-orange-700">
+                            <strong>{{ $unreadRescheduleCount }}</strong> new reschedule {{ $unreadRescheduleCount == 1 ? 'request' : 'requests' }} {{ $unreadRescheduleCount == 1 ? 'requires' : 'require' }} your attention.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        @endif
 
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Original Date</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Requested Date</th>
@@ -21,7 +37,18 @@
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                     @foreach($rescheduleRequests as $appointment)
-                        <tr class="hover:bg-gray-50">
+                        <tr class="{{ !$appointment->viewed_at ? 'bg-orange-50 hover:bg-orange-100' : 'hover:bg-gray-50' }}">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                @if(!$appointment->viewed_at)
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                                        New
+                                    </span>
+                                @else
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                        Viewed
+                                    </span>
+                                @endif
+                            </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="flex items-center">
                                     <div class="flex-shrink-0 h-10 w-10">
@@ -154,6 +181,9 @@ async function approveReschedule(appointmentId) {
             throw new Error('CSRF token not found');
         }
 
+        // First mark the request as viewed
+        await markRescheduleAsViewed(appointmentId);
+
         const response = await fetch(`/appointments/reschedule/${appointmentId}/approve`, {
             method: 'POST',
             headers: {
@@ -203,6 +233,9 @@ async function declineReschedule(appointmentId) {
             throw new Error('CSRF token not found');
         }
 
+        // First mark the request as viewed
+        await markRescheduleAsViewed(appointmentId);
+
         const response = await fetch(`/appointments/reschedule/${appointmentId}/decline`, {
             method: 'POST',
             headers: {
@@ -237,5 +270,68 @@ async function declineReschedule(appointmentId) {
         alert(error.message || 'An error occurred while processing your request');
     }
 }
+
+// New function to mark reschedule requests as viewed
+async function markRescheduleAsViewed(appointmentId) {
+    try {
+        const token = document.querySelector('meta[name="csrf-token"]')?.content;
+        if (!token) {
+            throw new Error('CSRF token not found');
+        }
+
+        const response = await fetch(`/appointments/${appointmentId}/mark-reschedule-viewed`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': token,
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+
+        if (!response.ok) {
+            console.error('Failed to mark reschedule as viewed:', response.statusText);
+        }
+
+        return true;
+    } catch (error) {
+        console.error('Error marking reschedule as viewed:', error);
+        return false;
+    }
+}
+
+// Initialize event listeners for each reschedule request row
+document.addEventListener('DOMContentLoaded', function() {
+    // Find all unread reschedule request rows
+    const unreadRows = document.querySelectorAll('tr.bg-orange-50');
+    
+    unreadRows.forEach(row => {
+        // Extract the appointment ID from the action buttons
+        const approveButton = row.querySelector('button[onclick^="approveReschedule"]');
+        if (approveButton) {
+            const onclick = approveButton.getAttribute('onclick');
+            const appointmentId = onclick.match(/approveReschedule\((\d+)\)/)[1];
+            
+            // Add click event to mark as viewed when row is clicked
+            row.addEventListener('click', function(e) {
+                // Don't trigger if clicking on buttons
+                if (e.target.tagName !== 'BUTTON') {
+                    markRescheduleAsViewed(appointmentId);
+                    
+                    // Update the visual appearance
+                    row.classList.remove('bg-orange-50', 'hover:bg-orange-100');
+                    row.classList.add('hover:bg-gray-50');
+                    
+                    // Update the status badge
+                    const statusBadge = row.querySelector('td:first-child span');
+                    if (statusBadge) {
+                        statusBadge.className = "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800";
+                        statusBadge.textContent = "Viewed";
+                    }
+                }
+            });
+        }
+    });
+});
 </script>
 @endpush 
