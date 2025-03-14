@@ -27,11 +27,11 @@
                             debug: function() {
                                 console.log('Service Type:', '{{ $appointment->service_type }}');
                                 console.log('Filter Value:', this.serviceTypeFilter);
-                                console.log('Visible:', this.isAppointmentVisible('{{ $appointment->status }}', '{{ $date }}', '{{ $appointment->shop->type }}'));
+                                console.log('Visible:', this.isAppointmentVisible('{{ $appointment->status }}', '{{ $date }}', '{{ $appointment->service_type }}', '{{ $appointment->employee ? $appointment->employee->id : null }}'));
                             }
                         }" x-init="debug()">
                         </div>
-                        <tr x-show="isAppointmentVisible('{{ $appointment->status }}', '{{ $date }}', '{{ $appointment->shop->type }}')"
+                        <tr x-show="isAppointmentVisible('{{ $appointment->status }}', '{{ $date }}', '{{ $appointment->service_type }}', '{{ $appointment->employee ? $appointment->employee->id : null }}')"
                             class="hover:bg-gray-50 {{ is_null($appointment->viewed_at) && $appointment->status === 'pending' ? 'bg-blue-50' : '' }}"
                             onclick="viewAppointment({{ $appointment->id }})"
                             style="cursor: pointer;">
@@ -147,7 +147,7 @@
         <!-- Mobile Card View -->
         <div class="md:hidden divide-y divide-gray-200">
             @foreach($dayAppointments as $appointment)
-                <div x-show="isAppointmentVisible('{{ $appointment->status }}', '{{ $date }}', '{{ $appointment->shop->type }}')"
+                <div x-show="isAppointmentVisible('{{ $appointment->status }}', '{{ $date }}', '{{ $appointment->service_type }}', '{{ $appointment->employee ? $appointment->employee->id : null }}')"
                      class="p-4 {{ is_null($appointment->viewed_at) && $appointment->status === 'pending' ? 'bg-blue-50' : '' }}"
                      onclick="viewAppointment({{ $appointment->id }})">
                     

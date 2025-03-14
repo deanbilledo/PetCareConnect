@@ -131,68 +131,70 @@ use Illuminate\Support\Facades\Storage;
         </div>
 
         <!-- Appointments Table -->
-        <div class="mt-8 overflow-hidden">
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-                <h2 class="text-xl font-semibold">Recent Appointments</h2>
+        <div class="mt-8">
+            <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+                <div class="p-6 border-b border-gray-200">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <h2 class="text-xl font-semibold text-gray-900">Recent Appointments</h2>
                 <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
                     <select x-data="{ status: 'all' }" 
                             x-model="status" 
                             @change="window.location.href = '{{ route('shop.dashboard') }}?status=' + status"
-                            class="border rounded-md px-3 py-1.5 text-sm w-full sm:w-auto">
+                                    class="border rounded-md px-3 py-1.5 text-sm w-full sm:w-auto focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                         <option value="all">All Status</option>
                         <option value="pending">Pending</option>
                         <option value="completed">Completed</option>
                         <option value="cancelled">Cancelled</option>
                     </select>
                     <input type="date" 
-                           class="border rounded-md px-3 py-1.5 text-sm w-full sm:w-auto"
+                                   class="border rounded-md px-3 py-1.5 text-sm w-full sm:w-auto focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                            value="{{ request('date') }}"
                            onchange="window.location.href = '{{ route('shop.dashboard') }}?date=' + this.value">
+                        </div>
                 </div>
             </div>
 
             <!-- Table for larger screens -->
-            <div class="hidden md:block overflow-x-auto rounded-lg border">
+                <div class="hidden md:block overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
-                            <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[20%]">
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[22%]">
                                 Customer
                             </th>
-                            <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[15%]">
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[15%]">
                                 Pet
                             </th>
-                            <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[15%]">
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[15%]">
                                 Service
                             </th>
-                            <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[15%]">
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[15%]">
                                 Employee
                             </th>
-                            <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[10%]">
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[12%]">
                                 Date & Time
                             </th>
-                            <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[10%]">
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[8%]">
                                 Status
                             </th>
-                            <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[10%]">
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[8%]">
                                 Price
                             </th>
-                            <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[10%]">
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-[10%]">
                                 Actions
                             </th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
                         @forelse($appointments as $appointment)
-                            <tr class="hover:bg-gray-50 cursor-pointer" onclick="viewAppointment({{ $appointment->id }})">
-                                <td class="px-4 sm:px-6 py-4">
+                                <tr class="hover:bg-gray-50 cursor-pointer transition-colors" onclick="viewAppointment({{ $appointment->id }})">
+                                    <td class="px-6 py-4">
                                     <div class="flex items-center">
                                         <div class="flex-shrink-0 h-10 w-10 mr-3">
-                                            <div class="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500">
-                                                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                                </svg>
-                                            </div>
+                                                <img class="h-10 w-10 rounded-full object-cover" 
+                                                     src="{{ $appointment->user->profile_photo_path ? asset('storage/' . $appointment->user->profile_photo_path) : asset('images/default-profile.png') }}" 
+                                                     alt="{{ $appointment->user->first_name }}"
+                                                     onerror="this.src='{{ asset('images/default-profile.png') }}'">
                                         </div>
                                         <div>
                                             <div class="text-sm font-medium text-gray-900">
@@ -204,14 +206,14 @@ use Illuminate\Support\Facades\Storage;
                                         </div>
                                     </div>
                                 </td>
-                                <td class="px-4 sm:px-6 py-4">
+                                    <td class="px-6 py-4">
                                     <div class="text-sm font-medium text-gray-900">{{ $appointment->pet->name }}</div>
                                     <div class="text-sm text-gray-500">{{ $appointment->pet->breed }}</div>
                                 </td>
-                                <td class="px-4 sm:px-6 py-4">
+                                    <td class="px-6 py-4">
                                     <div class="text-sm text-gray-900">{{ $appointment->service_type }}</div>
                                 </td>
-                                <td class="px-4 sm:px-6 py-4">
+                                    <td class="px-6 py-4">
                                     <div class="flex items-center">
                                         @if($appointment->employee)
                                             <div class="flex-shrink-0 h-8 w-8 mr-2">
@@ -229,7 +231,7 @@ use Illuminate\Support\Facades\Storage;
                                         @endif
                                     </div>
                                 </td>
-                                <td class="px-4 sm:px-6 py-4">
+                                    <td class="px-6 py-4">
                                     <div class="text-sm font-medium text-gray-900">
                                         {{ $appointment->appointment_date->format('M d, Y') }}
                                     </div>
@@ -237,8 +239,8 @@ use Illuminate\Support\Facades\Storage;
                                         {{ $appointment->appointment_date->format('g:i A') }}
                                     </div>
                                 </td>
-                                <td class="px-4 sm:px-6 py-4">
-                                    <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                    <td class="px-6 py-4">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
                                         @if($appointment->status === 'completed') bg-green-100 text-green-800
                                         @elseif($appointment->status === 'cancelled') bg-red-100 text-red-800
                                         @else bg-blue-100 text-blue-800
@@ -246,42 +248,44 @@ use Illuminate\Support\Facades\Storage;
                                         {{ ucfirst($appointment->status) }}
                                     </span>
                                 </td>
-                                <td class="px-4 sm:px-6 py-4 text-sm text-gray-900 font-medium">
+                                    <td class="px-6 py-4 text-sm font-medium text-gray-900">
                                     ₱{{ number_format($appointment->service_price, 2) }}
                                 </td>
-                                <td class="px-4 sm:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    <div class="flex flex-wrap justify-end gap-2" onclick="event.stopPropagation()">
+                                    <td class="px-6 py-4 text-right" onclick="event.stopPropagation()">
+                                        <div class="flex flex-col gap-2 items-end">
                                         @if($appointment->status === 'pending')
                                             <button onclick="showAcceptModal({{ $appointment->id }})" 
-                                                    class="text-green-600 hover:text-green-900 bg-green-50 px-2 sm:px-3 py-1 rounded-full text-sm font-medium">
+                                                        class="inline-flex items-center px-3 py-1 text-sm font-medium text-green-600 bg-green-50 rounded-full hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
                                                 Accept
                                             </button>
                                             <button onclick="showCancelModal({{ $appointment->id }})"
-                                                    class="text-red-600 hover:text-red-900 bg-red-50 px-2 sm:px-3 py-1 rounded-full text-sm font-medium">
+                                                        class="inline-flex items-center px-3 py-1 text-sm font-medium text-red-600 bg-red-50 rounded-full hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
                                                 Cancel
                                             </button>
                                         @elseif($appointment->status === 'accepted')
                                             <button onclick="showMarkAsPaidModal({{ $appointment->id }})"
-                                                    class="text-blue-600 hover:text-blue-900 bg-blue-50 px-2 sm:px-3 py-1 rounded-full text-sm font-medium">
+                                                        class="inline-flex items-center px-3 py-1 text-sm font-medium text-blue-600 bg-blue-50 rounded-full hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                                                 Mark as Paid
                                             </button>
                                         @elseif($appointment->status === 'completed')
                                             <button @click="openNoteModal({{ $appointment->id }}, '{{ $appointment->shop->type }}')"
-                                                    class="text-indigo-600 hover:text-indigo-800 bg-indigo-50 px-2 sm:px-3 py-1 rounded-full text-sm font-medium">
+                                                        class="inline-flex items-center px-3 py-1 text-sm font-medium text-indigo-600 bg-indigo-50 rounded-full hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                                                 Notes
                                             </button>
-                                        @elseif($appointment->status === 'cancelled')
-                                            <span class="text-red-600 bg-red-50 px-2 sm:px-3 py-1 rounded-full text-sm font-medium">
-                                                Cancelled
-                                            </span>
                                         @endif
                                     </div>
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="8" class="px-4 sm:px-6 py-4 text-center text-gray-500">
-                                    No appointments found
+                                    <td colspan="8" class="px-6 py-8 text-center text-gray-500 bg-gray-50">
+                                        <div class="flex flex-col items-center justify-center">
+                                            <svg class="w-12 h-12 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                            </svg>
+                                            <p class="text-lg font-medium">No appointments found</p>
+                                            <p class="text-sm text-gray-400">Try adjusting your filters or check back later</p>
+                                        </div>
                                 </td>
                             </tr>
                         @endforelse
@@ -290,15 +294,24 @@ use Illuminate\Support\Facades\Storage;
             </div>
 
             <!-- Card view for mobile screens -->
-            <div class="md:hidden space-y-4">
+                <div class="md:hidden divide-y divide-gray-200">
                 @forelse($appointments as $appointment)
-                    <div class="bg-white rounded-lg border shadow-sm p-4" onclick="viewAppointment({{ $appointment->id }})">
-                        <div class="flex justify-between items-start mb-3">
+                        <div class="p-4 hover:bg-gray-50 cursor-pointer transition-colors" onclick="viewAppointment({{ $appointment->id }})">
+                            <!-- Customer and Status -->
+                            <div class="flex justify-between items-start mb-4">
+                                <div class="flex items-center">
+                                    <div class="h-12 w-12 rounded-full overflow-hidden mr-3">
+                                        <img class="h-12 w-12 rounded-full object-cover" 
+                                             src="{{ $appointment->user->profile_photo_path ? asset('storage/' . $appointment->user->profile_photo_path) : asset('images/default-profile.png') }}" 
+                                             alt="{{ $appointment->user->first_name }}"
+                                             onerror="this.src='{{ asset('images/default-profile.png') }}'">
+                                    </div>
                             <div>
-                                <h3 class="font-medium">{{ $appointment->user->first_name }} {{ $appointment->user->last_name }}</h3>
-                                <p class="text-sm text-gray-500">{{ $appointment->user->email }}</p>
+                                        <div class="font-medium text-gray-900">{{ $appointment->user->first_name }} {{ $appointment->user->last_name }}</div>
+                                        <div class="text-sm text-gray-500">{{ $appointment->user->email }}</div>
+                                    </div>
                             </div>
-                            <span class="px-2 py-1 text-xs font-semibold rounded-full 
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
                                 @if($appointment->status === 'completed') bg-green-100 text-green-800
                                 @elseif($appointment->status === 'cancelled') bg-red-100 text-red-800
                                 @else bg-blue-100 text-blue-800
@@ -307,72 +320,90 @@ use Illuminate\Support\Facades\Storage;
                             </span>
                         </div>
                         
-                        <div class="grid grid-cols-2 gap-2 mb-3 text-sm">
+                            <!-- Appointment Details -->
+                            <div class="grid grid-cols-2 gap-4 mb-4">
                             <div>
-                                <p class="text-gray-500">Pet:</p>
-                                <p>{{ $appointment->pet->name }} ({{ $appointment->pet->breed }})</p>
+                                    <div class="text-sm text-gray-500">Pet</div>
+                                    <div class="text-sm font-medium text-gray-900">{{ $appointment->pet->name }}</div>
+                                    <div class="text-xs text-gray-500">{{ $appointment->pet->breed }}</div>
+                            </div>
+                                
+                            <div>
+                                    <div class="text-sm text-gray-500">Service</div>
+                                    <div class="text-sm font-medium text-gray-900">{{ $appointment->service_type }}</div>
+                            </div>
+                                
+                            <div>
+                                    <div class="text-sm text-gray-500">Date & Time</div>
+                                    <div class="text-sm font-medium text-gray-900">{{ $appointment->appointment_date->format('M d, Y') }}</div>
+                                    <div class="text-xs text-gray-500">{{ $appointment->appointment_date->format('g:i A') }}</div>
+                            </div>
+                                
+                            <div>
+                                    <div class="text-sm text-gray-500">Price</div>
+                                    <div class="text-sm font-medium text-gray-900">₱{{ number_format($appointment->service_price, 2) }}</div>
+                                </div>
+                            </div>
+
+                            <!-- Employee Info -->
+                            @if($appointment->employee)
+                                <div class="flex items-center mb-4 bg-gray-50 p-3 rounded-lg">
+                                    <div class="flex-shrink-0 h-8 w-8 mr-2">
+                                        <img class="h-8 w-8 rounded-full object-cover" 
+                                             src="{{ $appointment->employee->profile_photo ? asset('storage/' . $appointment->employee->profile_photo) : $appointment->employee->getProfilePhotoUrlAttribute() }}" 
+                                             alt="{{ $appointment->employee->name }}"
+                                             onerror="this.src='{{ asset('images/default-profile.png') }}'">
                             </div>
                             <div>
-                                <p class="text-gray-500">Service:</p>
-                                <p>{{ $appointment->service_type }}</p>
-                            </div>
-                            <div>
-                                <p class="text-gray-500">Date:</p>
-                                <p>{{ $appointment->appointment_date->format('M d, Y') }}</p>
-                            </div>
-                            <div>
-                                <p class="text-gray-500">Time:</p>
-                                <p>{{ $appointment->appointment_date->format('g:i A') }}</p>
-                            </div>
-                            <div>
-                                <p class="text-gray-500">Price:</p>
-                                <p class="font-medium">₱{{ number_format($appointment->service_price, 2) }}</p>
-                            </div>
-                            <div>
-                                <p class="text-gray-500">Employee:</p>
-                                <p>
-                                    @if($appointment->employee)
-                                        {{ $appointment->employee->name }}
-                                    @else
-                                        Not assigned
-                                    @endif
-                                </p>
+                                        <div class="text-sm font-medium text-gray-900">{{ $appointment->employee->name }}</div>
+                                        <div class="text-xs text-gray-500">{{ $appointment->employee->position }}</div>
                             </div>
                         </div>
+                            @endif
                         
-                        <div class="mt-4 flex flex-wrap gap-2" onclick="event.stopPropagation()">
+                            <!-- Action Buttons -->
+                            <div class="flex flex-wrap gap-2 mt-4" onclick="event.stopPropagation()">
                             @if($appointment->status === 'pending')
                                 <button onclick="showAcceptModal({{ $appointment->id }})" 
-                                        class="flex-1 text-center text-green-600 hover:text-green-900 bg-green-50 px-3 py-2 rounded-lg text-sm font-medium">
+                                            class="flex-1 text-center text-green-600 bg-green-50 px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
                                     Accept
                                 </button>
                                 <button onclick="showCancelModal({{ $appointment->id }})"
-                                        class="flex-1 text-center text-red-600 hover:text-red-900 bg-red-50 px-3 py-2 rounded-lg text-sm font-medium">
+                                            class="flex-1 text-center text-red-600 bg-red-50 px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
                                     Cancel
                                 </button>
                             @elseif($appointment->status === 'accepted')
                                 <button onclick="showMarkAsPaidModal({{ $appointment->id }})"
-                                        class="w-full text-center text-blue-600 hover:text-blue-900 bg-blue-50 px-3 py-2 rounded-lg text-sm font-medium">
+                                            class="w-full text-center text-blue-600 bg-blue-50 px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                                     Mark as Paid
                                 </button>
                             @elseif($appointment->status === 'completed')
                                 <button @click="openNoteModal({{ $appointment->id }}, '{{ $appointment->shop->type }}')"
-                                        class="w-full text-center text-indigo-600 hover:text-indigo-800 bg-indigo-50 px-3 py-2 rounded-lg text-sm font-medium">
+                                            class="w-full text-center text-indigo-600 bg-indigo-50 px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                                     {{ $appointment->shop->type === 'grooming' ? "Groomer's Note" : "Doctor's Note" }}
                                 </button>
                             @endif
                         </div>
                     </div>
                 @empty
-                    <div class="bg-white rounded-lg border p-6 text-center text-gray-500">
-                        No appointments found
+                        <div class="p-8 text-center text-gray-500 bg-gray-50">
+                            <div class="flex flex-col items-center justify-center">
+                                <svg class="w-12 h-12 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                <p class="text-lg font-medium">No appointments found</p>
+                                <p class="text-sm text-gray-400">Try adjusting your filters or check back later</p>
+                            </div>
                     </div>
                 @endforelse
             </div>
 
             <!-- Pagination -->
-            <div class="mt-6 px-4 py-3 border-t bg-white rounded-b-lg">
+                @if($appointments->hasPages())
+                    <div class="border-t border-gray-200 px-6 py-4 bg-gray-50">
                 {{ $appointments->links() }}
+                    </div>
+                @endif
             </div>
         </div>
     </div>

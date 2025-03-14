@@ -1,6 +1,13 @@
 @extends('layouts.shop')
 
 @section('content')
+@php
+    // Get shop employees if not already provided
+    if (!isset($shop)) {
+        $shop = auth()->user()->shop;
+    }
+    $employees = $shop->employees ?? \App\Models\Employee::where('shop_id', $shop->id)->get();
+@endphp
 <div class="container mx-auto px-4 py-6" 
      x-data="{ 
         showNoteModal: false, 
@@ -104,6 +111,20 @@
                 @endif
             </div>
 
+            <!-- Cancellation Reason (if applicable) -->
+            @if($appointment->status === 'cancelled' && $appointment->cancellation_reason)
+            <div class="mb-6 p-4 bg-red-50 border border-red-100 rounded-lg">
+                <h3 class="text-sm font-medium text-red-800 mb-2">Cancellation Reason:</h3>
+                <p class="text-red-700">{{ $appointment->cancellation_reason }}</p>
+                @if($appointment->cancelled_by)
+                <p class="mt-2 text-sm text-red-600">Cancelled by: {{ $appointment->cancelled_by === 'shop' ? 'Shop' : 'Customer' }}</p>
+                @endif
+                @if($appointment->cancelled_at)
+                <p class="mt-1 text-sm text-red-600">Cancelled on: {{ $appointment->cancelled_at->format('F j, Y g:i A') }}</p>
+                @endif
+            </div>
+            @endif
+
             <!-- Details Grid -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <!-- Customer Info -->
@@ -152,7 +173,18 @@
                 <!-- Employee -->
                 <div>
                     <h3 class="text-sm font-medium text-gray-500">Employee Assigned</h3>
-                    <p class="mt-1 text-lg">{{ $appointment->employee ? $appointment->employee->name : 'Not assigned' }}</p>
+                    <div class="flex items-center justify-between mt-1">
+                        <p class="text-lg">{{ $appointment->employee ? $appointment->employee->name : 'Not assigned' }}</p>
+                        @if($appointment->status === 'pending' || $appointment->status === 'accepted')
+                        <button onclick="showReassignEmployeeModal()" 
+                                class="text-blue-600 hover:text-blue-800 text-sm flex items-center">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                            </svg>
+                            Reassign
+                        </button>
+                        @endif
+                    </div>
                 </div>
             </div>
 
@@ -648,9 +680,104 @@
     </div>
 </div>
 
+<!-- Reassign Employee Modal -->
+<div id="reassignEmployeeModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+    <!-- Backdrop -->
+    <div class="fixed inset-0 bg-black bg-opacity-50"></div>
+    
+    <!-- Modal Content -->
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg max-w-md w-full p-6 relative">
+            <!-- Close Button -->
+            <button onclick="closeReassignEmployeeModal()" 
+                    class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+
+            <!-- Modal Header -->
+            <div class="mb-6">
+                <h3 class="text-xl font-semibold text-gray-900">Reassign Employee</h3>
+                <p class="text-sm text-gray-600 mt-1">Select an employee to handle this appointment</p>
+            </div>
+
+            <!-- Employee Selection Form -->
+            <form id="reassignEmployeeForm" class="space-y-4">
+                <input type="hidden" name="_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="appointment_id" value="{{ $appointment->id }}">
+                
+                <!-- Employee Dropdown -->
+                <div>
+                    <label for="employee_id" class="block text-sm font-medium text-gray-700 mb-1">Select Employee</label>
+                    <select id="employee_id" name="employee_id"
+                            class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <option value="">Select an employee</option>
+                        @foreach($employees as $employee)
+                            <option value="{{ $employee->id }}" {{ $appointment->employee_id == $employee->id ? 'selected' : '' }}>
+                                {{ $employee->name }} - {{ $employee->position }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="button"
+                        onclick="reassignEmployee()"
+                        class="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
+                        id="reassignBtn">
+                    Reassign
+                </button>
+                <div id="reassignStatusMessage" class="mt-2 text-center hidden"></div>
+            </form>
+        </div>
+    </div>
+</div>
+
 @push('scripts')
 <script>
 let currentAppointmentId = null;
+
+// Function to show toast notification
+function showNotificationToast(title, message) {
+    // Create the toast element
+    const toast = document.createElement('div');
+    toast.classList.add('fixed', 'top-4', 'right-4', 'bg-white', 'shadow-lg', 'rounded-lg', 'p-4', 'z-50', 'flex', 'items-start', 'max-w-sm', 'transform', 'transition-all', 'duration-300', 'ease-in-out', 'translate-y-[-100px]', 'opacity-0');
+    
+    // Set the toast content
+    toast.innerHTML = `
+        <div class="flex-shrink-0 mr-3">
+            <svg class="h-6 w-6 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 5l-2 2m0 0l-2-2m2 2v6" />
+            </svg>
+        </div>
+        <div class="flex-1">
+            <h3 class="font-medium text-gray-900">${title}</h3>
+            <p class="mt-1 text-sm text-gray-600">${message}</p>
+        </div>
+        <button class="ml-4 text-gray-400 hover:text-gray-600" onclick="this.parentElement.remove()">
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </button>
+    `;
+    
+    // Add the toast to the document
+    document.body.appendChild(toast);
+    
+    // Animate the toast in
+    setTimeout(() => {
+        toast.classList.remove('translate-y-[-100px]', 'opacity-0');
+        toast.classList.add('translate-y-0', 'opacity-100');
+    }, 10);
+    
+    // Remove the toast after 5 seconds
+    setTimeout(() => {
+        toast.classList.add('translate-y-[-100px]', 'opacity-0');
+        setTimeout(() => toast.remove(), 300);
+    }, 5000);
+}
 
 // Accept Modal Functions
 function showAcceptModal(appointmentId) {
@@ -662,6 +789,85 @@ function showAcceptModal(appointmentId) {
     document.getElementById('confirmAcceptBtn').onclick = function() {
         acceptAppointment(currentAppointmentId);
     };
+}
+
+// Reassign Employee Modal Functions
+function showReassignEmployeeModal() {
+    document.getElementById('reassignEmployeeModal').classList.remove('hidden');
+    document.getElementById('reassignStatusMessage').classList.add('hidden');
+}
+
+function closeReassignEmployeeModal() {
+    document.getElementById('reassignEmployeeModal').classList.add('hidden');
+}
+
+function reassignEmployee() {
+    const employeeId = document.getElementById('employee_id').value;
+    const appointmentId = {{ $appointment->id }};
+    const statusMessage = document.getElementById('reassignStatusMessage');
+    const reassignBtn = document.getElementById('reassignBtn');
+    
+    // Validate selection
+    if (!employeeId) {
+        statusMessage.textContent = 'Please select an employee';
+        statusMessage.classList.remove('hidden', 'text-green-500');
+        statusMessage.classList.add('text-red-500');
+        return;
+    }
+    
+    // Show loading state
+    reassignBtn.disabled = true;
+    reassignBtn.textContent = 'Reassigning...';
+    
+    // Send AJAX request
+    fetch('/shop/appointments/' + appointmentId + '/reassign', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+            employee_id: employeeId
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(data => {
+                throw new Error(data.message || 'Error reassigning employee');
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            statusMessage.textContent = 'Employee reassigned successfully!';
+            statusMessage.classList.remove('hidden', 'text-red-500');
+            statusMessage.classList.add('text-green-500');
+            
+            // Show notification toast to user
+            showNotificationToast('Appointment Updated', 'The employee for your appointment has been reassigned. A notification has been sent to the customer.');
+            
+            // Reload the page after 1.5 seconds
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
+        } else {
+            throw new Error(data.message || 'Failed to reassign employee');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        statusMessage.textContent = error.message || 'An error occurred. Please try again.';
+        statusMessage.classList.remove('hidden', 'text-green-500');
+        statusMessage.classList.add('text-red-500');
+    })
+    .finally(() => {
+        // Reset button state
+        reassignBtn.disabled = false;
+        reassignBtn.textContent = 'Reassign';
+        statusMessage.classList.remove('hidden');
+    });
 }
 
 function hideAcceptModal() {

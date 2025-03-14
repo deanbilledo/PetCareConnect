@@ -34,6 +34,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Http\Middleware\HasShop;
 use App\Http\Middleware\IsAdmin;
+use Illuminate\Http\Request;
 
 // Include shop routes
 require __DIR__.'/shop.php';
@@ -119,6 +120,7 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/appointments', [ShopAppointmentController::class, 'index'])->name('appointments');
             Route::get('/appointments/{appointment}', [ShopAppointmentController::class, 'show'])->name('appointments.show');
             Route::post('/appointments/{appointment}/mark-viewed', [ShopAppointmentController::class, 'markAsViewed'])->name('appointments.mark-viewed');
+            Route::post('/appointments/{appointment}/reassign', [ShopAppointmentController::class, 'reassignEmployee'])->name('appointments.reassign');
             Route::get('/payments', [ShopAppointmentController::class, 'payments'])->name('payments');
             Route::post('/mode/customer', [ShopDashboardController::class, 'switchToCustomerMode'])->name('mode.customer');
             
@@ -254,6 +256,14 @@ Route::middleware(['auth'])->group(function () {
             ->name('appointments.reschedule.approve');
         Route::post('/appointments/reschedule/{appointment}/decline', [AppointmentController::class, 'declineReschedule'])
             ->name('appointments.reschedule.decline');
+        // Add route for marking reschedule requests as viewed
+        Route::post('/appointments/{appointment}/mark-reschedule-viewed', [ShopAppointmentController::class, 'markRescheduleAsViewed'])
+            ->name('appointments.mark-reschedule-viewed');
+        // Add cancellation request routes
+        Route::post('/appointments/cancellation/{appointment}/approve', [AppointmentController::class, 'approveCancellation'])
+            ->name('appointments.cancellation.approve');
+        Route::post('/appointments/cancellation/{appointment}/decline', [AppointmentController::class, 'declineCancellation'])
+            ->name('appointments.cancellation.decline');
     });
 
     // Other customer routes
@@ -401,4 +411,53 @@ Route::middleware(['auth', 'has-shop'])->prefix('shop')->name('shop.')->group(fu
     Route::get('/analytics/export/{type}', [App\Http\Controllers\Shop\AnalyticsController::class, 'export'])->name('analytics.export');
     
     // Other routes
+});
+
+// Add service lookup route
+Route::get('/service-lookup', function (Request $request) {
+    $shopId = $request->query('shop_id');
+    $serviceType = $request->query('service_type');
+    
+    if (!$shopId || !$serviceType) {
+        return response()->json(['error' => 'Missing shop_id or service_type parameters'], 400);
+    }
+    
+    try {
+        // Find a service matching the type in the specified shop
+        $service = \App\Models\Service::where('shop_id', $shopId)
+            ->where(function($query) use ($serviceType) {
+                // Only search in columns that actually exist in the database
+                $query->where('name', 'like', "%{$serviceType}%")
+                    ->orWhere('description', 'like', "%{$serviceType}%");
+            })
+            ->where('status', 'active')
+            ->first();
+        
+        if ($service) {
+            return response()->json([
+                'success' => true,
+                'service_id' => $service->id,
+                'service_name' => $service->name
+            ]);
+        }
+        
+        // If no exact match, return the first active service as fallback
+        $fallbackService = \App\Models\Service::where('shop_id', $shopId)
+            ->where('status', 'active')
+            ->first();
+            
+        if ($fallbackService) {
+            return response()->json([
+                'success' => true,
+                'service_id' => $fallbackService->id,
+                'service_name' => $fallbackService->name,
+                'fallback' => true
+            ]);
+        }
+        
+        return response()->json(['error' => 'No matching service found'], 404);
+    } catch (\Exception $e) {
+        \Log::error('Service lookup error: ' . $e->getMessage());
+        return response()->json(['error' => 'Failed to look up service'], 500);
+    }
 });
