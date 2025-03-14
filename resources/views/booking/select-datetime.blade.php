@@ -174,7 +174,14 @@ use Illuminate\Support\Facades\Log;
             <!-- Time Selection -->
             <div class="mb-6">
                 <label class="block text-sm font-medium text-gray-700 mb-2">Select Time</label>
-                <p class="text-sm text-gray-500 mb-2">Each time slot ensures {{ $totalDuration }} minutes for your service(s)</p>
+                <p class="text-sm text-gray-500 mb-2">
+                    Each time slot ensures {{ $totalDuration }} minutes for your service(s). 
+                    <span class="text-blue-600 font-medium">
+                        Service duration: {{ $totalDuration }} minutes 
+                        ({{ floor($totalDuration/60) > 0 ? floor($totalDuration/60) . ' hour' . (floor($totalDuration/60) > 1 ? 's' : '') : '' }}
+                        {{ $totalDuration % 60 > 0 ? ($totalDuration % 60) . ' min' : '' }})
+                    </span>
+                </p>
                 
                 <!-- Loading State -->
                 <div x-show="loading" class="text-gray-500 text-sm mb-2">
@@ -202,6 +209,8 @@ use Illuminate\Support\Facades\Log;
                     <template x-for="slot in timeSlots" :key="slot.time">
                         <option :value="slot.time">
                             <span x-text="slot.time"></span>
+                            <span x-show="slot.end_time"> - </span>
+                            <span x-text="slot.end_time"></span>
                             <span x-text="' - ' + slot.available_employees + ' of ' + slot.total_employees + ' groomers available'"></span>
                         </option>
                     </template>
@@ -217,7 +226,11 @@ use Illuminate\Support\Facades\Log;
                                     'bg-blue-50 border-blue-200 text-blue-700': selectedTime === slot.time,
                                     'border-gray-200 hover:bg-gray-50': selectedTime !== slot.time
                                 }">
-                            <div class="font-medium" x-text="slot.time"></div>
+                            <div class="font-medium">
+                                <span x-text="slot.time"></span>
+                                <span x-show="slot.end_time"> - </span>
+                                <span x-text="slot.end_time"></span>
+                            </div>
                             <div class="text-xs mt-1" :class="{
                                 'text-blue-600': selectedTime === slot.time,
                                 'text-gray-500': selectedTime !== slot.time
@@ -418,31 +431,15 @@ function timeSlotPicker() {
                     const employeesData = await employeesResponse.json();
                     
                     if (employeesData.success) {
-                        // Filter out employees with time off
-                        const availableEmployees = employeesData.employees.filter(employee => {
-                            // Check for time off requests
-                            const hasTimeOff = employee.time_off_requests?.some(timeOff => {
-                                const timeOffStart = new Date(timeOff.start_date);
-                                const timeOffEnd = new Date(timeOff.end_date);
-                                timeOffStart.setHours(0, 0, 0, 0);
-                                timeOffEnd.setHours(23, 59, 59, 999);
-                                const appointmentDate = new Date(this.selectedDate);
-                                appointmentDate.setHours(0, 0, 0, 0);
-                                
-                                return (
-                                    appointmentDate >= timeOffStart && 
-                                    appointmentDate <= timeOffEnd &&
-                                    timeOff.status !== 'rejected'
-                                );
-                            });
-
-                            return !hasTimeOff;
-                        });
-
+                        // The backend should now correctly filter out employees with existing appointments
+                        // So we can just use the count of available employees from the response
+                        const availableEmployees = employeesData.employees.length;
+                        const totalEmployees = employeesData.employees.length;
+                        
                         slots.push({
                             ...slot,
-                            available_employees: availableEmployees.length,
-                            total_employees: employeesData.employees.length
+                            available_employees: availableEmployees,
+                            total_employees: totalEmployees
                         });
                     }
                 }
@@ -498,15 +495,24 @@ function timeSlotPicker() {
                     throw new Error(data.error);
                 }
 
+                // Parse the selected appointment start time properly
+                const [selectedTimeHours, selectedTimeMinutes, selectedTimePeriod] = this.selectedTime.match(/(\d+):(\d+)\s*([APM]{2})/).slice(1);
+                let hours = parseInt(selectedTimeHours);
+                if (selectedTimePeriod.toUpperCase() === 'PM' && hours < 12) hours += 12;
+                if (selectedTimePeriod.toUpperCase() === 'AM' && hours === 12) hours = 0;
+                
+                const appointmentStart = new Date(this.selectedDate);
+                appointmentStart.setHours(hours, parseInt(selectedTimeMinutes), 0, 0);
+                
+                const appointmentEnd = new Date(appointmentStart);
+                appointmentEnd.setMinutes(appointmentEnd.getMinutes() + {{ $totalDuration }});
+
                 // Filter employees based on their schedules and time off requests
                 this.availableEmployees = data.employees.map(employee => ({
                     ...employee,
                     rating: employee.rating || 0,
                     ratings_count: employee.ratings_count || 0
                 })).filter(employee => {
-                    const appointmentStart = new Date(`${this.selectedDate} ${this.selectedTime}`);
-                    const appointmentEnd = new Date(appointmentStart.getTime() + ({{ $totalDuration }} * 60000));
-                    
                     // Check for time off requests
                     const hasTimeOff = employee.time_off_requests?.some(timeOff => {
                         const timeOffStart = new Date(timeOff.start_date);
@@ -524,8 +530,88 @@ function timeSlotPicker() {
                             timeOff.status !== 'rejected'
                         );
                     });
+                    
+                    // Check for existing appointments
+                    const hasAppointment = employee.appointments?.some(appointment => {
+                        // Skip cancelled appointments
+                        if (appointment.status === 'cancelled' || appointment.status === 'completed') {
+                            return false;
+                        }
+                        
+                        // Parse appointment time properly using a more robust method
+                        try {
+                            // Create a base date from the appointment date
+                            const existingAppointmentDate = new Date(appointment.appointment_date);
+                            if (isNaN(existingAppointmentDate.getTime())) {
+                                console.error('Invalid appointment date:', appointment.appointment_date);
+                                return false;
+                            }
+                            
+                            // Parse the time portion
+                            const appointmentTime = appointment.appointment_time || '00:00 AM';
+                            const timeParts = appointmentTime.match(/(\d+):(\d+)\s*([APM]{2})/i);
+                            
+                            if (!timeParts) {
+                                console.error('Invalid appointment time format:', appointmentTime);
+                                return false;
+                            }
+                            
+                            let [_, hours, minutes, period] = timeParts;
+                            hours = parseInt(hours);
+                            minutes = parseInt(minutes);
+                            
+                            // Convert to 24-hour format
+                            if (period.toUpperCase() === 'PM' && hours < 12) hours += 12;
+                            if (period.toUpperCase() === 'AM' && hours === 12) hours = 0;
+                            
+                            // Set the time on our date object
+                            existingAppointmentDate.setHours(hours, minutes, 0, 0);
+                            
+                            // Calculate duration and end time
+                            let duration = appointment.total_duration || 0;
+                            
+                            // If no total_duration property and we have services, calculate it
+                            if (!duration && appointment.services && appointment.services.length > 0) {
+                                duration = appointment.services.reduce((total, service) => total + (service.duration || 0), 0);
+                            }
+                            
+                            // Default to 60 minutes if no duration calculated
+                            duration = duration || 60;
+                            
+                            const existingAppointmentEnd = new Date(existingAppointmentDate);
+                            existingAppointmentEnd.setMinutes(existingAppointmentEnd.getMinutes() + duration);
+                            
+                            // Only log for debugging if dates are valid
+                            if (!isNaN(existingAppointmentDate.getTime()) && 
+                                !isNaN(existingAppointmentEnd.getTime()) &&
+                                !isNaN(appointmentStart.getTime()) &&
+                                !isNaN(appointmentEnd.getTime())) {
+                                
+                                console.log('Checking appointment:', {
+                                    employeeId: employee.id,
+                                    employeeName: employee.name,
+                                    appointmentId: appointment.id,
+                                    requestedStart: appointmentStart.toLocaleString(),
+                                    requestedEnd: appointmentEnd.toLocaleString(),
+                                    existingStart: existingAppointmentDate.toLocaleString(),
+                                    existingEnd: existingAppointmentEnd.toLocaleString(),
+                                    duration: duration
+                                });
+                            }
+                            
+                            // Check for overlap
+                            return (
+                                (appointmentStart >= existingAppointmentDate && appointmentStart < existingAppointmentEnd) ||
+                                (appointmentEnd > existingAppointmentDate && appointmentEnd <= existingAppointmentEnd) ||
+                                (appointmentStart <= existingAppointmentDate && appointmentEnd >= existingAppointmentEnd)
+                            );
+                        } catch (error) {
+                            console.error('Error parsing appointment dates:', error);
+                            return false;
+                        }
+                    });
 
-                    return !hasTimeOff;
+                    return !hasTimeOff && !hasAppointment;
                 });
 
                 console.log('Available employees with ratings:', this.availableEmployees);

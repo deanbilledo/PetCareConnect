@@ -498,6 +498,13 @@
                     </button>
                 @endif
                 
+                @if($appointment->status === 'completed')
+                    <a href="{{ route('appointments.follow-up-form', $appointment) }}" 
+                       class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 inline-block">
+                        Schedule Follow-up
+                    </a>
+                @endif
+                
                 @if($appointment->status === 'accepted' || $appointment->status === 'completed')
                     <button @click="showNoteModal = true"
                        class="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 inline-flex items-center">

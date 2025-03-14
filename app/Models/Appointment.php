@@ -42,7 +42,9 @@ class Appointment extends Model
         'reschedule_rejected_at',
         'reschedule_rejection_reason',
         'service_id',
-        'has_rating'
+        'has_rating',
+        'is_follow_up',
+        'follow_up_for'
     ];
 
     protected $casts = [
@@ -127,5 +129,21 @@ class Appointment extends Model
     public function staffRatings()
     {
         return $this->hasMany(StaffRating::class);
+    }
+
+    /**
+     * Get the original appointment for a follow-up
+     */
+    public function originalAppointment()
+    {
+        return $this->belongsTo(Appointment::class, 'follow_up_for');
+    }
+
+    /**
+     * Get the follow-up appointments for this appointment
+     */
+    public function followUps()
+    {
+        return $this->hasMany(Appointment::class, 'follow_up_for');
     }
 } 

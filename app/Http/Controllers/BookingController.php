@@ -579,7 +579,8 @@ class BookingController extends Controller
         // Get all appointments for the day
         $appointments = $shop->appointments()
             ->whereDate('appointment_date', $date)
-            ->whereIn('status', ['pending', 'accepted'])
+            ->whereIn('status', ['pending', 'accepted', 'confirmed', 'reschedule_requested'])
+            ->with('services') // Load services to calculate duration
             ->get();
 
         $slots = [];
@@ -595,8 +596,17 @@ class BookingController extends Controller
             // Count how many employees are available in this time slot
             $busyEmployees = 0;
             foreach ($appointments as $appointment) {
-                $appointmentStart = Carbon::parse($appointment->appointment_date);
-                $appointmentEnd = $appointmentStart->copy()->addMinutes(60); // Assuming 1-hour duration
+                $appointmentStart = Carbon::parse($appointment->appointment_date . ' ' . $appointment->appointment_time);
+                
+                // Get the appointment's actual duration from its services
+                $appointmentDuration = 0;
+                foreach ($appointment->services as $service) {
+                    $appointmentDuration += $service->duration;
+                }
+                
+                // Use the actual duration or default to 60 minutes if no services
+                $appointmentDuration = $appointmentDuration > 0 ? $appointmentDuration : 60;
+                $appointmentEnd = $appointmentStart->copy()->addMinutes($appointmentDuration);
 
                 // Check if appointment overlaps with current slot
                 if (($start >= $appointmentStart && $start < $appointmentEnd) ||
@@ -613,11 +623,15 @@ class BookingController extends Controller
                 $slots[] = [
                     'time' => $start->format('g:i A'),
                     'available_employees' => $availableEmployees,
-                    'total_employees' => $totalEmployees
+                    'total_employees' => $totalEmployees,
+                    'end_time' => $slotEnd->format('g:i A') // Add end time
                 ];
             }
             
-            $start->addMinutes(30);
+            // For services longer than 60 minutes, use a smarter increment to avoid too many overlapping slots
+            // For shorter services, keep the 30-minute standard increment
+            $incrementMinutes = min(max(30, $totalDuration / 2), 60);
+            $start->addMinutes($incrementMinutes);
         }
 
         return $slots;
@@ -654,7 +668,8 @@ class BookingController extends Controller
             // Get existing appointments for the day
             $appointments = $shop->appointments()
                 ->whereDate('appointment_date', $date)
-                ->whereIn('status', ['pending', 'accepted'])
+                ->whereIn('status', ['pending', 'accepted', 'confirmed', 'reschedule_requested'])
+                ->with('services') // Load services to calculate real duration
                 ->get();
 
             $timeSlots = [];
@@ -689,8 +704,27 @@ class BookingController extends Controller
                 // Count busy employees in this time slot
                 $busyEmployees = 0;
                 foreach ($appointments as $appointment) {
-                    $appointmentStart = Carbon::parse($appointment->appointment_date);
-                    $appointmentEnd = $appointmentStart->copy()->addMinutes($appointment->duration ?? 60);
+                    $appointmentStart = Carbon::parse($appointment->appointment_date . ' ' . $appointment->appointment_time);
+                    
+                    // Calculate the actual duration from services
+                    $serviceDuration = 0;
+                    foreach ($appointment->services as $service) {
+                        $serviceDuration += $service->duration;
+                    }
+                    
+                    // Use calculated duration or default
+                    $appointmentDuration = $serviceDuration > 0 ? $serviceDuration : 60;
+                    $appointmentEnd = $appointmentStart->copy()->addMinutes($appointmentDuration);
+
+                    // Debug logging
+                    Log::debug('Checking appointment overlap in getTimeSlots', [
+                        'slot_start' => $currentTime->format('Y-m-d H:i:s'),
+                        'slot_end' => $slotEnd->format('Y-m-d H:i:s'),
+                        'appointment_id' => $appointment->id,
+                        'appointment_start' => $appointmentStart->format('Y-m-d H:i:s'),
+                        'appointment_end' => $appointmentEnd->format('Y-m-d H:i:s'),
+                        'appointment_duration' => $appointmentDuration
+                    ]);
 
                     if (($currentTime >= $appointmentStart && $currentTime < $appointmentEnd) ||
                         ($slotEnd > $appointmentStart && $slotEnd <= $appointmentEnd) ||
@@ -706,11 +740,15 @@ class BookingController extends Controller
                     $timeSlots[] = [
                         'time' => $currentTime->format('g:i A'),
                         'available_employees' => $availableEmployees,
-                        'total_employees' => $totalEmployees
+                        'total_employees' => $totalEmployees,
+                        'end_time' => $slotEnd->format('g:i A') // Add end time for clarity
                     ];
                 }
 
-                $currentTime->addMinutes(30);
+                // For services longer than 60 minutes, use a smarter increment to avoid too many overlapping slots
+                // For shorter services, keep the 30-minute standard increment
+                $incrementMinutes = min(max(30, $duration / 2), 60);
+                $currentTime->addMinutes($incrementMinutes);
             }
 
             if (empty($timeSlots)) {
@@ -782,6 +820,23 @@ class BookingController extends Controller
                 'service_ids.*' => 'exists:services,id'
             ]);
 
+            // Parse date and time for appointment
+            $date = $validated['date'];
+            $time = $validated['time'];
+            $duration = $validated['duration'];
+            
+            // Calculate appointment start and end times
+            $appointmentDateTime = \Carbon\Carbon::parse("$date $time");
+            $appointmentEndTime = (clone $appointmentDateTime)->addMinutes($duration);
+
+            // Get existing appointments for this shop on the same date
+            $existingAppointments = $shop->appointments()
+                ->whereDate('appointment_date', $date)
+                ->whereIn('status', ['pending', 'accepted', 'confirmed', 'reschedule_requested'])
+                ->with('employee') // Load the employee relationship
+                ->with('services') // Load the services relationship to calculate duration
+                ->get();
+
             // Get all employees who can perform the requested services
             $employees = $shop->employees()
                 ->whereHas('services', function ($query) use ($validated) {
@@ -798,6 +853,10 @@ class BookingController extends Controller
                 ->with(['staffRatings' => function($query) {
                     $query->select('employee_id', 'rating');
                 }])
+                ->with(['appointments' => function($query) use ($date) {
+                    $query->whereDate('appointment_date', $date)
+                          ->whereIn('status', ['pending', 'accepted', 'confirmed', 'reschedule_requested']);
+                }])
                 ->get()
                 ->each(function ($employee) {
                     // Append the profile_photo_url attribute
@@ -805,13 +864,78 @@ class BookingController extends Controller
                     // Calculate average rating
                     $employee->rating = $employee->staffRatings->avg('rating') ?? 0;
                     $employee->ratings_count = $employee->staffRatings->count();
+                    // Calculate total duration for each appointment
+                    foreach ($employee->appointments as $appointment) {
+                        // Ensure each appointment has a total_duration property
+                        $services = $appointment->services;
+                        $totalDuration = 0;
+                        foreach ($services as $service) {
+                            $totalDuration += $service->duration;
+                        }
+                        $appointment->total_duration = $totalDuration > 0 ? $totalDuration : 60; // Default to 60 mins
+                    }
                     // Remove the staffRatings relationship from the response
                     unset($employee->staffRatings);
                 });
 
+            // Filter out employees who already have appointments during the requested time slot
+            $availableEmployees = $employees->filter(function ($employee) use ($appointmentDateTime, $appointmentEndTime, $existingAppointments, $time) {
+                // Check if employee has any overlapping appointments
+                foreach ($existingAppointments as $appointment) {
+                    // Skip if this appointment is not for this employee
+                    if ($appointment->employee_id !== $employee->id) {
+                        continue;
+                    }
+                    
+                    // Parse appointment start and end times
+                    $existingAppointmentStart = \Carbon\Carbon::parse($appointment->appointment_date . ' ' . $appointment->appointment_time);
+                    
+                    // Get appointment total duration from services
+                    $totalDuration = 0;
+                    foreach ($appointment->services as $service) {
+                        $totalDuration += $service->duration;
+                    }
+                    $appointmentDuration = $totalDuration > 0 ? $totalDuration : 60; // Default to 60 mins if not specified
+                    
+                    $existingAppointmentEnd = (clone $existingAppointmentStart)->addMinutes($appointmentDuration);
+                    
+                    \Log::info('Checking appointment overlap', [
+                        'employee_id' => $employee->id,
+                        'employee_name' => $employee->name,
+                        'requested_date' => $appointmentDateTime->format('Y-m-d'),
+                        'requested_time' => $time,
+                        'requested_start' => $appointmentDateTime->format('Y-m-d H:i:s'),
+                        'requested_end' => $appointmentEndTime->format('Y-m-d H:i:s'),
+                        'existing_appointment_id' => $appointment->id,
+                        'existing_date' => $appointment->appointment_date,
+                        'existing_time' => $appointment->appointment_time,
+                        'existing_start' => $existingAppointmentStart->format('Y-m-d H:i:s'),
+                        'existing_end' => $existingAppointmentEnd->format('Y-m-d H:i:s'),
+                        'duration' => $appointmentDuration
+                    ]);
+                    
+                    // Check for overlap
+                    if (
+                        ($appointmentDateTime >= $existingAppointmentStart && $appointmentDateTime < $existingAppointmentEnd) ||
+                        ($appointmentEndTime > $existingAppointmentStart && $appointmentEndTime <= $existingAppointmentEnd) ||
+                        ($appointmentDateTime <= $existingAppointmentStart && $appointmentEndTime >= $existingAppointmentEnd)
+                    ) {
+                        \Log::info('Employee has overlapping appointment', [
+                            'employee_id' => $employee->id,
+                            'employee_name' => $employee->name,
+                            'appointment_id' => $appointment->id
+                        ]);
+                        // This employee has an overlapping appointment
+                        return false;
+                    }
+                }
+                
+                return true;
+            });
+
             return response()->json([
                 'success' => true,
-                'employees' => $employees
+                'employees' => $availableEmployees->values()
             ]);
 
         } catch (\Exception $e) {

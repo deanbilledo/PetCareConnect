@@ -10,13 +10,7 @@
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-          crossorigin="anonymous"/>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-            crossorigin="anonymous"></script>   
+    <!-- jQuery and Leaflet are now imported via npm/Vite -->
             
     <style>
         [x-cloak] { 
@@ -203,8 +197,11 @@
     </div>
 
     <!-- Scripts -->
-    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <!-- <script src="{{ asset('js/app.js') }}" defer></script> -->
+    <!-- AlpineJS and app.js are now loaded via Vite -->
+    <!-- Shop Search Script (for home page only) -->
+    @if(Route::currentRouteName() == 'home')
+    <script src="{{ asset('js/shop-search.js') }}" defer></script>
+    @endif
     <script src="{{ asset('js/loading-screen.js') }}"></script>
     
     <!-- Initialize Session Messages as Toast Notifications -->

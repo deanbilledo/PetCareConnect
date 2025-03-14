@@ -121,6 +121,7 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/appointments/{appointment}', [ShopAppointmentController::class, 'show'])->name('appointments.show');
             Route::post('/appointments/{appointment}/mark-viewed', [ShopAppointmentController::class, 'markAsViewed'])->name('appointments.mark-viewed');
             Route::post('/appointments/{appointment}/reassign', [ShopAppointmentController::class, 'reassignEmployee'])->name('appointments.reassign');
+            Route::post('/appointments/{appointment}/schedule-follow-up', [ShopAppointmentController::class, 'scheduleFollowUp'])->name('appointments.schedule-follow-up');
             Route::get('/payments', [ShopAppointmentController::class, 'payments'])->name('payments');
             Route::post('/mode/customer', [ShopDashboardController::class, 'switchToCustomerMode'])->name('mode.customer');
             
@@ -461,3 +462,15 @@ Route::get('/service-lookup', function (Request $request) {
         return response()->json(['error' => 'Failed to look up service'], 500);
     }
 });
+
+// Shop Appointment Actions
+Route::get('/appointments/{appointment}/accept', [ShopAppointmentController::class, 'accept'])->name('appointments.accept');
+Route::post('/appointments/{appointment}/cancel', [ShopAppointmentController::class, 'cancel'])->name('appointments.cancel');
+Route::post('/appointments/{appointment}/mark-paid', [ShopAppointmentController::class, 'markAsPaid'])->name('appointments.mark-paid');
+Route::post('/appointments/{appointment}/add-note', [ShopAppointmentController::class, 'addNote'])->name('appointments.add-note');
+Route::post('/appointments/{appointment}/reassign', [ShopAppointmentController::class, 'reassign'])->name('appointments.reassign');
+Route::post('/appointments/{appointment}/report', [ShopAppointmentController::class, 'submitReport'])->name('appointments.report');
+
+// Follow-up Appointment Routes
+Route::get('/appointments/{appointment}/follow-up', [ShopAppointmentController::class, 'showFollowUpForm'])->name('appointments.follow-up-form');
+Route::post('/appointments/{appointment}/schedule-follow-up', [ShopAppointmentController::class, 'scheduleFollowUp'])->name('appointments.schedule-follow-up');
