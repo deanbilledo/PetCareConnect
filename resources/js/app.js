@@ -1,7 +1,12 @@
 import './bootstrap';
 import '../css/app.css';
 import Alpine from 'alpinejs';
+import $ from 'jquery';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 
+window.$ = window.jQuery = $;
+window.L = L;
 window.Alpine = Alpine;
 Alpine.start();
 

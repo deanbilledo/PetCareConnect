@@ -521,4 +521,173 @@ class ShopAppointmentController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Show the form for scheduling a follow-up appointment
+     *
+     * @param \App\Models\Appointment $appointment
+     * @return \Illuminate\View\View
+     */
+    public function showFollowUpForm(\App\Models\Appointment $appointment)
+    {
+        // Check if the shop owner has permission to create follow-up for this appointment
+        if ($appointment->shop_id !== auth()->user()->shop->id) {
+            return redirect()->back()->with('error', 'You are not authorized to schedule follow-ups for this appointment.');
+        }
+        
+        // Check if the appointment is completed
+        if ($appointment->status !== 'completed') {
+            return redirect()->back()->with('error', 'Only completed appointments can have follow-ups scheduled.');
+        }
+        
+        // Get all active services for the shop
+        $services = auth()->user()->shop->services()->where('status', 'active')->get();
+        
+        return view('shop.appointments.follow-up', [
+            'appointment' => $appointment,
+            'services' => $services
+        ]);
+    }
+
+    /**
+     * Schedule a follow-up appointment for an existing appointment
+     *
+     * @param \Illuminate\Http\Request $request
+     * @param \App\Models\Appointment $appointment
+     * @return \Illuminate\Http\Response
+     */
+    public function scheduleFollowUp(Request $request, \App\Models\Appointment $appointment)
+    {
+        try {
+            // Check if the shop owner has permission to create follow-up for this appointment
+            if ($appointment->shop_id !== auth()->user()->shop->id) {
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'success' => false, 
+                        'message' => 'You are not authorized to schedule follow-ups for this appointment.'
+                    ], 403);
+                }
+                return redirect()->back()->with('error', 'You are not authorized to schedule follow-ups for this appointment.');
+            }
+            
+            // Check if the appointment is completed
+            if ($appointment->status !== 'completed') {
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'success' => false, 
+                        'message' => 'Only completed appointments can have follow-ups scheduled.'
+                    ], 400);
+                }
+                return redirect()->back()->with('error', 'Only completed appointments can have follow-ups scheduled.');
+            }
+            
+            // Validate the request
+            $validated = $request->validate([
+                'service_type' => 'required|string',
+                'appointment_date' => 'required|date|after:today',
+                'appointment_time' => 'required|string',
+                'employee_id' => 'required|exists:employees,id',
+                'service_price' => 'required|numeric',
+                'notes' => 'nullable|string'
+            ]);
+            
+            // Get price for the service
+            $service = auth()->user()->shop->services()
+                ->where('name', $validated['service_type'])
+                ->first();
+                
+            if (!$service) {
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Selected service is not available in this shop.'
+                    ], 400);
+                }
+                return redirect()->back()->with('error', 'Selected service is not available in this shop.')->withInput();
+            }
+            
+            // Combine date and time to create appointment datetime
+            $appointmentDateTime = \Carbon\Carbon::parse(
+                $validated['appointment_date'] . ' ' . $validated['appointment_time']
+            );
+            
+            // Create the follow-up appointment
+            $followUpAppointment = new \App\Models\Appointment([
+                'user_id' => $appointment->user_id,
+                'shop_id' => $appointment->shop_id,
+                'pet_id' => $appointment->pet_id,
+                'employee_id' => $validated['employee_id'],
+                'service_type' => $validated['service_type'],
+                'service_price' => $validated['service_price'],
+                'appointment_date' => $appointmentDateTime,
+                'status' => 'accepted', // Auto-accept the follow-up appointment
+                'payment_status' => 'unpaid',
+                'notes' => $validated['notes'],
+                'is_follow_up' => true,
+                'follow_up_for' => $appointment->id,
+                'accepted_at' => now()
+            ]);
+            
+            $followUpAppointment->save();
+            
+            // Create notification for the customer
+            $appointment->user->notifications()->create([
+                'type' => 'follow_up_scheduled',
+                'title' => 'Follow-up Appointment Scheduled',
+                'message' => "A follow-up appointment has been scheduled for you at {$appointment->shop->name} on {$appointmentDateTime->format('F j, Y')} at {$appointmentDateTime->format('g:i A')}.",
+                'action_url' => route('shop.appointments.show', $followUpAppointment),
+                'action_text' => 'View Appointment',
+                'status' => 'unread'
+            ]);
+            
+            // Log the follow-up appointment creation
+            \Log::info('Follow-up appointment scheduled', [
+                'original_appointment_id' => $appointment->id,
+                'follow_up_appointment_id' => $followUpAppointment->id,
+                'scheduled_by' => auth()->user()->id,
+                'for_user' => $appointment->user_id,
+                'date_time' => $appointmentDateTime
+            ]);
+            
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Follow-up appointment scheduled successfully',
+                    'appointment_id' => $followUpAppointment->id
+                ]);
+            }
+            
+            return redirect()->route('shop.appointments.show', $followUpAppointment)
+                ->with('success', 'Follow-up appointment scheduled successfully');
+            
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $e->errors()
+                ], 422);
+            }
+            
+            return redirect()->back()->withErrors($e->errors())->withInput();
+            
+        } catch (\Exception $e) {
+            \Log::error('Error scheduling follow-up appointment', [
+                'appointment_id' => $appointment->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'An error occurred while scheduling the follow-up appointment: ' . $e->getMessage()
+                ], 500);
+            }
+            
+            return redirect()->back()
+                ->with('error', 'An error occurred while scheduling the follow-up appointment: ' . $e->getMessage())
+                ->withInput();
+        }
+    }
 } 

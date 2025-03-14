@@ -71,4 +71,8 @@ Route::get('/services/lookup', function (Request $request) {
 });
 
 // Public API route for service details with popular appointments
-Route::get('/services/{serviceId}', 'App\Http\Controllers\ShopServicesController@getServiceDetails'); 
+Route::get('/services/{serviceId}', 'App\Http\Controllers\ShopServicesController@getServiceDetails');
+
+// Shop search routes
+Route::get('/shops/search', 'App\Http\Controllers\ShopController@searchByLocation');
+Route::get('/shops/all', 'App\Http\Controllers\ShopController@getAllShops'); 

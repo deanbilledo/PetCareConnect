@@ -171,7 +171,7 @@ class ShopController extends Controller
 
     /**
 
-     * Search for shops near a given location
+     * Search for shops and services near a given location
 
      *
 
@@ -195,59 +195,273 @@ class ShopController extends Controller
 
             $radius = $request->input('radius', 10); // km, default 10km
 
+            $query = $request->input('query'); // text search query
+
+            $includeServices = $request->input('include_services', true); // include services in results
+
             
 
-            // Validate inputs
+            // Start building the shop query
 
-            if (!$latitude || !$longitude) {
+            $shopsQuery = Shop::query()->where('status', 'active');
 
-                return response()->json(['error' => 'Location is required'], 400);
+            
+
+            // Apply text search if query is provided
+
+            if ($query) {
+
+                $shopsQuery->where(function($q) use ($query) {
+
+                    $q->where('name', 'like', "%{$query}%")
+
+                      ->orWhere('description', 'like', "%{$query}%")
+
+                      ->orWhere('address', 'like', "%{$query}%");
+
+                });
 
             }
 
             
 
-            // Earth radius in kilometers
+            // Apply type filter if provided
 
-            $earthRadius = 6371;
+            if ($type) {
+
+                $shopsQuery->where('type', $type);
+
+            }
 
             
 
-            // Haversine formula to calculate distance
+            // If location is provided, calculate distance
 
-            $shops = Shop::selectRaw("
+            if ($latitude && $longitude) {
 
-                    id, name, type, phone, description, address, 
+                // Earth radius in kilometers
 
-                    image, latitude, longitude, status,
-
-                    ($earthRadius * acos(cos(radians(?)) * cos(radians(latitude)) * cos(radians(longitude) - radians(?)) + sin(radians(?)) * sin(radians(latitude)))) AS distance", 
-
-                    [$latitude, $longitude, $latitude])
-
-                ->where('status', 'active')
-
-                ->when($type, function($query, $type) {
-
-                    return $query->where('type', $type);
-
-                })
-
-                ->having('distance', '<=', $radius)
-
-                ->orderBy('distance')
-
-                ->limit(15)
-
-                ->get();
+                $earthRadius = 6371;
 
                 
+
+                // Haversine formula to calculate distance
+
+                $shopsQuery->selectRaw("
+
+                        id, name, type, phone, description, address, 
+
+                        image, latitude, longitude, status, rating,
+
+                        ($earthRadius * acos(cos(radians(?)) * cos(radians(latitude)) * cos(radians(longitude) - radians(?)) + sin(radians(?)) * sin(radians(latitude)))) AS distance", 
+
+                        [$latitude, $longitude, $latitude])
+
+                    ->whereNotNull('latitude')
+
+                    ->whereNotNull('longitude')
+
+                    ->having('distance', '<=', $radius)
+
+                    ->orderBy('distance');
+
+            } else {
+
+                // If no location, just select the fields without distance
+
+                $shopsQuery->select('id', 'name', 'type', 'phone', 'description', 'address', 
+
+                               'image', 'latitude', 'longitude', 'status', 'rating')
+
+                     ->orderBy('rating', 'desc');
+
+            }
+
+            
+
+            // Get the shop results (limited to 10 if including services)
+
+            $limit = $includeServices ? 10 : 20;
+
+            $shops = $shopsQuery->limit($limit)->get();
+
+            
+
+            // Add result_type field to identify as shop
+
+            $shops->transform(function($shop) {
+
+                $shop->result_type = 'shop';
+
+                return $shop;
+
+            });
+
+            
+
+            // Prepare the final results array
+
+            $results = $shops->toArray();
+
+            
+
+            // If we should include services and have a search query
+
+            if ($includeServices && $query) {
+
+                // Get shop IDs to limit service search to these shops
+
+                $shopIds = $shops->pluck('id')->toArray();
+
+                
+
+                // Create a service query that matches the search term
+
+                $servicesQuery = \App\Models\Service::query()
+
+                    ->where('status', 'active')
+
+                    ->where(function($q) use ($query) {
+
+                        $q->where('name', 'like', "%{$query}%")
+
+                          ->orWhere('description', 'like', "%{$query}%")
+
+                          ->orWhere('category', 'like', "%{$query}%");
+
+                    });
+
+                
+
+                // If we have shops nearby, prioritize their services
+
+                if (!empty($shopIds)) {
+
+                    $servicesQuery->whereIn('shop_id', $shopIds);
+
+                }
+
+                
+
+                // Get services with their shop data
+
+                $services = $servicesQuery->with('shop')
+
+                    ->orderBy('name')
+
+                    ->limit(10)
+
+                    ->get();
+
+                
+
+                // Transform services to include necessary data
+
+                $serviceResults = $services->map(function($service) use ($latitude, $longitude) {
+
+                    // Calculate distance if we have coordinates
+
+                    $distance = null;
+
+                    if ($latitude && $longitude && $service->shop->latitude && $service->shop->longitude) {
+
+                        $earthRadius = 6371;
+
+                        $latFrom = deg2rad($latitude);
+
+                        $lonFrom = deg2rad($longitude);
+
+                        $latTo = deg2rad($service->shop->latitude);
+
+                        $lonTo = deg2rad($service->shop->longitude);
+
+                        
+
+                        $latDelta = $latTo - $latFrom;
+
+                        $lonDelta = $lonTo - $lonFrom;
+
+                        
+
+                        $angle = 2 * asin(sqrt(pow(sin($latDelta / 2), 2) + 
+
+                            cos($latFrom) * cos($latTo) * pow(sin($lonDelta / 2), 2)));
+
+                        $distance = $angle * $earthRadius;
+
+                    }
+
+                    
+
+                    return [
+
+                        'id' => $service->id,
+
+                        'shop_id' => $service->shop_id,
+
+                        'name' => $service->name,
+
+                        'description' => $service->description,
+
+                        'category' => $service->category,
+
+                        'base_price' => $service->base_price,
+
+                        'duration' => $service->duration,
+
+                        'result_type' => 'service',
+
+                        'shop_name' => $service->shop->name,
+
+                        'shop_type' => $service->shop->type,
+
+                        'shop_address' => $service->shop->address,
+
+                        'shop_image' => $service->shop->image,
+
+                        'latitude' => $service->shop->latitude,
+
+                        'longitude' => $service->shop->longitude,
+
+                        'distance' => $distance
+
+                    ];
+
+                });
+
+                
+
+                // Add services to results
+
+                $results = array_merge($results, $serviceResults->toArray());
+
+                
+
+                // Sort by distance if available
+
+                if ($latitude && $longitude) {
+
+                    usort($results, function($a, $b) {
+
+                        $distA = $a['distance'] ?? PHP_FLOAT_MAX;
+
+                        $distB = $b['distance'] ?? PHP_FLOAT_MAX;
+
+                        return $distA <=> $distB;
+
+                    });
+
+                }
+
+            }
+
+            
 
             return response()->json([
 
                 'success' => true,
 
-                'shops' => $shops,
+                'shops' => $results,
 
             ]);
 
@@ -268,17 +482,41 @@ class ShopController extends Controller
     /**
      * Get all active shops for map display
      *
+     * @param \Illuminate\Http\Request $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function getAllShops()
+    public function getAllShops(Request $request)
     {
         try {
-            $shops = Shop::select('id', 'name', 'type', 'phone', 'description', 'address', 
-                               'image', 'latitude', 'longitude', 'status')
+            $latitude = $request->input('latitude');
+            $longitude = $request->input('longitude');
+            
+            // Start building the shop query
+            $shopsQuery = Shop::query()
                 ->where('status', 'active')
                 ->whereNotNull('latitude')
-                ->whereNotNull('longitude')
-                ->get();
+                ->whereNotNull('longitude');
+            
+            // If location is provided, calculate distance
+            if ($latitude && $longitude) {
+                // Earth radius in kilometers
+                $earthRadius = 6371;
+                
+                // Haversine formula to calculate distance
+                $shopsQuery->selectRaw("
+                        id, name, type, phone, description, address, 
+                        image, latitude, longitude, status, rating,
+                        ($earthRadius * acos(cos(radians(?)) * cos(radians(latitude)) * cos(radians(longitude) - radians(?)) + sin(radians(?)) * sin(radians(latitude)))) AS distance", 
+                        [$latitude, $longitude, $latitude])
+                    ->orderBy('distance');
+            } else {
+                // If no location, just select the fields without distance
+                $shopsQuery->select('id', 'name', 'type', 'phone', 'description', 'address', 
+                               'image', 'latitude', 'longitude', 'status', 'rating')
+                     ->orderBy('rating', 'desc');
+            }
+            
+            $shops = $shopsQuery->get();
             
             return response()->json([
                 'success' => true,

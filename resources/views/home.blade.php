@@ -20,8 +20,10 @@
                     <input 
                         type="text" 
                         id="location-search" 
-                        placeholder="Search for shops or services" 
-                            class="w-full px-12 py-2 border rounded-full text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+
+                        placeholder="Pet Services Near You/Search Shop or Services" 
+                        class="w-full px-12 py-2 border rounded-full text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-5
+
                     >
                         <svg class="h-5 w-5 text-gray-400 absolute right-3 cursor-pointer hover:text-blue-500 transition-colors duration-200" 
                          id="getCurrentLocation"
@@ -31,7 +33,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
                     </div>
-                    <div id="search-results" class="absolute w-full mt-1 bg-white rounded-lg shadow-lg hidden z-50"></div>
+                    <!-- We've removed the dropdown as we're going directly to full search results -->
                 </div>
             </div>
             <div class="w-full lg:w-1/2 relative">
@@ -40,6 +42,11 @@
         </div>
     </section>
 
+    <!-- Search Results Section -->
+    @include('partials.search-results')
+
+    <!-- All the sections below will be hidden when showing search results -->
+    <div id="content-sections">
     <!-- Most Popular Section -->
     @include('partials.most-popular', ['popularShops' => $popularShops])
 
@@ -195,6 +202,8 @@
             </div>
         </div>
     </section>
+
+        </div> <!-- End of content-sections div -->
 
     <!-- Add this modal/popup HTML at the end of your content section -->
     <div id="map-modal" class="fixed inset-0 bg-gray-800 bg-opacity-75 hidden items-center justify-center z-50">
