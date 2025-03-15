@@ -98,13 +98,14 @@ class AppointmentController extends Controller
                 $appointment->save();
                 
                 // Notify shop owner about cancellation request
-                $appointment->shop->user->notifications()->create([
+                $appointment->shop->user->notifyWithEmail([
                     'type' => 'cancellation_requested',
                     'title' => 'Cancellation Request',
                     'message' => "A customer has requested to cancel their appointment scheduled for {$appointment->appointment_date->format('F j, Y g:i A')}. Reason: {$request->reason}",
                     'action_url' => route('shop.appointments.show', $appointment),
                     'action_text' => 'View Request',
-                    'status' => 'unread'
+                    'status' => 'unread',
+                    'icon' => 'customer_cancelled_appointment'
                 ]);
                 
                 Log::info('Cancellation request submitted successfully');
@@ -122,23 +123,25 @@ class AppointmentController extends Controller
             $appointment->save();
 
             // Create notification for cancelled appointment
-            $appointment->user->notifications()->create([
+            $appointment->user->notifyWithEmail([
                 'type' => 'appointment_cancelled',
                 'title' => 'Appointment Cancelled',
                 'message' => "Your appointment at {$appointment->shop->name} for {$appointment->appointment_date->format('F j, Y g:i A')} has been cancelled.",
                 'action_url' => route('appointments.show', $appointment),
                 'action_text' => 'View Details',
-                'status' => 'unread'
+                'status' => 'unread',
+                'icon' => 'customer_cancelled_appointment'
             ]);
             
             // Also notify the shop owner about the cancellation
-            $appointment->shop->user->notifications()->create([
+            $appointment->shop->user->notifyWithEmail([
                 'type' => 'customer_cancelled_appointment',
                 'title' => 'Appointment Cancelled by Customer',
                 'message' => "The appointment for {$appointment->user->name} scheduled for {$appointment->appointment_date->format('F j, Y g:i A')} has been cancelled by the customer. Reason: " . ($request->reason ?: 'No reason provided'),
                 'action_url' => route('shop.appointments.show', $appointment),
                 'action_text' => 'View Details',
-                'status' => 'unread'
+                'status' => 'unread',
+                'icon' => 'customer_cancelled_appointment'
             ]);
 
             Log::info('Appointment cancelled successfully');
@@ -192,13 +195,14 @@ class AppointmentController extends Controller
             ]);
 
             // Create notification for the customer
-            $appointment->user->notifications()->create([
+            $appointment->user->notifyWithEmail([
                 'type' => 'cancellation_approved',
                 'title' => 'Cancellation Request Approved',
                 'message' => "Your cancellation request for the appointment at {$appointment->shop->name} scheduled for {$appointment->appointment_date->format('F j, Y g:i A')} has been approved.",
                 'action_url' => route('appointments.show', $appointment),
                 'action_text' => 'View Details',
-                'status' => 'unread'
+                'status' => 'unread',
+                'icon' => 'appointment_reschedule'
             ]);
 
             Log::info('Cancellation request approved', [
@@ -255,13 +259,14 @@ class AppointmentController extends Controller
             ]);
 
             // Create notification for the customer
-            $appointment->user->notifications()->create([
+            $appointment->user->notifyWithEmail([
                 'type' => 'cancellation_declined',
                 'title' => 'Cancellation Request Declined',
                 'message' => "Your cancellation request for the appointment at {$appointment->shop->name} scheduled for {$appointment->appointment_date->format('F j, Y g:i A')} has been declined. Reason: {$request->reason}",
                 'action_url' => route('appointments.show', $appointment),
                 'action_text' => 'View Details',
-                'status' => 'unread'
+                'status' => 'unread',
+                'icon' => 'appointment'
             ]);
 
             Log::info('Cancellation request declined', [
@@ -401,13 +406,14 @@ class AppointmentController extends Controller
             ]);
 
             // Create notification for approved reschedule
-            $appointment->user->notifications()->create([
+            $appointment->user->notifyWithEmail([
                 'type' => 'reschedule_approved',
                 'title' => 'Reschedule Request Approved',
                 'message' => "Your reschedule request for {$appointment->shop->name} has been approved. Your new appointment is on {$appointment->appointment_date->format('F j, Y g:i A')}.",
                 'action_url' => route('appointments.show', $appointment),
                 'action_text' => 'View Appointment',
-                'status' => 'unread'
+                'status' => 'unread',
+                'icon' => 'appointment_reschedule'
             ]);
 
             return response()->json([
@@ -442,6 +448,17 @@ class AppointmentController extends Controller
                 'status' => 'accepted', // Revert to previous status
                 'reschedule_rejection_reason' => $request->reason,
                 'reschedule_rejected_at' => now()
+            ]);
+
+            // Notify the customer
+            $appointment->user->notifyWithEmail([
+                'type' => 'reschedule_declined',
+                'title' => 'Reschedule Request Declined',
+                'message' => "Your reschedule request for the appointment at {$appointment->shop->name} scheduled for {$appointment->appointment_date->format('F j, Y g:i A')} has been declined. Reason: {$request->reason}",
+                'action_url' => route('appointments.show', $appointment),
+                'action_text' => 'View Details',
+                'status' => 'unread',
+                'icon' => 'appointment'
             ]);
 
             return response()->json([
@@ -493,13 +510,14 @@ class AppointmentController extends Controller
             ]);
 
             // Create notification for accepted appointment
-            $appointment->user->notifications()->create([
+            $appointment->user->notifyWithEmail([
                 'type' => 'appointment_accepted',
                 'title' => 'Appointment Accepted',
                 'message' => "Your appointment at {$appointment->shop->name} for {$appointment->appointment_date->format('F j, Y g:i A')} has been accepted.",
                 'action_url' => route('appointments.show', $appointment),
                 'action_text' => 'View Appointment',
-                'status' => 'unread'
+                'status' => 'unread',
+                'icon' => 'appointment'
             ]);
 
             Log::info('Appointment accepted successfully', [
@@ -539,13 +557,14 @@ class AppointmentController extends Controller
             ]);
 
             // Create notification for completed appointment
-            $appointment->user->notifications()->create([
+            $appointment->user->notifyWithEmail([
                 'type' => 'appointment_completed',
                 'title' => 'Appointment Completed',
                 'message' => "Your appointment at {$appointment->shop->name} has been completed. Thank you for your business!",
                 'action_url' => route('appointments.show', $appointment),
                 'action_text' => 'View Details',
-                'status' => 'unread'
+                'status' => 'unread',
+                'icon' => 'appointment'
             ]);
 
             return response()->json([
@@ -572,7 +591,19 @@ class AppointmentController extends Controller
             $appointment->update([
                 'status' => 'cancelled',
                 'cancellation_reason' => $request->reason,
-                'cancelled_by' => 'shop'
+                'cancelled_by' => 'shop',
+                'cancelled_at' => now()
+            ]);
+
+            // Notify the customer about the cancellation
+            $appointment->user->notifyWithEmail([
+                'type' => 'appointment_cancelled',
+                'title' => 'Appointment Cancelled by Shop',
+                'message' => "Your appointment at {$appointment->shop->name} for {$appointment->appointment_date->format('F j, Y g:i A')} has been cancelled by the shop. Reason: " . ($request->reason ?: 'No reason provided'),
+                'action_url' => route('appointments.show', $appointment),
+                'action_text' => 'View Details',
+                'status' => 'unread',
+                'icon' => 'customer_cancelled_appointment'
             ]);
 
             return response()->json([
@@ -723,13 +754,14 @@ class AppointmentController extends Controller
 
             foreach ($upcomingAppointments as $appointment) {
                 // Create notification for upcoming appointment
-                $appointment->user->notifications()->create([
+                $appointment->user->notifyWithEmail([
                     'type' => 'appointment_reminder',
                     'title' => 'Upcoming Appointment Reminder',
                     'message' => "Your appointment at {$appointment->shop->name} is in less than an hour! Please be ready for your {$appointment->service_type} appointment at {$appointment->appointment_date->format('g:i A')}.",
                     'action_url' => route('appointments.show', $appointment),
                     'action_text' => 'View Appointment',
-                    'status' => 'unread'
+                    'status' => 'unread',
+                    'icon' => 'appointment'
                 ]);
 
                 // Mark reminder as sent

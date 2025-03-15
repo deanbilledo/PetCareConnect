@@ -293,11 +293,13 @@ class TestmailServiceProvider extends ServiceProvider
             session(['password_reset_email' => $email]);
             
             return (new \Illuminate\Notifications\Messages\MailMessage)
-                ->subject('Reset Password Notification')
+                ->subject('Reset Your ' . config('app.name') . ' Password')
+                ->greeting('Hello Pet Lover!')
                 ->line('You are receiving this email because we received a password reset request for your account.')
                 ->action('Reset Password', $resetUrl)
                 ->line('This password reset link will expire in 60 minutes.')
-                ->line('If you did not request a password reset, no further action is required.');
+                ->line('If you did not request a password reset, no further action is required.')
+                ->salutation('Wags and purrs,');
         });
     }
 } 

@@ -715,44 +715,8 @@
                     <p class="text-sm text-gray-600 mt-1">Please provide details about your concern</p>
                 </div>
 
-                <!-- Report Form -->
-                <form class="space-y-4" id="reportShopForm">
-                    @csrf
-                    <input type="hidden" name="_token" value="{{ csrf_token() }}">
-                    <input type="hidden" name="shop_id" value="{{ $shop->id }}">
-                    <!-- Report Type -->
-                    <div>
-                        <label for="reportType" class="block text-sm font-medium text-gray-700 mb-1">Report Type</label>
-                        <select id="reportType" name="report_type"
-                                class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                            <option value="">Select a reason</option>
-                            <option value="inappropriate">Inappropriate Content</option>
-                            <option value="scam">Potential Scam</option>
-                            <option value="misrepresentation">False Information</option>
-                            <option value="harassment">Harassment</option>
-                            <option value="poor_service">Poor Service</option>
-                            <option value="other">Other</option>
-                        </select>
-                    </div>
-
-                    <!-- Description -->
-                    <div>
-                        <label for="reportDescription" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                        <textarea id="reportDescription" name="description"
-                                  rows="4" 
-                                  class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                                  placeholder="Please provide more details about your report..."></textarea>
-                    </div>
-
-                    <!-- Submit Button -->
-                    <button type="button"
-                            onclick="submitReport()"
-                            class="w-full bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600 transition-colors"
-                            id="submitReportBtn">
-                        Submit Report
-                    </button>
-                    <div id="reportStatusMessage" class="mt-2 text-center hidden"></div>
-                </form>
+                <!-- Report Form Component -->
+                <x-report-form type="shop" :id="$shop->id" />
             </div>
         </div>
     </div>
@@ -764,97 +728,12 @@
 
         function closeReportModal() {
             document.getElementById('reportModal').classList.add('hidden');
-            // Reset form
-            document.getElementById('reportShopForm').reset();
-            document.getElementById('reportStatusMessage').classList.add('hidden');
-            document.getElementById('reportStatusMessage').textContent = '';
+            // Our new component handles form resetting internally, so we don't need to reset it here
+            // Just make sure the form container is hidden
         }
 
-        function submitReport() {
-            const form = document.getElementById('reportShopForm');
-            const reportType = document.getElementById('reportType').value;
-            const reportDescription = document.getElementById('reportDescription').value;
-            const submitBtn = document.getElementById('submitReportBtn');
-            const statusMessage = document.getElementById('reportStatusMessage');
-            
-            // Validate form
-            if (!reportType) {
-                statusMessage.textContent = 'Please select a report type';
-                statusMessage.classList.remove('hidden', 'text-green-500');
-                statusMessage.classList.add('text-red-500');
-                return;
-            }
-            
-            if (!reportDescription || reportDescription.trim().length < 10) {
-                statusMessage.textContent = 'Please provide a detailed description (at least 10 characters)';
-                statusMessage.classList.remove('hidden', 'text-green-500');
-                statusMessage.classList.add('text-red-500');
-                return;
-            }
-            
-            // Show loading state
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Submitting...';
-            
-            // Prepare form data
-            const formData = new FormData(form);
-            
-            // Debug - log form data
-            console.log('Form data being submitted:');
-            for (let pair of formData.entries()) {
-                console.log(pair[0] + ': ' + pair[1]);
-            }
-            
-            // Send AJAX request
-            fetch('/shop/report', {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                },
-                credentials: 'same-origin'
-            })
-            .then(response => {
-                console.log('Response status:', response.status);
-                if (!response.ok) {
-                    return response.json().then(data => {
-                        console.error('Error response:', data);
-                        throw new Error(data.message || 'Error submitting report');
-                    });
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.success) {
-                    statusMessage.textContent = 'Report submitted successfully!';
-                    statusMessage.classList.remove('hidden', 'text-red-500');
-                    statusMessage.classList.add('text-green-500');
-                    
-                    // Reset form after success
-                    form.reset();
-                    
-                    // Close modal after 2 seconds
-                    setTimeout(() => {
-                        closeReportModal();
-                    }, 2000);
-                } else {
-                    throw new Error(data.message || 'Failed to submit report');
-                }
-            })
-            .catch(error => {
-                console.error('Error submitting report:', error);
-                statusMessage.textContent = error.message || 'An error occurred. Please try again.';
-                statusMessage.classList.remove('hidden', 'text-green-500');
-                statusMessage.classList.add('text-red-500');
-            })
-            .finally(() => {
-                // Reset button state
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Submit Report';
-                statusMessage.classList.remove('hidden');
-            });
-        }
+        // We don't need the old submitReport function as our component handles form submission
+        // The component handles validation and submission via its own event listeners
 
         // Store gallery images data
         const galleryImages = @json($shop->gallery->map(function($image) {

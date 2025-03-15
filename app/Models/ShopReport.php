@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 
 class ShopReport extends Model
 {
@@ -23,6 +24,7 @@ class ShopReport extends Model
         'status',
         'admin_notes',
         'resolved_at',
+        'image_path',
     ];
 
     /**
@@ -48,5 +50,27 @@ class ShopReport extends Model
     public function shop(): BelongsTo
     {
         return $this->belongsTo(Shop::class);
+    }
+
+    /**
+     * Get the URL for the evidence image.
+     *
+     * @return string|null
+     */
+    public function getImageUrl()
+    {
+        if (!$this->image_path) {
+            return null;
+        }
+        
+        return asset('storage/' . $this->image_path);
+    }
+
+    /**
+     * Get the appeal for this report.
+     */
+    public function appeal(): MorphOne
+    {
+        return $this->morphOne(Appeal::class, 'appealable');
     }
 }

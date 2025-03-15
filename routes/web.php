@@ -28,6 +28,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ShopReportController;
 use App\Http\Controllers\UserReportController;
 use App\Http\Controllers\Auth\SocialAuthController;
+use App\Http\Controllers\AppealController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -285,6 +286,10 @@ Route::middleware(['auth'])->group(function () {
     // Add route for checking upcoming appointments
     Route::get('/appointments/check-upcoming', [AppointmentController::class, 'checkUpcomingAppointments'])
         ->name('appointments.checkUpcoming');
+
+    // User report appeal routes
+    Route::get('/user/report/{report}/appeal', [AppealController::class, 'showUserAppealForm'])->name('user.report.appeal.form');
+    Route::post('/user/report/{report}/appeal', [AppealController::class, 'submitUserAppeal'])->name('user.report.appeal.submit');
 });
 
 // Admin routes
@@ -307,10 +312,16 @@ Route::middleware(['auth', IsAdmin::class])->prefix('admin')->name('admin.')->gr
     Route::get('/support', [App\Http\Controllers\Admin\ReportsController::class, 'shopReports'])->name('support');
     Route::get('/reports/{id}', [App\Http\Controllers\Admin\ReportsController::class, 'getReport'])->name('reports.get');
     Route::put('/reports/{id}/status', [App\Http\Controllers\Admin\ReportsController::class, 'updateReportStatus'])->name('reports.status.update');
+    Route::post('/reports/{id}/status', [App\Http\Controllers\Admin\ReportsController::class, 'updateReportStatus'])->name('reports.update-status');
+    // Add route for sending notifications to shop reports
+    Route::post('/reports/{id}/send-notification', [App\Http\Controllers\Admin\ReportsController::class, 'sendNotificationToShop'])->name('reports.send-notification');
     
     // Add user reports routes
     Route::get('/user-reports/{id}', [App\Http\Controllers\Admin\ReportsController::class, 'getUserReport'])->name('user-reports.get');
     Route::put('/user-reports/{id}/status', [App\Http\Controllers\Admin\ReportsController::class, 'updateUserReportStatus'])->name('user-reports.status.update');
+    Route::post('/user-reports/{id}/status', [App\Http\Controllers\Admin\ReportsController::class, 'updateUserReportStatus'])->name('reports.update-user-status');
+    // Add route for sending notifications to user reports
+    Route::post('/user-reports/{id}/send-notification', [App\Http\Controllers\Admin\ReportsController::class, 'sendNotificationToUser'])->name('user-reports.send-notification');
 
     // Test route for debugging user reports
     Route::get('/test-user-report/{id}', function($id) {
@@ -352,6 +363,24 @@ Route::middleware(['auth', IsAdmin::class])->prefix('admin')->name('admin.')->gr
     Route::get('/reports', [AdminController::class, 'reports'])->name('reports');
     Route::get('/profile', [AdminController::class, 'profile'])->name('profile');
     Route::get('/settings', [AdminController::class, 'settings'])->name('settings');
+
+    // Test notifications (for development purposes)
+    Route::get('/test-notifications', function () {
+        return view('admin.test-notifications');
+    })->name('test-notifications');
+
+    // Appeals routes - using different formats to ensure one works
+    Route::get('/appeals/shop/{report}', [App\Http\Controllers\Admin\AppealsController::class, 'showShopAppeal'])->name('appeals.shop');
+    Route::get('/appeals/user/{report}', [App\Http\Controllers\Admin\AppealsController::class, 'showUserAppeal'])->name('appeals.user');
+    Route::put('/appeals/{appeal}/status', [App\Http\Controllers\Admin\AppealsController::class, 'updateAppealStatus'])->name('appeals.update');
+    
+    // API route for fetching appeal details for the modal
+    Route::get('/appeals/details/{appeal}', [App\Http\Controllers\Admin\AppealsController::class, 'getAppealDetails'])->name('appeals.details');
+    
+    // Alternative appeal routes that exactly match the expected names in the view
+    Route::get('/alt-appeals/shop/{report}', [App\Http\Controllers\Admin\AppealsController::class, 'showShopAppeal'])->name('admin.appeals.shop');
+    Route::get('/alt-appeals/user/{report}', [App\Http\Controllers\Admin\AppealsController::class, 'showUserAppeal'])->name('admin.appeals.user');
+    Route::put('/alt-appeals/{appeal}/status', [App\Http\Controllers\Admin\AppealsController::class, 'updateAppealStatus'])->name('admin.appeals.update');
 });
 
 Route::middleware(['auth', 'has-shop'])->group(function () {
@@ -394,12 +423,12 @@ Route::middleware(['auth', 'has-shop'])->group(function () {
 
 // Post route for submitting shop reports - accessible to all authenticated users
 Route::middleware(['auth'])->group(function () {
-    Route::post('/shop/report', [ShopReportController::class, 'store'])->name('shop.report.submit');
+    Route::post('/shop/report', [ShopReportController::class, 'store'])->name('shop.report.store');
 });
 
 // Post route for submitting user reports - accessible to shop owners/employees
-Route::middleware(['auth', 'has-shop'])->group(function () {
-    Route::post('/user/report', [UserReportController::class, 'store'])->name('user.report.submit');
+Route::middleware(['auth'])->group(function () {
+    Route::post('/user/report', [UserReportController::class, 'store'])->name('user.report.store');
 });
 
 // Shop Admin Routes
@@ -474,3 +503,12 @@ Route::post('/appointments/{appointment}/report', [ShopAppointmentController::cl
 // Follow-up Appointment Routes
 Route::get('/appointments/{appointment}/follow-up', [ShopAppointmentController::class, 'showFollowUpForm'])->name('appointments.follow-up-form');
 Route::post('/appointments/{appointment}/schedule-follow-up', [ShopAppointmentController::class, 'scheduleFollowUp'])->name('appointments.schedule-follow-up');
+
+// Debug routes - only available in local environment
+if (app()->environment('local')) {
+    Route::get('/debug/email-test', function () {
+        $email = request('email', auth()->user()->email ?? env('MAIL_FROM_ADDRESS'));
+        $result = App\Services\NotificationEmailService::debugEmailConfiguration($email);
+        return response()->json($result);
+    })->middleware(['auth']);
+}
