@@ -366,6 +366,9 @@ async function acceptAppointment(id) {
             content: 'Are you sure you want to accept this appointment?',
             onConfirm: async () => {
     try {
+        // Show loading screen
+        showGlobalLoading();
+        
         const response = await fetch(`/appointments/${id}/accept`, {
             method: 'POST',
             headers: {
@@ -373,6 +376,9 @@ async function acceptAppointment(id) {
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
             }
         });
+        
+        // Hide loading screen
+        hideGlobalLoading();
         
         const data = await response.json();
         if (data.success) {
@@ -392,6 +398,9 @@ async function acceptAppointment(id) {
                         }));
         }
     } catch (error) {
+        // Hide loading screen in case of error
+        hideGlobalLoading();
+        
         console.error('Error:', error);
                     window.dispatchEvent(new CustomEvent('toast', {
                         detail: {
@@ -412,6 +421,9 @@ async function markAsPaid(id) {
             content: 'Are you sure you want to mark this appointment as paid?',
             onConfirm: async () => {
     try {
+        // Show loading screen
+        showGlobalLoading();
+        
         const response = await fetch(`/appointments/${id}/mark-as-paid`, {
             method: 'POST',
             headers: {
@@ -419,6 +431,9 @@ async function markAsPaid(id) {
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
             }
         });
+        
+        // Hide loading screen
+        hideGlobalLoading();
         
         const data = await response.json();
         if (data.success) {
@@ -438,6 +453,9 @@ async function markAsPaid(id) {
                         }));
         }
     } catch (error) {
+        // Hide loading screen in case of error
+        hideGlobalLoading();
+        
         console.error('Error:', error);
                     window.dispatchEvent(new CustomEvent('toast', {
                         detail: {
@@ -489,15 +507,21 @@ async function cancelAppointment(id) {
             // Get the CSRF token from the meta tag
             const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
             
-        const response = await fetch(`/appointments/${id}/shop-cancel`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
+            // Show loading screen
+            showGlobalLoading();
+            
+            const response = await fetch(`/appointments/${id}/shop-cancel`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': csrfToken,
                     'Accept': 'application/json'
                 },
                 body: JSON.stringify({ reason: reason })
             });
+            
+            // Hide loading screen
+            hideGlobalLoading();
             
             console.log('Cancel response status:', response.status);
             
@@ -505,10 +529,10 @@ async function cancelAppointment(id) {
                 throw new Error(`HTTP error! Status: ${response.status}`);
             }
         
-        const data = await response.json();
+            const data = await response.json();
             console.log('Cancel response data:', data);
             
-        if (data.success) {
+            if (data.success) {
                 window.dispatchEvent(new CustomEvent('toast', {
                     detail: {
                         type: 'success',
@@ -517,17 +541,20 @@ async function cancelAppointment(id) {
                 }));
                 // Reload the page after a short delay to show the toast
                 setTimeout(() => {
-            window.location.reload();
+                    window.location.reload();
                 }, 1000);
-        } else {
+            } else {
                 window.dispatchEvent(new CustomEvent('toast', {
                     detail: {
                         type: 'error',
                         message: data.error || 'Failed to cancel appointment'
                     }
                 }));
-        }
-    } catch (error) {
+            }
+        } catch (error) {
+            // Hide loading screen in case of error
+            hideGlobalLoading();
+            
             console.error('Error cancelling appointment:', error);
             window.dispatchEvent(new CustomEvent('toast', {
                 detail: {
@@ -546,6 +573,9 @@ async function approveCancellation(id) {
             content: 'Are you sure you want to approve this cancellation request?',
             onConfirm: async () => {
                 try {
+                    // Show loading screen
+                    showGlobalLoading();
+                    
                     const response = await fetch(`/appointments/cancellation/${id}/approve`, {
                         method: 'POST',
                         headers: {
@@ -554,6 +584,9 @@ async function approveCancellation(id) {
                             'Accept': 'application/json'
                         }
                     });
+                    
+                    // Hide loading screen
+                    hideGlobalLoading();
                     
                     if (!response.ok) {
                         const errorText = await response.text();
@@ -581,6 +614,9 @@ async function approveCancellation(id) {
                         }));
                     }
                 } catch (error) {
+                    // Hide loading screen in case of error
+                    hideGlobalLoading();
+                    
                     console.error('Error:', error);
                     window.dispatchEvent(new CustomEvent('toast', {
                         detail: {
@@ -620,6 +656,9 @@ async function declineCancellation(id) {
                 }
     
                 try {
+                    // Show loading screen
+                    showGlobalLoading();
+                    
                     const response = await fetch(`/appointments/cancellation/${id}/decline`, {
                         method: 'POST',
                         headers: {
@@ -629,6 +668,9 @@ async function declineCancellation(id) {
                         },
                         body: JSON.stringify({ reason })
                     });
+                    
+                    // Hide loading screen
+                    hideGlobalLoading();
                     
                     if (!response.ok) {
                         const errorText = await response.text();
@@ -656,6 +698,9 @@ async function declineCancellation(id) {
                         }));
                     }
                 } catch (error) {
+                    // Hide loading screen in case of error
+                    hideGlobalLoading();
+                    
                     console.error('Error:', error);
                     window.dispatchEvent(new CustomEvent('toast', {
                         detail: {
@@ -676,6 +721,9 @@ async function approveReschedule(id) {
             content: 'Are you sure you want to approve this reschedule request?',
             onConfirm: async () => {
     try {
+        // Show loading screen
+        showGlobalLoading();
+        
         const response = await fetch(`/appointments/reschedule/${id}/approve`, {
             method: 'POST',
             headers: {
@@ -683,6 +731,9 @@ async function approveReschedule(id) {
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
             }
         });
+        
+        // Hide loading screen
+        hideGlobalLoading();
         
         const data = await response.json();
         if (data.success) {
@@ -702,6 +753,9 @@ async function approveReschedule(id) {
                         }));
         }
     } catch (error) {
+        // Hide loading screen in case of error
+        hideGlobalLoading();
+        
         console.error('Error:', error);
                     window.dispatchEvent(new CustomEvent('toast', {
                         detail: {
@@ -741,6 +795,9 @@ async function declineReschedule(id) {
                 }
     
     try {
+        // Show loading screen
+        showGlobalLoading();
+        
         const response = await fetch(`/appointments/reschedule/${id}/decline`, {
             method: 'POST',
             headers: {
@@ -749,6 +806,9 @@ async function declineReschedule(id) {
             },
             body: JSON.stringify({ reason })
         });
+        
+        // Hide loading screen
+        hideGlobalLoading();
         
         const data = await response.json();
         if (data.success) {
@@ -768,6 +828,9 @@ async function declineReschedule(id) {
                         }));
         }
     } catch (error) {
+        // Hide loading screen in case of error
+        hideGlobalLoading();
+        
         console.error('Error:', error);
                     window.dispatchEvent(new CustomEvent('toast', {
                         detail: {
@@ -783,10 +846,20 @@ async function declineReschedule(id) {
 
 async function getNoteForAppointment(id) {
     try {
+        // Show loading screen
+        showGlobalLoading();
+        
         const response = await fetch(`/appointments/${id}/note`);
+        
+        // Hide loading screen
+        hideGlobalLoading();
+        
         const data = await response.json();
         return data.note;
     } catch (error) {
+        // Hide loading screen in case of error
+        hideGlobalLoading();
+        
         console.error('Error:', error);
         return '';
     }
@@ -795,6 +868,9 @@ async function getNoteForAppointment(id) {
 function addNote(id, shopType, note, image) {
     return new Promise(async (resolve, reject) => {
         try {
+            // Show loading screen
+            showGlobalLoading();
+            
             const formData = new FormData();
             formData.append('note', note);
             if (image) {
@@ -809,6 +885,9 @@ function addNote(id, shopType, note, image) {
                 body: formData
             });
 
+            // Hide loading screen
+            hideGlobalLoading();
+            
             const data = await response.json();
             if (data.success) {
                 // Show success notification
@@ -819,6 +898,9 @@ function addNote(id, shopType, note, image) {
                 throw new Error(data.error || 'Failed to save note');
             }
         } catch (error) {
+            // Hide loading screen in case of error
+            hideGlobalLoading();
+            
             console.error('Error:', error);
             showNotification(`Failed to save note: ${error.message}`, 'error');
             reject(error);
@@ -844,6 +926,14 @@ window.approveCancellation = approveCancellation;
 window.declineCancellation = declineCancellation;
 window.approveReschedule = approveReschedule;
 window.declineReschedule = declineReschedule;
+
+// Make sure the loading screen functions are available in this context
+// You might need to ensure loading-screen.js is loaded before this script
+document.addEventListener('DOMContentLoaded', () => {
+    if (typeof showGlobalLoading !== 'function') {
+        console.warn('Loading screen functions not available. Make sure loading-screen.js is loaded properly.');
+    }
+});
 </script>
 @endpush
 @endsection 

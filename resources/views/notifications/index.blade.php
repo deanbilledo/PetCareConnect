@@ -33,7 +33,7 @@
                                 <div class="flex justify-between items-start">
                                     <div>
                                         <h3 class="text-sm font-medium text-gray-900">{{ $notification->title }}</h3>
-                                        <p class="mt-1 text-sm text-gray-600">{{ $notification->message }}</p>
+                                        <p class="mt-1 text-sm text-gray-600 whitespace-pre-line">{{ $notification->message }}</p>
                                         <div class="mt-2 flex items-center space-x-4">
                                             <span class="text-xs text-gray-500">{{ $notification->created_at->diffForHumans() }}</span>
                                             @if($notification->action_url)

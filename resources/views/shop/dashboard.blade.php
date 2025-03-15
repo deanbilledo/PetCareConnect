@@ -22,10 +22,16 @@ use Illuminate\Support\Facades\Storage;
 
     async loadExistingNote() {
         try {
+            // Show loading screen
+            showGlobalLoading();
+            
             console.log('Loading note for appointment:', this.currentAppointmentId);
             const response = await fetch(`/appointments/${this.currentAppointmentId}/note`);
             const data = await response.json();
             console.log('Received note data:', data);
+            
+            // Hide loading screen
+            hideGlobalLoading();
             
             if (data.success) {
                 this.currentNote = data.note || '';
@@ -36,6 +42,9 @@ use Illuminate\Support\Facades\Storage;
                 console.error('Failed to load note:', data.error);
             }
         } catch (error) {
+            // Hide loading screen in case of error
+            hideGlobalLoading();
+            
             console.error('Error loading note:', error);
         }
     },
@@ -57,11 +66,36 @@ use Illuminate\Support\Facades\Storage;
     },
 
     async saveNote() {
-        await addNote(this.currentAppointmentId, this.currentShopType, this.currentNote, this.noteImage);
-        this.closeNoteModal();
-        window.location.reload();
+        // Show loading screen
+        showGlobalLoading();
+        
+        try {
+            await addNote(this.currentAppointmentId, this.currentShopType, this.currentNote, this.noteImage);
+            this.closeNoteModal();
+            window.location.reload();
+        } catch (error) {
+            // Hide loading screen in case of error - addNote will handle this, but adding as a safety measure
+            hideGlobalLoading();
+            console.error('Error saving note:', error);
+        }
     }
 }" class="w-full">
+    <!-- Error Message Display -->
+    @if(isset($error))
+    <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded shadow-sm">
+        <div class="flex items-center">
+            <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                </svg>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm">{{ $error }}</p>
+            </div>
+        </div>
+    </div>
+    @endif
+
     <div class="bg-white rounded-lg shadow-lg p-4 sm:p-6">
         <!-- Shop Header -->
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
@@ -137,20 +171,57 @@ use Illuminate\Support\Facades\Storage;
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                         <h2 class="text-xl font-semibold text-gray-900">Recent Appointments</h2>
                 <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
-                    <select x-data="{ status: 'all' }" 
-                            x-model="status" 
-                            @change="window.location.href = '{{ route('shop.dashboard') }}?status=' + status"
-                                    class="border rounded-md px-3 py-1.5 text-sm w-full sm:w-auto focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                        <option value="all">All Status</option>
-                        <option value="pending">Pending</option>
-                        <option value="completed">Completed</option>
-                        <option value="cancelled">Cancelled</option>
+                    <select id="statusFilter" 
+                            class="border rounded-md px-3 py-1.5 text-sm w-full sm:w-auto focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="all" {{ request('status') == 'all' || !request('status') ? 'selected' : '' }}>All Status</option>
+                        <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pending</option>
+                        <option value="accepted" {{ request('status') == 'accepted' ? 'selected' : '' }}>Accepted</option>
+                        <option value="completed" {{ request('status') == 'completed' ? 'selected' : '' }}>Completed</option>
+                        <option value="cancelled" {{ request('status') == 'cancelled' ? 'selected' : '' }}>Cancelled</option>
                     </select>
-                    <input type="date" 
-                                   class="border rounded-md px-3 py-1.5 text-sm w-full sm:w-auto focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                           value="{{ request('date') }}"
-                           onchange="window.location.href = '{{ route('shop.dashboard') }}?date=' + this.value">
+                    
+                    <select id="employeeFilter" 
+                            class="border rounded-md px-3 py-1.5 text-sm w-full sm:w-auto focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="all">All Employees</option>
+                        @if(isset($employees) && count($employees) > 0)
+                            @foreach($employees as $employee)
+                                <option value="{{ $employee->id }}" {{ request('employee_id') == $employee->id ? 'selected' : '' }}>
+                                    {{ $employee->name }}
+                                </option>
+                            @endforeach
+                        @endif
+                    </select>
+                    
+                    <div class="flex flex-col sm:flex-row gap-2 items-center w-full sm:w-auto">
+                        <div class="relative w-full sm:w-auto">
+                            <input type="date" 
+                                   id="startDateFilter"
+                                   class="border rounded-md px-3 py-1.5 text-sm w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                   value="{{ request('start_date') }}"
+                                   placeholder="Start Date">
+                            <label for="startDateFilter" class="absolute -top-5 left-0 text-xs text-gray-500">From</label>
                         </div>
+                        
+                        <div class="relative w-full sm:w-auto">
+                            <input type="date" 
+                                   id="endDateFilter"
+                                   class="border rounded-md px-3 py-1.5 text-sm w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                   value="{{ request('end_date') }}"
+                                   placeholder="End Date">
+                            <label for="endDateFilter" class="absolute -top-5 left-0 text-xs text-gray-500">To</label>
+                        </div>
+                    </div>
+                    
+                    <button id="applyFilters"
+                            class="bg-blue-600 text-white px-4 py-1.5 rounded-md text-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors">
+                        Apply Filters
+                    </button>
+                    
+                    <button id="clearFilters"
+                            class="bg-gray-200 text-gray-700 px-4 py-1.5 rounded-md text-sm hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors">
+                        Clear
+                    </button>
+                </div>
                 </div>
             </div>
 
@@ -673,12 +744,17 @@ function showMarkAsPaidModal(appointmentId) {
 }
 
 function viewAppointment(appointmentId) {
+    // Show loading screen before navigation
+    showGlobalLoading();
     // Navigate to the appointment details page with from=dashboard parameter
     window.location.href = `/shop/appointments/${appointmentId}?from=dashboard`;
 }
 
 async function acceptAppointment(appointmentId) {
     try {
+        // Show loading screen
+        showGlobalLoading();
+        
         const response = await fetch(`/appointments/${appointmentId}/accept`, {
             method: 'POST',
             headers: {
@@ -688,6 +764,9 @@ async function acceptAppointment(appointmentId) {
             }
         });
 
+        // Hide loading screen
+        hideGlobalLoading();
+        
         const data = await response.json();
         
         if (data.success) {
@@ -698,6 +777,9 @@ async function acceptAppointment(appointmentId) {
             alert(data.error || 'Failed to accept appointment');
         }
     } catch (error) {
+        // Hide loading screen in case of error
+        hideGlobalLoading();
+        
         console.error('Error:', error);
         alert('An error occurred while accepting the appointment');
     }
@@ -705,6 +787,9 @@ async function acceptAppointment(appointmentId) {
 
 async function cancelAppointment(appointmentId) {
     try {
+        // Show loading screen
+        showGlobalLoading();
+        
         const reason = document.getElementById('cancelReason').value;
         const response = await fetch(`/appointments/${appointmentId}/shop-cancel`, {
             method: 'POST',
@@ -716,6 +801,9 @@ async function cancelAppointment(appointmentId) {
             body: JSON.stringify({ reason: reason })
         });
 
+        // Hide loading screen
+        hideGlobalLoading();
+        
         const data = await response.json();
         
         if (data.success) {
@@ -724,6 +812,9 @@ async function cancelAppointment(appointmentId) {
             alert(data.error || 'Failed to cancel appointment');
         }
     } catch (error) {
+        // Hide loading screen in case of error
+        hideGlobalLoading();
+        
         console.error('Error:', error);
         alert('An error occurred while cancelling the appointment');
     }
@@ -731,6 +822,9 @@ async function cancelAppointment(appointmentId) {
 
 async function markAsPaid(appointmentId) {
     try {
+        // Show loading screen
+        showGlobalLoading();
+        
         const response = await fetch(`/appointments/${appointmentId}/mark-as-paid`, {
             method: 'POST',
             headers: {
@@ -740,6 +834,9 @@ async function markAsPaid(appointmentId) {
             }
         });
 
+        // Hide loading screen
+        hideGlobalLoading();
+        
         const data = await response.json();
         
         if (data.success) {
@@ -748,6 +845,9 @@ async function markAsPaid(appointmentId) {
             alert(data.error || 'Failed to mark appointment as paid');
         }
     } catch (error) {
+        // Hide loading screen in case of error
+        hideGlobalLoading();
+        
         console.error('Error:', error);
         alert('An error occurred while updating the appointment');
     }
@@ -755,7 +855,14 @@ async function markAsPaid(appointmentId) {
 
 async function getNoteForAppointment(id) {
     try {
+        // Show loading screen
+        showGlobalLoading();
+        
         const response = await fetch(`/appointments/${id}/note`);
+        
+        // Hide loading screen
+        hideGlobalLoading();
+        
         const data = await response.json();
         if (data.success) {
             return {
@@ -765,6 +872,9 @@ async function getNoteForAppointment(id) {
         }
         throw new Error(data.error || 'Failed to fetch note');
     } catch (error) {
+        // Hide loading screen in case of error
+        hideGlobalLoading();
+        
         console.error('Error:', error);
         return { note: '', appointment: null };
     }
@@ -773,6 +883,9 @@ async function getNoteForAppointment(id) {
 function addNote(id, shopType, note, image) {
     return new Promise(async (resolve, reject) => {
         try {
+            // Show loading screen
+            showGlobalLoading();
+            
             const formData = new FormData();
             formData.append('note', note);
             if (image) {
@@ -787,6 +900,9 @@ function addNote(id, shopType, note, image) {
                 body: formData
             });
 
+            // Hide loading screen
+            hideGlobalLoading();
+            
             const data = await response.json();
             if (data.success) {
                 const noteType = shopType === 'grooming' ? "Groomer's" : "Doctor's";
@@ -796,6 +912,9 @@ function addNote(id, shopType, note, image) {
                 throw new Error(data.error || 'Failed to save note');
             }
         } catch (error) {
+            // Hide loading screen in case of error
+            hideGlobalLoading();
+            
             console.error('Error:', error);
             showNotification(`Failed to save note: ${error.message}`, 'error');
             reject(error);
@@ -826,5 +945,110 @@ window.addEventListener('resize', function() {
         tableWrapper.style.maxWidth = window.innerWidth < 640 ? '100vw' : 'none';
     }
 });
+
+// Make sure the loading screen functions are available in this context
+document.addEventListener('DOMContentLoaded', () => {
+    if (typeof showGlobalLoading !== 'function') {
+        console.warn('Loading screen functions not available. Make sure loading-screen.js is loaded properly.');
+    }
+});
+
+// Filter functionality
+document.addEventListener('DOMContentLoaded', function() {
+    // Apply filters button click handler
+    document.getElementById('applyFilters').addEventListener('click', function() {
+        applyFilters();
+    });
+    
+    // Clear filters button click handler
+    document.getElementById('clearFilters').addEventListener('click', function() {
+        clearFilters();
+    });
+    
+    // Initialize date inputs with current values from URL
+    initializeFiltersFromUrl();
+});
+
+/**
+ * Apply all filters and navigate to filtered URL
+ */
+function applyFilters() {
+    // Show loading screen
+    showGlobalLoading();
+    
+    // Get current values
+    const status = document.getElementById('statusFilter').value;
+    const employeeId = document.getElementById('employeeFilter').value;
+    const startDate = document.getElementById('startDateFilter').value;
+    const endDate = document.getElementById('endDateFilter').value;
+    
+    // Build query parameters
+    let params = new URLSearchParams();
+    
+    // Only add parameters that have values and aren't default
+    if (status && status !== 'all') {
+        params.append('status', status);
+    }
+    
+    if (employeeId && employeeId !== 'all') {
+        params.append('employee_id', employeeId);
+    }
+    
+    if (startDate) {
+        params.append('start_date', startDate);
+    }
+    
+    if (endDate) {
+        params.append('end_date', endDate);
+    }
+    
+    // Navigate to the filtered URL
+    const baseUrl = '{{ route('shop.dashboard') }}';
+    const queryString = params.toString();
+    
+    window.location.href = queryString ? `${baseUrl}?${queryString}` : baseUrl;
+}
+
+/**
+ * Clear all filters and reload the page
+ */
+function clearFilters() {
+    // Show loading screen
+    showGlobalLoading();
+    
+    // Navigate to the base URL without any filters
+    window.location.href = '{{ route('shop.dashboard') }}';
+}
+
+/**
+ * Initialize filter inputs from URL parameters
+ */
+function initializeFiltersFromUrl() {
+    // Parse URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    // Set status filter
+    const status = urlParams.get('status');
+    if (status) {
+        document.getElementById('statusFilter').value = status;
+    }
+    
+    // Set employee filter
+    const employeeId = urlParams.get('employee_id');
+    if (employeeId) {
+        document.getElementById('employeeFilter').value = employeeId;
+    }
+    
+    // Set date filters
+    const startDate = urlParams.get('start_date');
+    if (startDate) {
+        document.getElementById('startDateFilter').value = startDate;
+    }
+    
+    const endDate = urlParams.get('end_date');
+    if (endDate) {
+        document.getElementById('endDateFilter').value = endDate;
+    }
+}
 </script>
 @endpush 

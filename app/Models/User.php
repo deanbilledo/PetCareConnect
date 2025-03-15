@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\NotifiesWithEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -10,6 +11,7 @@ use Illuminate\Support\Facades\Storage;
 class User extends Authenticatable
 {
     use HasFactory;
+    use NotifiesWithEmail;
     
     // Only include the original trait but override its methods
     use Notifiable {

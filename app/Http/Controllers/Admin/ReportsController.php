@@ -318,7 +318,38 @@ class ReportsController extends Controller
         $userReports = $userReportsData['userReports'];
         $userReportTypes = $userReportsData['userReportTypes'];
         
-        return view('admin.support', compact('reports', 'reportTypes', 'userReports', 'userReportTypes'));
+        // Get appeals data
+        $appealsQuery = \App\Models\Appeal::with(['appealable'])
+            ->orderBy('created_at', 'desc');
+            
+        // Apply status filter if provided
+        if ($request->has('appeal_status') && !empty($request->appeal_status)) {
+            $appealsQuery->where('status', $request->appeal_status);
+        }
+        
+        // Apply appeal type filter if provided
+        if ($request->has('appeal_type') && !empty($request->appeal_type)) {
+            if ($request->appeal_type === 'shop') {
+                $appealsQuery->where('appealable_type', 'App\Models\ShopReport');
+            } elseif ($request->appeal_type === 'user') {
+                $appealsQuery->where('appealable_type', 'App\Models\UserReport');
+            }
+        }
+        
+        // Apply search filter if provided
+        if ($request->has('appeal_search') && !empty($request->appeal_search)) {
+            $search = $request->appeal_search;
+            $appealsQuery->where(function ($q) use ($search) {
+                $q->where('reason', 'like', "%{$search}%")
+                  ->orWhereHas('appealable', function ($subQuery) use ($search) {
+                      $subQuery->where('description', 'like', "%{$search}%");
+                  });
+            });
+        }
+        
+        $appeals = $appealsQuery->paginate(10, ['*'], 'appeals_page');
+        
+        return view('admin.support', compact('reports', 'reportTypes', 'userReports', 'userReportTypes', 'appeals'));
     }
 
     // Update an existing shop report status
@@ -329,8 +360,10 @@ class ReportsController extends Controller
         $validated = $request->validate([
             'status' => 'required|in:pending,under_review,resolved,dismissed',
             'admin_notes' => 'nullable|string',
+            'resolution_explanation' => 'nullable|string|required_if:status,resolved',
         ]);
         
+        $previousStatus = $report->status;
         $report->status = $validated['status'];
         $report->admin_notes = $validated['admin_notes'] ?? $report->admin_notes;
         
@@ -339,6 +372,42 @@ class ReportsController extends Controller
         }
         
         $report->save();
+        
+        // Send notification if status changed to under_review or resolved
+        if ($previousStatus !== $validated['status']) {
+            $user = $report->user;
+            
+            if ($user) {
+                if ($validated['status'] === 'under_review') {
+                    // Send notification that report is under review
+                    $this->sendReportStatusNotification(
+                        $user,
+                        'report_under_review',
+                        'Your report is under review',
+                        'Your report for ' . $report->shop->name . ' is now under review by our admin team.',
+                        null
+                    );
+                } elseif ($validated['status'] === 'resolved') {
+                    // Send notification that report is resolved
+                    $this->sendReportStatusNotification(
+                        $user,
+                        'report_resolved',
+                        'Your report has been resolved',
+                        'Your report for ' . $report->shop->name . ' has been resolved by our admin team.',
+                        $validated['resolution_explanation'] ?? null
+                    );
+                } elseif ($validated['status'] === 'dismissed') {
+                    // Send notification that report is dismissed
+                    $this->sendReportStatusNotification(
+                        $user,
+                        'report_dismissed',
+                        'Your report has been dismissed',
+                        'Your report for ' . $report->shop->name . ' has been dismissed by our admin team.',
+                        $validated['resolution_explanation'] ?? null
+                    );
+                }
+            }
+        }
         
         return response()->json([
             'success' => true,
@@ -365,6 +434,8 @@ class ReportsController extends Controller
                 'created_at' => $report->created_at,
                 'updated_at' => $report->updated_at,
                 'resolved_at' => $report->resolved_at,
+                'image_url' => $report->getImageUrl(),
+                'has_image' => !is_null($report->image_path),
                 'user' => $report->user ? [
                     'id' => $report->user->id,
                     'name' => $report->user->name,
@@ -381,6 +452,7 @@ class ReportsController extends Controller
                 'id' => $report->id,
                 'has_user' => isset($report->user),
                 'has_shop' => isset($report->shop),
+                'has_image' => !is_null($report->image_path),
                 'response' => $response
             ]);
             
@@ -449,6 +521,8 @@ class ReportsController extends Controller
                 'created_at' => $report->created_at,
                 'updated_at' => $report->updated_at,
                 'resolved_at' => $report->resolved_at,
+                'image_url' => $report->getImageUrl(),
+                'has_image' => !is_null($report->image_path),
                 'reporter' => $report->reporter ? [
                     'id' => $report->reporter->id,
                     'name' => $report->reporter->name,
@@ -466,6 +540,7 @@ class ReportsController extends Controller
                 'id' => $report->id,
                 'has_reporter' => isset($report->reporter),
                 'has_reportedUser' => isset($report->reportedUser),
+                'has_image' => !is_null($report->image_path),
                 'response' => $response
             ]);
             
@@ -484,8 +559,10 @@ class ReportsController extends Controller
         $validated = $request->validate([
             'status' => 'required|in:pending,under_review,resolved,dismissed',
             'admin_notes' => 'nullable|string',
+            'resolution_explanation' => 'nullable|string|required_if:status,resolved',
         ]);
         
+        $previousStatus = $report->status;
         $report->status = $validated['status'];
         $report->admin_notes = $validated['admin_notes'] ?? $report->admin_notes;
         
@@ -495,9 +572,168 @@ class ReportsController extends Controller
         
         $report->save();
         
+        // Send notification if status changed to under_review or resolved
+        if ($previousStatus !== $validated['status']) {
+            $reporter = $report->reporter;
+            
+            if ($reporter) {
+                if ($validated['status'] === 'under_review') {
+                    // Send notification that report is under review
+                    $this->sendReportStatusNotification(
+                        $reporter,
+                        'report_under_review',
+                        'Your report is under review',
+                        'Your report about user ' . $report->reportedUser->name . ' is now under review by our admin team.',
+                        null
+                    );
+                } elseif ($validated['status'] === 'resolved') {
+                    // Send notification that report is resolved
+                    $this->sendReportStatusNotification(
+                        $reporter,
+                        'report_resolved',
+                        'Your report has been resolved',
+                        'Your report about user ' . $report->reportedUser->name . ' has been resolved by our admin team.',
+                        $validated['resolution_explanation'] ?? null
+                    );
+                } elseif ($validated['status'] === 'dismissed') {
+                    // Send notification that report is dismissed
+                    $this->sendReportStatusNotification(
+                        $reporter,
+                        'report_dismissed',
+                        'Your report has been dismissed',
+                        'Your report about user ' . $report->reportedUser->name . ' has been dismissed by our admin team.',
+                        $validated['resolution_explanation'] ?? null
+                    );
+                }
+            }
+        }
+        
         return response()->json([
             'success' => true,
             'message' => 'User report status updated successfully'
         ]);
+    }
+    
+    /**
+     * Send notification about report status change to user
+     */
+    private function sendReportStatusNotification($user, $type, $title, $message, $explanation = null)
+    {
+        if ($explanation) {
+            $message .= "\n\nExplanation from admin: " . $explanation;
+        }
+        
+        $user->notifications()->create([
+            'type' => $type,
+            'title' => $title,
+            'message' => $message,
+            'status' => 'unread',
+            'action_text' => 'View Details',
+            'action_url' => route('notifications.index')
+        ]);
+    }
+
+    /**
+     * Send a notification to a user who reported a shop
+     *
+     * @param \Illuminate\Http\Request $request
+     * @param int $id The shop report ID
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function sendNotificationToShop(Request $request, $id)
+    {
+        $report = \App\Models\ShopReport::findOrFail($id);
+        
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'message' => 'required|string',
+        ]);
+        
+        // Get the user who submitted the report
+        $user = $report->user;
+        
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Could not find the user who submitted this report'
+            ], 404);
+        }
+        
+        try {
+            // Create a notification
+            $notification = $user->notifications()->create([
+                'type' => 'admin_note',
+                'title' => $validated['title'],
+                'message' => $validated['message'],
+                'status' => 'unread',
+                'action_text' => 'View Details',
+                'action_url' => route('notifications.index')
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Notification sent successfully',
+                'notification' => $notification
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to send notification: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+    
+    /**
+     * Send a notification to a user who was reported or who reported another user
+     *
+     * @param \Illuminate\Http\Request $request
+     * @param int $id The user report ID
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function sendNotificationToUser(Request $request, $id)
+    {
+        $report = \App\Models\UserReport::findOrFail($id);
+        
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'message' => 'required|string',
+            'recipient' => 'nullable|string|in:reporter,reported', // Optional parameter to determine recipient
+        ]);
+        
+        // Determine the recipient - default to reporter if not specified
+        $recipient = $validated['recipient'] ?? 'reporter';
+        
+        // Get the appropriate user
+        $user = $recipient === 'reporter' ? $report->reporter : $report->reportedUser;
+        
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Could not find the specified user'
+            ], 404);
+        }
+        
+        try {
+            // Create a notification
+            $notification = $user->notifications()->create([
+                'type' => 'admin_note',
+                'title' => $validated['title'],
+                'message' => $validated['message'],
+                'status' => 'unread',
+                'action_text' => 'View Details',
+                'action_url' => route('notifications.index')
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Notification sent successfully',
+                'notification' => $notification
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to send notification: ' . $e->getMessage()
+            ], 500);
+        }
     }
 } 

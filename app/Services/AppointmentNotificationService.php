@@ -48,7 +48,7 @@ class AppointmentNotificationService
         $petName = $appointment->pet ? $appointment->pet->name : 'Pet';
         $customerName = $appointment->user ? $appointment->user->name : 'Customer';
         
-        $shopUser->notifications()->create([
+        $shopUser->notifyWithEmail([
             'type' => 'appointment',
             'title' => 'New Appointment Request',
             'message' => "New appointment request for {$petName} from {$customerName} on " . $appointment->appointment_date->format('M d, Y \a\t g:i A'),
@@ -71,7 +71,7 @@ class AppointmentNotificationService
         $shopName = $appointment->shop ? $appointment->shop->name : 'Shop';
         $petName = $appointment->pet ? $appointment->pet->name : 'Pet';
         
-        $customer->notifications()->create([
+        $customer->notifyWithEmail([
             'type' => 'appointment',
             'title' => 'Appointment Submitted',
             'message' => "Your appointment for {$petName} at {$shopName} on " . $appointment->appointment_date->format('M d, Y \a\t g:i A') . " has been submitted.",
@@ -120,7 +120,7 @@ class AppointmentNotificationService
                 $message = "Your appointment for {$petName} at {$shopName} on " . $appointment->appointment_date->format('M d, Y \a\t g:i A') . " has been updated.";
         }
         
-        $customer->notifications()->create([
+        $customer->notifyWithEmail([
             'type' => 'appointment',
             'title' => $title,
             'message' => $message,

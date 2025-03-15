@@ -44,6 +44,13 @@ class Kernel extends ConsoleKernel
 
         // Check for pets that need grooming - run daily at 8:00 AM
         $schedule->command('pets:check-grooming')->dailyAt('08:00');
+        
+        // Send pending email notifications every 2 minutes
+        $schedule->command('notifications:send-pending-emails')
+                ->everyTwoMinutes()
+                ->withoutOverlapping()
+                ->runInBackground()
+                ->appendOutputTo(storage_path('logs/email-notifications.log'));
     }
 
     /**
