@@ -102,26 +102,19 @@ class SubscriptionController extends Controller
                 'subscription_ends_at' => now()
             ]);
             
-            // Notify the shop owner
-            auth()->user()->notifications()->create([
-                'type' => 'subscription_cancelled',
-                'title' => 'Subscription Cancelled',
-                'message' => 'You have successfully cancelled your subscription for ' . $shop->name . '. Your access to premium features has been revoked.',
-                'action_url' => route('shop.dashboard'),
-                'action_text' => 'Go to Dashboard',
-                'icon' => 'information-circle'
-            ]);
+            // Create the subscription cancelled notification with complete details
+            auth()->user()->notify(new \App\Notifications\SubscriptionCancelled($subscription, $shop));
             
-            // Notify all admin users
+            // Notify admin users via email
             $adminUsers = \App\Models\User::where('role', 'admin')->get();
             foreach ($adminUsers as $admin) {
-                $admin->notifications()->create([
+                $admin->notifyWithEmail([
                     'type' => 'shop_subscription_cancelled',
                     'title' => 'Shop Subscription Cancelled',
-                    'message' => $shop->name . ' has cancelled their subscription.',
+                    'message' => $shop->name . ' has cancelled their subscription. Subscription #' . $subscription->id . ' with an amount of ₱' . number_format($subscription->amount, 2) . '.',
                     'action_url' => route('admin.payments'),
                     'action_text' => 'View Payments',
-                    'icon' => 'cash'
+                    'read_at' => null
                 ]);
             }
         }

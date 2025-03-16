@@ -55,6 +55,10 @@ Route::get('/pet-care-tips', function () {
     return view('pet-care-tips');
 })->name('pet-care-tips');
 
+// API routes for search
+Route::get('/api/search/grooming-shops', [\App\Http\Controllers\GroomingController::class, 'searchShops']);
+Route::get('/api/search/veterinary-shops', [\App\Http\Controllers\VeterinaryController::class, 'searchShops']);
+
 // Authentication routes
 Auth::routes();
 

@@ -11,13 +11,13 @@
     
     <div class="relative shops-carousel-container">
         <!-- Navigation Buttons -->
-        <button class="absolute -left-4 top-1/2 -translate-y-1/2 z-10 bg-white rounded-full p-2 shadow-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 carousel-prev-btn hidden md:block">
+        <button class="absolute -left-4 top-1/2 -translate-y-1/2 z-10 bg-white rounded-full p-2 shadow-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 carousel-prev-btn {{ count($popularShops) <= 1 ? 'hidden' : 'hidden md:block' }}">
             <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
             </svg>
         </button>
         
-        <button class="absolute -right-4 top-1/2 -translate-y-1/2 z-10 bg-white rounded-full p-2 shadow-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 carousel-next-btn hidden md:block">
+        <button class="absolute -right-4 top-1/2 -translate-y-1/2 z-10 bg-white rounded-full p-2 shadow-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 carousel-next-btn {{ count($popularShops) <= 1 ? 'hidden' : 'hidden md:block' }}">
             <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
             </svg>
@@ -110,7 +110,7 @@
         </div>
         
         <!-- Carousel Indicators -->
-        <div class="flex justify-center mt-6 space-x-2">
+        <div class="flex justify-center mt-6 space-x-2 {{ count($popularShops) <= 1 ? 'hidden' : '' }}">
             @for ($i = 0; $i < ceil(count($popularShops) / 3); $i++)
                 <button class="carousel-indicator w-2.5 h-2.5 rounded-full bg-gray-300 hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors" data-index="{{ $i }}"></button>
             @endfor
@@ -253,8 +253,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     let totalSlides = shopItems.length;
     let isTransitioning = false;
     
+    // Check if we have enough items to need a carousel
+    const shouldEnableCarousel = totalSlides > 1;
+    
     // Clone first set of items and append to end for infinite loop
     function setupInfiniteLoop() {
+        // Skip if we don't need a carousel
+        if (!shouldEnableCarousel) return;
+        
         // Get number of items to clone (equal to slidesPerView)
         const itemsToClone = Math.min(slidesPerView, shopItems.length);
         
@@ -267,6 +273,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Set active indicator
     function updateIndicators() {
+        // Skip if we don't need a carousel
+        if (!shouldEnableCarousel) return;
+        
         const activeGroup = Math.floor(currentSlide / slidesPerView) % Math.ceil(totalSlides / slidesPerView);
         
         indicators.forEach((indicator, index) => {
@@ -293,6 +302,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Handle slide transition with infinite loop
     function goToSlide(index, instant = false) {
+        // Skip if we don't need a carousel
+        if (!shouldEnableCarousel) return;
+        
         if (isTransitioning) return;
         
         if (instant) {
@@ -329,6 +341,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Start automatic sliding - one shop at a time with infinite loop
     function startSlideInterval() {
+        // Skip if we don't need a carousel
+        if (!shouldEnableCarousel) return;
+        
         slideInterval = setInterval(() => {
             goToSlide(currentSlide + 1);
         }, 12000);
@@ -336,12 +351,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Reset interval when manually changing slides
     function resetInterval() {
+        // Skip if we don't need a carousel
+        if (!shouldEnableCarousel) return;
+        
         clearInterval(slideInterval);
         startSlideInterval();
     }
     
     // Event listeners for buttons
-    if (prevBtn) {
+    if (prevBtn && shouldEnableCarousel) {
         prevBtn.addEventListener('click', () => {
             if (currentSlide === 0) {
                 // Handle going backwards from first slide
@@ -356,7 +374,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
     
-    if (nextBtn) {
+    if (nextBtn && shouldEnableCarousel) {
         nextBtn.addEventListener('click', () => {
             goToSlide(currentSlide + 1);
             resetInterval();
@@ -364,15 +382,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     
     // Event listeners for indicators
-    indicators.forEach((indicator, index) => {
-        indicator.addEventListener('click', () => {
-            goToSlide(index * slidesPerView);
-            resetInterval();
+    if (shouldEnableCarousel) {
+        indicators.forEach((indicator, index) => {
+            indicator.addEventListener('click', () => {
+                goToSlide(index * slidesPerView);
+                resetInterval();
+            });
         });
-    });
+    }
     
     // Handle window resize
     window.addEventListener('resize', () => {
+        // Skip if we don't need a carousel
+        if (!shouldEnableCarousel) return;
+        
         const newSlidesPerView = getSlidesPerView();
         if (newSlidesPerView !== slidesPerView) {
             slidesPerView = newSlidesPerView;
@@ -380,15 +403,23 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
     
-    // Initialize carousel
-    setupInfiniteLoop();
-    updateIndicators();
-    startSlideInterval();
-    
-    // Make first indicator active
-    if (indicators.length > 0) {
-        indicators[0].classList.add('bg-blue-500');
-        indicators[0].classList.remove('bg-gray-300');
+    // Initialize carousel only if we have more than one shop
+    if (shouldEnableCarousel) {
+        setupInfiniteLoop();
+        updateIndicators();
+        startSlideInterval();
+        
+        // Make first indicator active
+        if (indicators.length > 0) {
+            indicators[0].classList.add('bg-blue-500');
+            indicators[0].classList.remove('bg-gray-300');
+        }
+    } else {
+        // For single shop, make sure it's centered and remove any transformation
+        if (carousel) {
+            carousel.style.justifyContent = 'center';
+            carousel.style.transform = 'none';
+        }
     }
 });
 </script>

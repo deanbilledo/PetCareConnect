@@ -10,6 +10,22 @@
                 <p class="mt-2 text-sm text-gray-600">Add the services you offer to your customers.</p>
             </div>
 
+            <!-- Informational Banner -->
+            <div class="mx-8 mt-6 bg-blue-50 border-l-4 border-blue-500 p-4 mb-4">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <svg class="h-5 w-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2h-1V9a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm text-blue-700">
+                            <span class="font-medium">Get Started:</span> Add up to 3 services for now. You can always add more later in your shop services management.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
             <!-- Services Form -->
             <form method="POST" action="{{ route('shop.setup.services') }}" id="servicesForm">
                 @csrf
@@ -107,9 +123,9 @@
                                 <div class="exotic-species-section mt-4" style="display: none;">
                                     <label class="block text-sm font-medium text-gray-700">Exotic Pet Species</label>
                                     <div class="exotic-species-container mt-2 space-y-2">
-                                        <div class="flex items-center space-x-2">
+                                        <div class="flex items-center">
                                             <select name="services[0][exotic_pet_species][]" 
-                                                    class="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                                                    class="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline exotic-pet-select"
                                                     multiple>
                                                 <optgroup label="Reptiles">
                                                     <option value="snake">Snake</option>
@@ -250,6 +266,7 @@
 
                     <!-- Add Service Button -->
                     <button type="button"
+                            id="addServiceButton"
                             onclick="addService()"
                             class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
                         <svg class="h-5 w-5 mr-2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -257,6 +274,9 @@
                         </svg>
                         Add Another Service
                     </button>
+                    <p id="serviceLimit" class="mt-2 text-sm text-gray-500 hidden">
+                        You've reached the limit of 3 services for now. You can add more services later in your shop management.
+                    </p>
                 </div>
 
                 <!-- Navigation Buttons -->
@@ -285,12 +305,59 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize the checkboxes for the first service
     initializeRequiredCheckboxes();
     
+    // Check initial service count and update UI accordingly
+    checkServiceLimit();
+    
     // Add service function will need to initialize checkboxes for new services
     const originalAddService = window.addService;
     window.addService = function() {
         originalAddService();
         // Initialize is handled in the modified addService function
     };
+    
+    // Use delegated event handler for exotic pet checkboxes to handle all services including future ones
+    document.addEventListener('change', function(e) {
+        if (e.target && e.target.matches('input[name*="exotic_pet_service"]')) {
+            const serviceItem = e.target.closest('.service-item');
+            const section = serviceItem.querySelector('.exotic-species-section');
+            
+            if (section) {
+                section.style.display = e.target.checked ? 'block' : 'none';
+                
+                if (e.target.checked) {
+                    // Clean up the container before initializing Tom Select
+                    const selectElement = section.querySelector('select[name*="exotic_pet_species"]');
+                    if (selectElement) {
+                        // Remove any existing Tom Select elements
+                        const container = selectElement.closest('.exotic-species-container');
+                        if (container) {
+                            // Remove any Tom Select wrappers
+                            container.querySelectorAll('.ts-wrapper').forEach(el => el.remove());
+                            
+                            // Remove any extraneous input fields
+                            container.querySelectorAll('input:not([type="hidden"])').forEach(input => {
+                                if (input !== selectElement) {
+                                    input.remove();
+                                }
+                            });
+                        }
+                        
+                        // Ensure the select is visible
+                        selectElement.style.display = '';
+                        
+                        // Initialize Tom Select
+                        setTimeout(() => {
+                            initializeExoticPetSelect(selectElement);
+                        }, 10);
+                    }
+                }
+            }
+        }
+    });
+    
+    // Initialize Tom Select for the first service
+    const firstServiceExoticPetSelect = document.querySelector('.service-item:first-child select[name*="exotic_pet_species"]');
+    initializeExoticPetSelect(firstServiceExoticPetSelect);
     
     // Handle form submission
     document.getElementById('servicesForm').addEventListener('submit', function(e) {
@@ -609,24 +676,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Handle exotic pet service checkboxes
-    document.addEventListener('change', function(e) {
-        if (e.target.matches('.exotic-pet-checkbox')) {
-            const section = e.target.closest('.service-item').querySelector('.exotic-species-section');
-            const select = section.querySelector('select');
-            
-            if (section) {
-                section.style.display = e.target.checked ? 'block' : 'none';
-                if (select && select.tomselect) {
-                    if (!e.target.checked) {
-                        select.tomselect.clear();
-                    }
-                    select.tomselect.setValue(select.tomselect.getValue());
-                }
-            }
-        }
-    });
-
     // Initialize remove buttons
     updateRemoveButtons();
 
@@ -739,6 +788,21 @@ function removeAddOn(button) {
 function addService() {
     const container = document.getElementById('servicesContainer');
     const serviceCount = container.children.length;
+    
+    // Check if we've reached the limit of 3 services
+    if (serviceCount >= 3) {
+        // Show the limit message
+        document.getElementById('serviceLimit').classList.remove('hidden');
+        
+        // Disable the add service button
+        const addButton = document.getElementById('addServiceButton');
+        addButton.disabled = true;
+        addButton.classList.add('opacity-50', 'cursor-not-allowed');
+        addButton.classList.remove('hover:bg-gray-50');
+        
+        return; // Don't add more services
+    }
+    
     const template = container.children[0].cloneNode(true);
     
     // Set data-index attribute for proper DOM reference
@@ -787,6 +851,27 @@ function addService() {
     const exoticSection = template.querySelector('.exotic-species-section');
     if (exoticSection) {
         exoticSection.style.display = 'none';
+        
+        // Get the select element
+        const exoticSelect = exoticSection.querySelector('select[name*="exotic_pet_species"]');
+        if (exoticSelect) {
+            // Check if there are any leftover Tom Select elements and remove them
+            const container = exoticSelect.closest('.exotic-species-container');
+            if (container) {
+                // Remove any existing Tom Select elements
+                container.querySelectorAll('.ts-wrapper').forEach(el => el.remove());
+                
+                // Remove any extraneous input fields
+                container.querySelectorAll('input:not([type="hidden"])').forEach(input => {
+                    if (input !== exoticSelect) {
+                        input.remove();
+                    }
+                });
+            }
+            
+            // Ensure the select element itself is clean and visible
+            exoticSelect.style.display = '';
+        }
     }
 
     // Reset variable pricing and add-ons containers
@@ -810,7 +895,7 @@ function addService() {
                 </div>
                 <div class="mt-4">
                     <div class="-mx-2 -my-1.5 flex">
-                        <button type="button" onclick="this.parentElement.parentElement.parentElement.parentElement.remove()" class="px-2 py-1.5 rounded-md text-sm font-medium text-yellow-800 hover:bg-yellow-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500">
+                        <button type="button" onclick="this.parentElement.parentElement.parentElement.parentElement.parentElement.remove()" class="px-2 py-1.5 rounded-md text-sm font-medium text-yellow-800 hover:bg-yellow-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500">
                             Dismiss
                         </button>
                     </div>
@@ -839,8 +924,29 @@ function addService() {
         }
         sizeRangeContainer.classList.add('border', 'border-red-500', 'rounded-md', 'p-2');
     }
-
+    
+    // Add to container
     container.appendChild(template);
+    
+    // Re-init exotic pet features for the new service
+    // 1. Get the exotic pet checkbox for this service
+    const exoticPetCheckbox = template.querySelector('input[name*="exotic_pet_service"]');
+    if (exoticPetCheckbox) {
+        // 2. Add change event listener directly to this checkbox
+        exoticPetCheckbox.addEventListener('change', function() {
+            const serviceItem = this.closest('.service-item');
+            const section = serviceItem.querySelector('.exotic-species-section');
+            if (section) {
+                section.style.display = this.checked ? 'block' : 'none';
+                
+                // Re-initialize the select when shown
+                if (this.checked) {
+                    const selectElement = section.querySelector('select[name*="exotic_pet_species"]');
+                    initializeExoticPetSelect(selectElement);
+                }
+            }
+        });
+    }
     
     // Initialize Tom Select for the new service's exotic pet select
     initializeExoticPetSelect(template.querySelector('select[name*="exotic_pet_species"]'));
@@ -869,11 +975,48 @@ function removeService(serviceElement) {
     if (confirm('Are you sure you want to remove this service?')) {
         serviceElement.remove();
         updateRemoveButtons();
+        
+        // Re-enable the add service button if we're now below the limit
+        const container = document.getElementById('servicesContainer');
+        const serviceCount = container.children.length;
+        
+        if (serviceCount < 3) {
+            // Hide the limit message
+            document.getElementById('serviceLimit').classList.add('hidden');
+            
+            // Enable the add button
+            const addButton = document.getElementById('addServiceButton');
+            addButton.disabled = false;
+            addButton.classList.remove('opacity-50', 'cursor-not-allowed');
+            addButton.classList.add('hover:bg-gray-50');
+        }
     }
 }
 
 function initializeExoticPetSelect(selectElement) {
     if (selectElement) {
+        // First check if the sibling input field from a previous Tom Select instance exists and remove it
+        const parentContainer = selectElement.closest('.exotic-species-container');
+        if (parentContainer) {
+            // Look for any existing .ts-wrapper elements and remove them
+            parentContainer.querySelectorAll('.ts-wrapper').forEach(wrapper => {
+                wrapper.remove();
+            });
+            
+            // Look for any extraneous input fields that might have been added by Tom Select
+            parentContainer.querySelectorAll('input:not([type="hidden"])').forEach(input => {
+                if (input !== selectElement) {
+                    input.remove();
+                }
+            });
+        }
+        
+        // Check if there's an existing Tom Select instance and destroy it
+        if (selectElement.tomselect) {
+            selectElement.tomselect.destroy();
+        }
+        
+        // Create new Tom Select instance
         new TomSelect(selectElement, {
             plugins: ['remove_button'],
             maxItems: null,
@@ -895,6 +1038,31 @@ function initializeExoticPetSelect(selectElement) {
                 this.refreshOptions(false);
             }
         });
+    }
+}
+
+function checkServiceLimit() {
+    const container = document.getElementById('servicesContainer');
+    const serviceCount = container.children.length;
+    
+    if (serviceCount >= 3) {
+        // Show the limit message
+        document.getElementById('serviceLimit').classList.remove('hidden');
+        
+        // Disable the add service button
+        const addButton = document.getElementById('addServiceButton');
+        addButton.disabled = true;
+        addButton.classList.add('opacity-50', 'cursor-not-allowed');
+        addButton.classList.remove('hover:bg-gray-50');
+    } else {
+        // Hide the limit message
+        document.getElementById('serviceLimit').classList.add('hidden');
+        
+        // Enable the add button
+        const addButton = document.getElementById('addServiceButton');
+        addButton.disabled = false;
+        addButton.classList.remove('opacity-50', 'cursor-not-allowed');
+        addButton.classList.add('hover:bg-gray-50');
     }
 }
 </script>

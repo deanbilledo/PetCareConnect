@@ -23,11 +23,9 @@ use Illuminate\Support\Facades\Log;
         <!-- Alpine.js -->
         <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
         
-        <!-- OpenStreetMap CSS and JS -->
-        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-        <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
-        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-        <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+            <!-- OpenStreetMap CSS and JS -->
+            <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+            <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
         
         <!-- Add this in the <head> section, after the other style imports -->
         <style>
@@ -233,24 +231,6 @@ use Illuminate\Support\Facades\Log;
                                      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                                          attribution: '© OpenStreetMap contributors'
                                      }).addTo(this.map);
-
-                                     // Add geocoder control
-                                     const geocoder = L.Control.geocoder({
-                                         defaultMarkGeocode: false
-                                     })
-                                     .on('markgeocode', (e) => {
-                                         const { center, name } = e.geocode;
-                                         if (this.marker) {
-                                             this.marker.setLatLng(center);
-                                         } else {
-                                             this.marker = L.marker(center).addTo(this.map);
-                                         }
-                                         this.map.setView(center, 16);
-                                         this.latitude = center.lat;
-                                         this.longitude = center.lng;
-                                         this.address = name;
-                                     })
-                                     .addTo(this.map);
 
                                      // Handle map clicks
                                      this.map.on('click', (e) => {
