@@ -71,4 +71,65 @@ class VeterinaryController extends Controller
         // Pass the data to the view
         return view('groomVetLandingPage.petlandingpage', compact('veterinaryShops', 'veterinaryServices'));
     }
+    
+    /**
+     * API endpoint to search for veterinary shops
+     * Used for live search in the frontend
+     */
+    public function searchShops(Request $request)
+    {
+        // Validate the request
+        $request->validate([
+            'query' => 'required|string|min:2'
+        ]);
+        
+        $query = $request->input('query');
+        $rating = $request->input('rating');
+        $serviceType = $request->input('service_type');
+        
+        // Start query builder for veterinary shops
+        $shopsQuery = Shop::where('type', 'veterinary')
+            ->withAvg('ratings', 'rating')
+            ->where('status', 'active')
+            ->where(function($q) use ($query) {
+                $q->where('name', 'like', "%{$query}%")
+                  ->orWhere('description', 'like', "%{$query}%")
+                  ->orWhere('address', 'like', "%{$query}%")
+                  ->orWhereHas('services', function($subQuery) use ($query) {
+                      $subQuery->where('name', 'like', "%{$query}%")
+                            ->orWhere('description', 'like', "%{$query}%");
+                  });
+            });
+        
+        // Apply rating filter if provided
+        if (!empty($rating)) {
+            $shopsQuery->having('ratings_avg_rating', '>=', $rating);
+        }
+        
+        // Apply service type filter if provided
+        if (!empty($serviceType)) {
+            $shopsQuery->whereHas('services', function($q) use ($serviceType) {
+                $q->where('type', $serviceType);
+            });
+        }
+        
+        // Get results, limited to 5 for performance
+        $shops = $shopsQuery->orderBy('ratings_avg_rating', 'desc')
+            ->limit(5)
+            ->get();
+            
+        // Transform the data for the frontend
+        $results = $shops->map(function($shop) {
+            return [
+                'id' => $shop->id,
+                'name' => $shop->name,
+                'image_url' => $shop->image_url ? asset($shop->image_url) : asset('images/shops/default-shop.svg'),
+                'address' => $shop->address,
+                'rating' => $shop->ratings_avg_rating,
+                'services_count' => $shop->services->count()
+            ];
+        });
+        
+        return response()->json($results);
+    }
 } 

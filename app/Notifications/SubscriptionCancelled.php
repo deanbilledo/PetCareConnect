@@ -8,8 +8,9 @@ use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use App\Models\Subscription;
 use App\Models\Shop;
+use Carbon\Carbon;
 
-class SubscriptionCancelled extends Notification
+class SubscriptionCancelled extends Notification implements ShouldQueue
 {
     use Queueable;
 
@@ -32,7 +33,7 @@ class SubscriptionCancelled extends Notification
      */
     public function via(object $notifiable): array
     {
-        return ['database'];
+        return ['mail', 'database'];
     }
 
     /**
@@ -41,11 +42,12 @@ class SubscriptionCancelled extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-                    ->subject('Subscription Cancelled')
-                    ->line('Your subscription has been cancelled.')
-                    ->line('Premium features have been revoked. You can resubscribe at any time.')
-                    ->action('Resubscribe', url('/shop/subscriptions'))
-                    ->line('Thank you for using our application!');
+                    ->subject('Subscription Cancelled for ' . $this->shop->name)
+                    ->view('emails.subscription-cancelled', [
+                        'user' => $notifiable,
+                        'shop' => $this->shop,
+                        'subscription' => $this->subscription
+                    ]);
     }
 
     /**
@@ -60,7 +62,10 @@ class SubscriptionCancelled extends Notification
             'shop_id' => $this->shop->id,
             'shop_name' => $this->shop->name,
             'message' => 'You have successfully cancelled your subscription. Premium features have been revoked.',
-            'type' => 'subscription_cancelled'
+            'type' => 'subscription_cancelled',
+            'amount' => $this->subscription->amount,
+            'start_date' => $this->subscription->subscription_starts_at,
+            'end_date' => $this->subscription->subscription_ends_at
         ];
     }
 } 

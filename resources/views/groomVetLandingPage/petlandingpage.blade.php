@@ -2,6 +2,107 @@
 
 @section('content')
 
+{{-- Search and Filter Section --}}
+<section class="search-filter-section my-8 mt-20 mx-auto max-w-6xl px-4">
+    <div class="bg-white rounded-lg shadow-sm p-2">
+        <form action="{{ route('petlandingpage') }}" method="GET" id="search-form">
+            <div class="relative flex items-center">
+                {{-- Store icon --}}
+                <div class="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                
+                {{-- Search input --}}
+                <input type="text" name="search" id="search" value="{{ request('search') }}" 
+                       placeholder="Pet Services Near You/Search Clinic or Services" 
+                       class="pl-10 pr-16 py-3 w-full text-sm text-gray-700 bg-gray-50 border-0 rounded-lg focus:ring-0 focus:outline-none"
+                       autocomplete="off">
+                
+                {{-- Location icon button --}}
+                <div class="absolute inset-y-0 right-10 flex items-center">
+                    <button type="button" class="flex items-center px-2 text-gray-400 hover:text-gray-500 focus:outline-none">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                    </button>
+                </div>
+                
+                {{-- Filter button --}}
+                <div class="absolute inset-y-0 right-0 flex items-center pr-2">
+                    <button type="button" id="filter-toggle" class="flex items-center p-2 text-gray-400 hover:text-gray-500 focus:outline-none">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                        </svg>
+                        <span class="ml-1 text-xs font-medium text-gray-500" id="filter-count">
+                            @php
+                                $filterCount = 0;
+                                if(request('rating')) $filterCount++;
+                                if(request('service_type')) $filterCount++;
+                                if(request('sort') && request('sort') != 'popular') $filterCount++;
+                                echo $filterCount ? "($filterCount)" : "";
+                            @endphp
+                        </span>
+                    </button>
+                </div>
+            </div>
+            
+            {{-- Autocomplete Results Dropdown --}}
+            <div id="search-results" class="hidden absolute z-50 mt-1 w-full left-0 right-0 bg-white rounded-md shadow-lg max-h-80 overflow-y-auto border border-gray-200"></div>
+            
+            {{-- Filter dropdown - Initially hidden --}}
+            <div id="filter-dropdown" class="mt-2 grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-white rounded-md shadow border border-gray-100 transition-all duration-300 ease-in-out {{ request()->anyFilled(['rating', 'service_type', 'sort']) ? '' : 'hidden' }}">
+                {{-- Rating filter --}}
+                <div>
+                    <label for="rating" class="block text-sm font-medium text-gray-700 mb-1">Minimum Rating</label>
+                    <select name="rating" id="rating" class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                        <option value="">Any Rating</option>
+                        <option value="3" {{ request('rating') == '3' ? 'selected' : '' }}>3+ Stars</option>
+                        <option value="4" {{ request('rating') == '4' ? 'selected' : '' }}>4+ Stars</option>
+                        <option value="5" {{ request('rating') == '5' ? 'selected' : '' }}>5 Stars</option>
+                    </select>
+                </div>
+                
+                {{-- Service type filter --}}
+                <div>
+                    <label for="service_type" class="block text-sm font-medium text-gray-700 mb-1">Service Type</label>
+                    <select name="service_type" id="service_type" class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                        <option value="">All Services</option>
+                        <option value="checkup" {{ request('service_type') == 'checkup' ? 'selected' : '' }}>Checkup</option>
+                        <option value="vaccination" {{ request('service_type') == 'vaccination' ? 'selected' : '' }}>Vaccination</option>
+                        <option value="surgery" {{ request('service_type') == 'surgery' ? 'selected' : '' }}>Surgery</option>
+                        <option value="emergency" {{ request('service_type') == 'emergency' ? 'selected' : '' }}>Emergency</option>
+                    </select>
+                </div>
+                
+                {{-- Sort filter --}}
+                <div>
+                    <label for="sort" class="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
+                    <select name="sort" id="sort" class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                        <option value="popular" {{ request('sort') == 'popular' ? 'selected' : '' }}>Most Popular</option>
+                        <option value="rating" {{ request('sort') == 'rating' ? 'selected' : '' }}>Highest Rated</option>
+                        <option value="name_asc" {{ request('sort') == 'name_asc' ? 'selected' : '' }}>Name (A-Z)</option>
+                        <option value="name_desc" {{ request('sort') == 'name_desc' ? 'selected' : '' }}>Name (Z-A)</option>
+                    </select>
+                </div>
+                
+                <div class="col-span-1 md:col-span-3 flex justify-center mt-2">
+                    <button type="submit" class="inline-flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out">
+                        Apply Filters
+                    </button>
+                    @if(request()->anyFilled(['search', 'rating', 'service_type', 'sort']))
+                        <a href="{{ route('petlandingpage') }}" class="inline-flex items-center ml-4 px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out">
+                            Clear All
+                        </a>
+                    @endif
+                </div>
+            </div>
+        </form>
+    </div>
+</section>
+
 <section class="grooming-shops my-6 mb-20 mt-40">
     <h2 class="relative text-2xl font-semibold mb-4 text-center flex items-center justify-center">
         <span class="flex-grow border-t border-black mx-2"></span>
@@ -174,6 +275,16 @@
         min-height: 300vh; /* Adjust the value as needed */
     }
     
+    /* Dropdown styling */
+    #search-results {
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        border: 1px solid rgba(209, 213, 219, 0.5);
+    }
+    
+    #search-results a:hover {
+        background-color: rgba(243, 244, 246, 0.8);
+    }
+    
     /* Favorite button animations */
     .favorite-toggle {
         transition: transform 0.2s ease;
@@ -218,7 +329,157 @@
 
 @push('scripts')
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
+    document.addEventListener('DOMContentLoaded', function() {
+        // Filter dropdown toggle
+        const filterToggle = document.getElementById('filter-toggle');
+        const filterDropdown = document.getElementById('filter-dropdown');
+        
+        filterToggle.addEventListener('click', function() {
+            filterDropdown.classList.toggle('hidden');
+        });
+        
+        // Update filters on change
+        const filterInputs = document.querySelectorAll('#rating, #service_type, #sort');
+        filterInputs.forEach(input => {
+            input.addEventListener('change', function() {
+                // Count active filters for the badge
+                let activeFilters = 0;
+                if (document.getElementById('rating').value) activeFilters++;
+                if (document.getElementById('service_type').value) activeFilters++;
+                if (document.getElementById('sort').value && document.getElementById('sort').value !== 'popular') activeFilters++;
+                
+                // Update the filter count badge
+                const filterCount = document.getElementById('filter-count');
+                filterCount.textContent = activeFilters > 0 ? `(${activeFilters})` : '';
+            });
+        });
+
+        // Live search functionality
+        const searchInput = document.getElementById('search');
+        const searchResults = document.getElementById('search-results');
+        const searchForm = document.getElementById('search-form');
+        let debounceTimer;
+        
+        // Handle search input changes
+        searchInput.addEventListener('input', function() {
+            const query = this.value.trim();
+            
+            // Clear previous timer
+            clearTimeout(debounceTimer);
+            
+            // Hide results if query is empty
+            if (query === '') {
+                searchResults.classList.add('hidden');
+                searchResults.innerHTML = '';
+                return;
+            }
+            
+            // Debounce the API call to avoid excessive requests
+            debounceTimer = setTimeout(() => {
+                fetchSearchResults(query);
+            }, 300);
+        });
+        
+        // Handle clicks outside the search results to close it
+        document.addEventListener('click', function(e) {
+            if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+                searchResults.classList.add('hidden');
+            }
+        });
+        
+        // Fetch search results via AJAX
+        function fetchSearchResults(query) {
+            // Don't search for very short queries
+            if (query.length < 2) {
+                searchResults.classList.add('hidden');
+                return;
+            }
+            
+            // Get current filter values
+            const rating = document.getElementById('rating').value;
+            const serviceType = document.getElementById('service_type').value;
+            
+            fetch(`/api/search/veterinary-shops?query=${encodeURIComponent(query)}&rating=${rating}&service_type=${serviceType}`)
+                .then(response => response.json())
+                .then(data => {
+                    displaySearchResults(data);
+                })
+                .catch(error => {
+                    console.error('Error fetching search results:', error);
+                    // Fallback to direct form submission if API fails
+                    searchResults.classList.add('hidden');
+                });
+        }
+        
+        // Display search results in dropdown
+        function displaySearchResults(data) {
+            // Clear previous results
+            searchResults.innerHTML = '';
+            
+            if (data.length === 0) {
+                searchResults.innerHTML = '<div class="px-4 py-3 text-sm text-gray-500">No results found</div>';
+                searchResults.classList.remove('hidden');
+                return;
+            }
+            
+            // Create results list
+            const resultsList = document.createElement('div');
+            resultsList.className = 'py-2';
+            
+            // Add each shop to the results
+            data.forEach(shop => {
+                const resultItem = document.createElement('a');
+                resultItem.href = `/book/${shop.id}`;
+                resultItem.className = 'block px-4 py-3 hover:bg-gray-50 transition duration-150 ease-in-out border-b border-gray-100 last:border-0';
+                
+                // Build result content with image and shop details
+                const stars = '★'.repeat(Math.round(shop.rating || 0)) + '☆'.repeat(5 - Math.round(shop.rating || 0));
+                
+                resultItem.innerHTML = `
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0 h-12 w-12 rounded-full overflow-hidden border border-gray-200">
+                            <img src="${shop.image_url || '/images/shops/default-shop.svg'}" alt="${shop.name}" class="h-full w-full object-cover">
+                        </div>
+                        <div class="ml-4 flex-1">
+                            <p class="text-sm font-medium text-gray-900">${shop.name}</p>
+                            <div class="flex items-center">
+                                <span class="text-xs text-yellow-400">${stars}</span>
+                                <span class="ml-1 text-xs text-gray-500">${(shop.rating || 0).toFixed(1)}</span>
+                            </div>
+                            <p class="text-xs text-gray-500 truncate max-w-xs">${shop.address || ''}</p>
+                        </div>
+                    </div>
+                `;
+                
+                resultsList.appendChild(resultItem);
+            });
+            
+            // View all results option
+            const viewAllItem = document.createElement('div');
+            viewAllItem.className = 'border-t border-gray-100 mt-1';
+            viewAllItem.innerHTML = `
+                <button type="submit" class="block w-full text-center px-4 py-3 text-sm text-indigo-600 font-medium hover:bg-gray-50">
+                    View all results
+                </button>
+            `;
+            
+            resultsList.appendChild(viewAllItem);
+            searchResults.appendChild(resultsList);
+            
+            // Calculate position and set width of dropdown to match container
+            const formContainer = searchForm.closest('.bg-white');
+            if (formContainer) {
+                searchResults.style.width = formContainer.offsetWidth + 'px';
+                // Update position to match the form container
+                const rect = formContainer.getBoundingClientRect();
+                searchResults.style.top = (rect.bottom + window.scrollY) + 'px';
+                searchResults.style.left = rect.left + 'px';
+            }
+            
+            searchResults.classList.remove('hidden');
+        }
+
+        // Favorites functionality
         // Add favorite form - will be used for all favorite buttons
         const favoriteForm = document.createElement('form');
         favoriteForm.method = 'POST';

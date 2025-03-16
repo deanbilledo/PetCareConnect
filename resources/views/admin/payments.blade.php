@@ -269,40 +269,64 @@
 
     function verifyPayment(subscriptionId) {
         if (confirm('Are you sure you want to verify this payment?')) {
+            // Create form data to properly handle CSRF token
+            const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+            
             fetch(`/admin/payments/${subscriptionId}/verify`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                }
+                    'X-CSRF-TOKEN': token,
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'same-origin'
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(data => {
                 alert(data.message);
                 window.location.reload();
             })
             .catch(error => {
-                alert('Error verifying payment');
+                console.error('Error details:', error);
+                alert('Error verifying payment. The page will now refresh to show current status.');
+                window.location.reload();
             });
         }
     }
 
     function rejectPayment(subscriptionId) {
         if (confirm('Are you sure you want to reject this payment?')) {
+            // Create form data to properly handle CSRF token
+            const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+            
             fetch(`/admin/payments/${subscriptionId}/reject`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                }
+                    'X-CSRF-TOKEN': token,
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'same-origin'
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(data => {
                 alert(data.message);
                 window.location.reload();
             })
             .catch(error => {
-                alert('Error rejecting payment');
+                console.error('Error details:', error);
+                alert('Error rejecting payment. The page will now refresh to show current status.');
+                window.location.reload();
             });
         }
     }
@@ -339,25 +363,12 @@
         // Close modals when clicking outside
         window.onclick = function(event) {
             const modal = document.getElementById('paymentDetailsModal');
-            const modalContent = document.getElementById('paymentDetailsContent');
             
-            modalContent.innerHTML = `
-                <p><strong>Payment ID:</strong> ${payment.id}</p>
-                <p><strong>Shop Owner:</strong> ${payment.shopOwner}</p>
-                <p><strong>Shop:</strong> ${payment.shop}</p>
-                <p><strong>Date:</strong> ${payment.date}</p>
-                <p><strong>Total Amount:</strong> $${payment.amount.toFixed(2)}</p>
-                <p><strong>Commission (Platform Fee):</strong> $${payment.commission.toFixed(2)}</p>
-                <p><strong>Shop Owner Receives:</strong> $${(payment.amount - payment.commission).toFixed(2)}</p>
-                <p><strong>Status:</strong> ${payment.status}</p>
-                <p><strong>Note:</strong> The shop owner handles the full payment. The platform receives only the commission as a fee.</p>
-            `;
-            
-            modal.classList.remove('hidden');
+            // If user clicks outside the modal content, close the modal
+            if (event.target === modal) {
+                hidePaymentModal();
+            }
         }
-
-        // Initialize the page with payment data
-        populateTable();
     </script>
 </body>
 </html>
