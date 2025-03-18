@@ -84,6 +84,9 @@
             </div>
             <div class="image-error text-red-500 text-sm mt-1 hidden">Please upload a valid image file (max 2MB)</div>
         </div>
+
+        <!-- Form feedback messages -->
+        <div id="form-feedback" class="hidden mt-2 p-3 rounded-md"></div>
         
         <div class="pt-2">
             <button type="submit" 
@@ -101,6 +104,19 @@ document.addEventListener('DOMContentLoaded', function() {
     const imagePreview = document.getElementById('image-preview');
     const previewContainer = document.getElementById('image-preview-container');
     const removeButton = document.getElementById('remove-image');
+    const formFeedback = document.getElementById('form-feedback');
+    
+    // Function to show feedback message
+    function showFeedback(message, type = 'error') {
+        formFeedback.innerHTML = message;
+        formFeedback.classList.remove('hidden', 'bg-green-50', 'text-green-700', 'bg-red-50', 'text-red-700');
+        
+        if (type === 'success') {
+            formFeedback.classList.add('bg-green-50', 'text-green-700', 'border', 'border-green-200');
+        } else {
+            formFeedback.classList.add('bg-red-50', 'text-red-700', 'border', 'border-red-200');
+        }
+    }
     
     // Handle file input change
     fileInput.addEventListener('change', function(e) {
@@ -127,11 +143,34 @@ document.addEventListener('DOMContentLoaded', function() {
             // Show preview
             document.querySelector('.image-error').classList.add('hidden');
             const reader = new FileReader();
+            
             reader.onload = function(e) {
-                imagePreview.src = e.target.result;
-                previewContainer.classList.remove('hidden');
+                try {
+                    imagePreview.src = e.target.result;
+                    previewContainer.classList.remove('hidden');
+                } catch (error) {
+                    console.error('Error previewing image:', error);
+                    document.querySelector('.image-error').textContent = 'Error previewing image';
+                    document.querySelector('.image-error').classList.remove('hidden');
+                    fileInput.value = '';
+                }
+            };
+            
+            reader.onerror = function() {
+                console.error('Error reading file');
+                document.querySelector('.image-error').textContent = 'Error reading file';
+                document.querySelector('.image-error').classList.remove('hidden');
+                fileInput.value = '';
+            };
+            
+            try {
+                reader.readAsDataURL(file);
+            } catch (error) {
+                console.error('Error processing file:', error);
+                document.querySelector('.image-error').textContent = 'Error processing file';
+                document.querySelector('.image-error').classList.remove('hidden');
+                fileInput.value = '';
             }
-            reader.readAsDataURL(file);
         } else {
             previewContainer.classList.add('hidden');
         }
@@ -147,6 +186,9 @@ document.addEventListener('DOMContentLoaded', function() {
     form.addEventListener('submit', function(e) {
         e.preventDefault(); // Prevent default form submission
         let isValid = true;
+        
+        // Reset form feedback
+        formFeedback.classList.add('hidden');
         
         // Validate report type
         const reportType = document.getElementById('report_type');
@@ -172,11 +214,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Show loading state
         const submitBtn = form.querySelector('button[type="submit"]');
+        const originalBtnText = submitBtn.textContent;
         submitBtn.disabled = true;
         submitBtn.textContent = 'Submitting...';
         
+        // Get the CSRF token from the meta tag
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        
         // Create FormData object to include file
         const formData = new FormData(form);
+        
+        // Debugging - log formData entries
+        console.log('Submitting report with data:');
+        for (let pair of formData.entries()) {
+            console.log(pair[0] + ': ' + (pair[1] instanceof File ? 'File: ' + pair[1].name : pair[1]));
+        }
         
         // Send form data via AJAX
         fetch(form.action, {
@@ -185,32 +237,51 @@ document.addEventListener('DOMContentLoaded', function() {
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
                 'Accept': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                // Don't set Content-Type header when using FormData
+                'X-CSRF-TOKEN': csrfToken
             },
             credentials: 'same-origin'
         })
         .then(response => {
-            // Log response for debugging
             console.log('Report submission response status:', response.status);
             
-            if (!response.ok) {
+            // First check if the response is JSON
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
                 return response.json().then(data => {
-                    console.error('Error response:', data);
-                    throw new Error(data.message || data.error || 'Error submitting report');
+                    // Check for authentication error (401)
+                    if (response.status === 401) {
+                        if (data.redirect) {
+                            showFeedback('You must be logged in to submit a report. Redirecting to login page...', 'error');
+                            setTimeout(() => {
+                                window.location.href = data.redirect;
+                            }, 2000);
+                        } else {
+                            showFeedback('You must be logged in to submit a report.', 'error');
+                        }
+                        throw new Error('Authentication required');
+                    }
+                    
+                    if (!response.ok) {
+                        // Extract error message from JSON response
+                        console.error('Error response:', data);
+                        throw new Error(data.message || data.error || 'Error submitting report');
+                    }
+                    return data;
                 });
+            } else {
+                // Handle non-JSON response (likely an error page)
+                if (!response.ok) {
+                    throw new Error('Server error: ' + response.status);
+                }
+                return { success: true, message: 'Report submitted successfully' };
             }
-            return response.json();
         })
         .then(data => {
             if (data.success) {
-                // Create and show success message
-                const successMessage = document.createElement('div');
-                successMessage.className = 'text-green-500 text-center mt-3 font-medium';
-                successMessage.textContent = 'Report submitted successfully!';
-                form.appendChild(successMessage);
+                // Show success message
+                showFeedback('Report submitted successfully! Thank you for your feedback.', 'success');
                 
-                // Reset form after success
+                // Reset form
                 form.reset();
                 
                 // Remove image preview if exists
@@ -218,15 +289,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     previewContainer.classList.add('hidden');
                 }
                 
-                // Close modal after 2 seconds
+                // Close modal after delay
                 setTimeout(() => {
                     const modalId = '{{ $type }}' === 'shop' ? 'reportModal' : 'reportUserModal';
                     const modal = document.getElementById(modalId);
                     if (modal) {
                         modal.classList.add('hidden');
                     }
-                    // Remove success message after modal is closed
-                    successMessage.remove();
                 }, 2000);
             } else {
                 throw new Error(data.message || 'Failed to submit report');
@@ -235,21 +304,13 @@ document.addEventListener('DOMContentLoaded', function() {
         .catch(error => {
             console.error('Error submitting report:', error);
             
-            // Create and show error message
-            const errorMessage = document.createElement('div');
-            errorMessage.className = 'text-red-500 text-center mt-3 font-medium';
-            errorMessage.textContent = error.message || 'An error occurred. Please try again.';
-            form.appendChild(errorMessage);
-            
-            // Remove error message after 3 seconds
-            setTimeout(() => {
-                errorMessage.remove();
-            }, 3000);
+            // Show error message
+            showFeedback('Error: ' + error.message);
         })
         .finally(() => {
             // Reset button state
             submitBtn.disabled = false;
-            submitBtn.textContent = 'Submit Report';
+            submitBtn.textContent = originalBtnText;
         });
     });
 });

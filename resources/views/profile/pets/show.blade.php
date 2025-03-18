@@ -539,14 +539,14 @@ use Illuminate\Support\Str;
             }
         };
 
-        // Deceased modal functionality
-        function openDeceasedModal() {
-            document.getElementById('deceased-modal').classList.remove('hidden');
-        }
-        
-        function closeDeceasedModal() {
-            document.getElementById('deceased-modal').classList.add('hidden');
-        }
+            // Deceased modal functionality
+            function openDeceasedModal() {
+                document.getElementById('deceased-modal').classList.remove('hidden');
+            }
+            
+            function closeDeceasedModal() {
+                document.getElementById('deceased-modal').classList.add('hidden');
+            }
     </script>
     @endpush
 </div>

@@ -6,6 +6,20 @@
       crossorigin="anonymous"/>
 <style>
     [x-cloak] { display: none !important; }
+    
+    /* Gallery styles */
+    .error-image {
+        border: 1px dashed #ccc;
+        background-color: #f8f8f8;
+    }
+    
+    .gallery-image {
+        transition: transform 0.3s ease;
+    }
+    
+    .gallery-image:hover {
+        transform: scale(1.05);
+    }
 </style>
 @endsection
 
@@ -311,9 +325,9 @@
                         <div class="relative group">
                             <img src="{{ Storage::disk('public')->exists($image->image_path) ? asset('storage/' . $image->image_path) : asset('images/default-shop.png') }}" 
                                  alt="Gallery Image" 
-                                 class="w-full h-48 object-cover rounded-lg transition-transform duration-300 group-hover:scale-105"
-                                 onerror="this.src='{{ asset('images/default-shop.png') }}'">
-                            <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity duration-300 rounded-lg"></div>
+                                 class="w-full h-48 object-cover rounded-lg transition-transform duration-300 group-hover:scale-105 gallery-image"
+                                 onerror="this.src='{{ asset('images/default-shop.png') }}'; this.classList.add('error-image');">
+                            <div class="absolute inset-0 bg-transparent hover:bg-black hover:bg-opacity-20 transition-opacity duration-300 rounded-lg"></div>
                             <!-- Delete Button -->
                             <button onclick="deleteGalleryPhoto({{ $image->id }})"
                                     class="absolute top-2 right-2 hidden group-hover:block p-1 bg-red-500 text-white rounded-full hover:bg-red-600 focus:outline-none">
@@ -338,23 +352,7 @@
 
     <!-- Operating Hours Section -->
     <div class="bg-white rounded-lg shadow-md p-6 mt-8" 
-         x-data="{ 
-             isEditing: false,
-             days: [
-                 @foreach($shop->operatingHours->sortBy('day') as $hour)
-                 {
-                     name: '{{ ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][$hour->day] }}',
-                     day: {{ $hour->day }},
-                     is_open: {{ $hour->is_open ? 'true' : 'false' }},
-                     open_time: '{{ $hour->open_time }}',
-                     close_time: '{{ $hour->close_time }}',
-                     has_lunch_break: {{ $hour->has_lunch_break ? 'true' : 'false' }},
-                     lunch_start: '{{ $hour->lunch_start }}',
-                     lunch_end: '{{ $hour->lunch_end }}'
-                 },
-                 @endforeach
-             ]
-         }">
+         x-data="operatingHours">
         <div class="flex justify-between items-center mb-4">
             <h2 class="text-xl font-semibold">Operating Hours</h2>
             <button type="button" 
@@ -529,5 +527,108 @@ function deleteGalleryPhoto(photoId) {
         alert('Failed to delete photo. Please try again.');
     });
 }
+
+function openGalleryModal(imageUrl, imageId) {
+    document.getElementById('modalImage').src = imageUrl;
+    document.getElementById('modalImage').dataset.id = imageId;
+    document.getElementById('galleryModal').classList.remove('hidden');
+}
+
+function closeGalleryModal() {
+    document.getElementById('galleryModal').classList.add('hidden');
+}
+
+function changeImage(direction) {
+    // Implementation for gallery navigation
+    console.log('Change image', direction);
+}
+
+// Add Alpine.js function handler for operating hours
+document.addEventListener('alpine:init', () => {
+    Alpine.data('operatingHours', () => ({
+        isEditing: false,
+        days: [
+            @foreach($shop->operatingHours->sortBy('day') as $hour)
+            {
+                name: '{{ ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][$hour->day] }}',
+                day: {{ $hour->day }},
+                is_open: {{ $hour->is_open ? 'true' : 'false' }},
+                open_time: '{{ $hour->open_time }}',
+                close_time: '{{ $hour->close_time }}',
+                has_lunch_break: {{ $hour->has_lunch_break ? 'true' : 'false' }},
+                lunch_start: '{{ $hour->lunch_start }}',
+                lunch_end: '{{ $hour->lunch_end }}'
+            },
+            @endforeach
+        ],
+        updateHours() {
+            const formattedHours = this.days.map(day => {
+                // Process time formats
+                let openTime = day.open_time || '09:00:00';
+                let closeTime = day.close_time || '17:00:00';
+                let lunchStart = day.lunch_start || '12:00:00';
+                let lunchEnd = day.lunch_end || '13:00:00';
+                
+                // Add seconds if missing
+                if (openTime && !openTime.includes(':')) {
+                    openTime = openTime + ':00';
+                } else if (openTime && openTime.split(':').length === 2) {
+                    openTime = openTime + ':00';
+                }
+                
+                if (closeTime && !closeTime.includes(':')) {
+                    closeTime = closeTime + ':00';
+                } else if (closeTime && closeTime.split(':').length === 2) {
+                    closeTime = closeTime + ':00';
+                }
+                
+                if (lunchStart && !lunchStart.includes(':')) {
+                    lunchStart = lunchStart + ':00';
+                } else if (lunchStart && lunchStart.split(':').length === 2) {
+                    lunchStart = lunchStart + ':00';
+                }
+                
+                if (lunchEnd && !lunchEnd.includes(':')) {
+                    lunchEnd = lunchEnd + ':00';
+                } else if (lunchEnd && lunchEnd.split(':').length === 2) {
+                    lunchEnd = lunchEnd + ':00';
+                }
+                
+                return {
+                    day: day.day,
+                    is_open: day.is_open,
+                    open_time: openTime,
+                    close_time: closeTime,
+                    has_lunch_break: day.has_lunch_break,
+                    lunch_start: lunchStart,
+                    lunch_end: lunchEnd
+                };
+            });
+            
+            fetch('/shop/settings/hours', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ hours: formattedHours })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Operating hours updated successfully!');
+                    this.isEditing = false;
+                } else {
+                    alert('There was an error updating the operating hours.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('There was an error updating the operating hours.');
+            });
+        }
+    }));
+});
 </script>
 @endsection 

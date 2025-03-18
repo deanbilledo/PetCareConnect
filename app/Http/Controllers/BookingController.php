@@ -39,6 +39,10 @@ class BookingController extends Controller
                 'ratings_count' => $shop->ratings->count()
             ]);
 
+            // Dynamically calculate if the shop is open based on operating hours
+            $shopController = new \App\Http\Controllers\ShopController();
+            $shop->setAttribute('is_open', $shopController->isShopOpen($shop));
+
             return view('booking.book', compact('shop'));
         } catch (\Exception $e) {
             Log::error('Error in show method: ' . $e->getMessage(), [
@@ -63,6 +67,10 @@ class BookingController extends Controller
                 'exotic_pets' => $exoticPets->count(),
                 'regular_pets' => $regularPets->count()
             ]);
+            
+            // Dynamically calculate if the shop is open based on operating hours
+            $shopController = new \App\Http\Controllers\ShopController();
+            $shop->setAttribute('is_open', $shopController->isShopOpen($shop));
             
             return view('booking.process', compact('shop', 'exoticPets', 'regularPets'));
         } catch (\Exception $e) {
@@ -154,6 +162,10 @@ class BookingController extends Controller
                 'session_data' => session('booking')
             ]);
 
+            // Dynamically calculate if the shop is open based on operating hours
+            $shopController = new \App\Http\Controllers\ShopController();
+            $shop->setAttribute('is_open', $shopController->isShopOpen($shop));
+
             return view('booking.select-service', compact('shop', 'pets', 'services', 'bookingData'));
         } catch (\Exception $e) {
             Log::error('Error in selectService: ' . $e->getMessage(), [
@@ -220,6 +232,10 @@ class BookingController extends Controller
                 'session_data' => session('booking'),
                 'add_ons' => $bookingData['add_ons']
             ]);
+
+            // Dynamically calculate if the shop is open based on operating hours
+            $shopController = new \App\Http\Controllers\ShopController();
+            $shop->setAttribute('is_open', $shopController->isShopOpen($shop));
 
             // Pass session data directly to view
             return view('booking.select-datetime', [
@@ -301,6 +317,10 @@ class BookingController extends Controller
 
             session(['booking' => $bookingData]);
 
+            // Dynamically calculate if the shop is open based on operating hours
+            $shopController = new \App\Http\Controllers\ShopController();
+            $shop->setAttribute('is_open', $shopController->isShopOpen($shop));
+
             return view('booking.confirm', compact('shop', 'pets', 'services', 'appointmentDateTime', 'bookingData'));
         } catch (\Exception $e) {
             Log::error('Error in showConfirm method: ' . $e->getMessage());
@@ -356,6 +376,10 @@ class BookingController extends Controller
                 'pets' => $pets->pluck('name', 'id'),
                 'services' => $services->pluck('name', 'id')
             ]);
+
+            // Dynamically calculate if the shop is open based on operating hours
+            $shopController = new \App\Http\Controllers\ShopController();
+            $shop->setAttribute('is_open', $shopController->isShopOpen($shop));
 
             return view('booking.confirm', compact('shop', 'pets', 'services', 'appointmentDateTime', 'bookingData'));
         } catch (\Exception $e) {
@@ -782,6 +806,10 @@ class BookingController extends Controller
         if (!session()->has('booking_details')) {
             return redirect()->route('home');
         }
+
+        // Dynamically calculate if the shop is open based on operating hours
+        $shopController = new \App\Http\Controllers\ShopController();
+        $shop->setAttribute('is_open', $shopController->isShopOpen($shop));
 
         return view('booking.thank-you', [
             'shop' => $shop,
