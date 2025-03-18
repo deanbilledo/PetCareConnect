@@ -220,13 +220,27 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/time-slots/shop/{shop}', [BookingController::class, 'getTimeSlots'])
             ->name('time-slots.get');
 
-        Route::prefix('book/{shop}')->name('booking.')->group(function () {
-            Route::get('/process', [BookingController::class, 'process'])->name('process');
-            Route::post('/select-service', [BookingController::class, 'selectService'])->name('select-service');
-            Route::post('/select-datetime', [BookingController::class, 'selectDateTime'])->name('select-datetime');
-            Route::get('/confirm', [BookingController::class, 'showConfirm'])->name('confirm.show');
+        Route::prefix('book/{shop}')->name('booking.')->middleware(['auth', 'verified'])->group(function () {
+            // Process booking
+            Route::get('/', [BookingController::class, 'process'])->name('process');
+            
+            // Select service
+            Route::get('/select-service', [BookingController::class, 'selectService'])->name('select-service');
+            Route::post('/select-service', [BookingController::class, 'storeService'])->name('store-service');
+            
+            // Select date and time - support both GET and POST for this route
+            Route::match(['get', 'post'], '/select-datetime', [BookingController::class, 'selectDateTime'])->name('select-datetime');
+            
+            // Confirm booking
             Route::post('/confirm', [BookingController::class, 'confirm'])->name('confirm');
+            Route::get('/confirm', [BookingController::class, 'showConfirm'])->name('confirm.show');
+            
+            // Store booking
             Route::post('/store', [BookingController::class, 'store'])->name('store');
+            
+            // Booking success
+            Route::get('/success/{booking}', [BookingController::class, 'success'])->name('success');
+            
             Route::get('/thank-you', [BookingController::class, 'thankYou'])->name('thank-you');
             Route::get('/receipt', [ReceiptController::class, 'download'])->name('receipt.download');
             Route::get('/acknowledgement', [BookingController::class, 'downloadAcknowledgement'])->name('acknowledgement.download');
@@ -497,7 +511,7 @@ Route::get('/service-lookup', function (Request $request) {
 });
 
 // Shop Appointment Actions
-Route::get('/appointments/{appointment}/accept', [ShopAppointmentController::class, 'accept'])->name('appointments.accept');
+Route::get('/appointments/{appointment}/accept', [ShopAppointmentController::class, 'accept'])->name('shop.appointments.accept');
 Route::post('/appointments/{appointment}/cancel', [ShopAppointmentController::class, 'cancel'])->name('appointments.cancel');
 Route::post('/appointments/{appointment}/mark-paid', [ShopAppointmentController::class, 'markAsPaid'])->name('appointments.mark-paid');
 Route::post('/appointments/{appointment}/add-note', [ShopAppointmentController::class, 'addNote'])->name('appointments.add-note');

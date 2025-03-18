@@ -1,5 +1,6 @@
 @php
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Request;
 @endphp
 
 @extends('layouts.app')
@@ -43,6 +44,33 @@ use Illuminate\Support\Facades\Log;
                 <p class="text-gray-600">{{ $shop->address }}</p>
             </div>
         </div>
+    </div>
+    
+    <!-- Developer Diagnostic Info - Remove in Production -->
+    <div class="bg-gray-100 p-4 rounded-lg mb-6 text-xs">
+        <h3 class="font-bold mb-2">Developer Debug Info (Remove in Production)</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div><span class="font-semibold">Employee Assignment:</span> {{ $bookingData['employee_assignment'] ?? 'Not Set' }}</div>
+            <div><span class="font-semibold">Has Employee ID:</span> {{ isset($bookingData['employee_id']) ? 'Yes ('.$bookingData['employee_id'].')' : 'No' }}</div>
+            <div><span class="font-semibold">Has Employee Data:</span> {{ isset($bookingData['employee']) ? 'Yes' : 'No' }}</div>
+            <div><span class="font-semibold">Has Multiple Employee Data:</span> {{ isset($bookingData['employee_data']) && !empty($bookingData['employee_data']) ? 'Yes ('. count($bookingData['employee_data']) .' pets)' : 'No' }}</div>
+            <div><span class="font-semibold">Pet Count:</span> {{ isset($bookingData['pet_ids']) ? count($bookingData['pet_ids']) : 0 }}</div>
+            <div><span class="font-semibold">Request Method:</span> {{ Request::method() }}</div>
+        </div>
+        
+        @if(isset($bookingData['employee_data']) && !empty($bookingData['employee_data']))
+            <div class="mt-2">
+                <h4 class="font-semibold">Employee Data Mapping:</h4>
+                <div class="mt-1 space-y-1">
+                    @foreach($bookingData['employee_data'] as $petId => $employeeInfo)
+                        <div class="flex justify-between bg-white p-1 rounded">
+                            <span>Pet ID: {{ $petId }}</span>
+                            <span>Employee: {{ $employeeInfo['name'] ?? 'Unknown' }} (ID: {{ $employeeInfo['id'] ?? 'None' }})</span>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        @endif
     </div>
 
     <!-- Progress Steps -->
@@ -286,19 +314,139 @@ use Illuminate\Support\Facades\Log;
                 </div>
             </div>
 
-            <!-- Selected Employee -->
+            <!-- Employee Selection -->
             <div class="mb-6 pb-6 border-b border-gray-200">
-                <h3 class="font-medium mb-4">Your Groomer</h3>
-                <div class="flex items-center bg-gray-50 p-4 rounded-lg">
-                    <img src="{{ $bookingData['employee']['profile_photo_url'] }}" 
-                         alt="{{ $bookingData['employee']['name'] }}"
-                         class="w-16 h-16 rounded-full object-cover">
-                    <div class="ml-4">
-                        <h4 class="font-medium text-gray-900">{{ $bookingData['employee']['name'] }}</h4>
-                        <p class="text-sm text-gray-600">{{ $bookingData['employee']['position'] }}</p>
-                    </div>
-                </div>
-                <input type="hidden" name="employee_id" value="{{ $bookingData['employee_id'] }}">
+                <!-- Debug info -->
+                @php
+                    Log::info('Booking Data on Confirm page:', [
+                        'bookingData' => isset($bookingData) ? array_keys($bookingData) : 'Not set',
+                        'employee_assignment' => $bookingData['employee_assignment'] ?? 'not set',
+                        'has_employee_data' => isset($bookingData['employee_data']),
+                        'employee_data_count' => isset($bookingData['employee_data']) ? count($bookingData['employee_data']) : 0,
+                        'has_employee' => isset($bookingData['employee']),
+                        'employee_id' => $bookingData['employee_id'] ?? 'not set',
+                        'booking_pet_ids' => $bookingData['pet_ids'] ?? [],
+                    ]);
+                @endphp
+                
+                <h3 class="font-medium mb-4">Your Groomer{{ isset($bookingData['employee_assignment']) && $bookingData['employee_assignment'] === 'multiple' ? 's' : '' }}</h3>
+                
+                <!-- Multiple Employee Assignment -->
+                @if(isset($bookingData['employee_assignment']) && $bookingData['employee_assignment'] === 'multiple')
+                    @if(isset($bookingData['employee_data']) && !empty($bookingData['employee_data']))
+                        <!-- Multiple employees for different pets -->
+                        <div class="space-y-4">
+                            @foreach($pets as $pet)
+                                @php
+                                    $petId = $pet->id;
+                                    $employeeData = $bookingData['employee_data'][$petId] ?? null;
+                                    
+                                    // Debug logging for this pet's employee data
+                                    if ($employeeData) {
+                                        Log::info("Found employee data for pet {$pet->name}", [
+                                            'pet_id' => $petId,
+                                            'employee_data' => $employeeData
+                                        ]);
+                                    } else {
+                                        Log::warning("No employee data found for pet {$pet->name}", [
+                                            'pet_id' => $petId,
+                                            'available_pet_ids' => isset($bookingData['employee_data']) ? array_keys($bookingData['employee_data']) : []
+                                        ]);
+                                    }
+                                @endphp
+                                
+                                <div class="border rounded-lg overflow-hidden">
+                                    <div class="bg-gray-100 p-3 border-b">
+                                        <h4 class="font-medium">{{ $pet->name }}</h4>
+                                        <p class="text-sm text-gray-600">{{ ucfirst($pet->type) }} - {{ ucfirst($pet->size_category) }}</p>
+                                    </div>
+                                    
+                                    @if($employeeData && isset($employeeData['name']))
+                                        <div class="p-3 flex items-center">
+                                            <img src="{{ $employeeData['profile_photo_url'] ?? asset('images/default-avatar.png') }}" 
+                                                alt="{{ $employeeData['name'] }}"
+                                                class="w-12 h-12 rounded-full object-cover mr-3">
+                                            <div>
+                                                <h5 class="font-medium">{{ $employeeData['name'] }}</h5>
+                                                <p class="text-sm text-gray-600">{{ $employeeData['position'] ?? 'Staff' }}</p>
+                                            </div>
+                                        </div>
+                                    @else
+                                        <div class="p-3 text-red-500 text-sm">
+                                            <div class="flex items-center">
+                                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                                </svg>
+                                                <span>No employee information available for this pet.</span>
+                                            </div>
+                                            <a href="javascript:history.back()" class="text-blue-500 hover:underline mt-1 block">
+                                                <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                                                </svg>
+                                                Go back and select employees
+                                            </a>
+                                        </div>
+                                    @endif
+                                </div>
+                            @endforeach
+                        </div>
+                    @else
+                        <!-- No employee data available for multiple assignment -->
+                        <div class="bg-yellow-50 p-4 rounded-lg border border-yellow-200 text-yellow-700">
+                            <div class="flex items-start">
+                                <svg class="w-5 h-5 mt-0.5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                </svg>
+                                <div>
+                                    <p class="font-medium">Employee information is missing</p>
+                                    <p class="text-sm mt-1">Please go back and assign employees to each of your pets.</p>
+                                    <a href="javascript:history.back()" class="text-blue-600 hover:underline text-sm mt-2 inline-block">
+                                        <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                                        </svg>
+                                        Return to employee selection
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+                
+                <!-- Single Employee Assignment (default) -->
+                @else
+                    @if(isset($bookingData['employee']) && !empty($bookingData['employee']) && isset($bookingData['employee']['name']))
+                        <div class="flex items-center bg-gray-50 p-4 rounded-lg">
+                            <img src="{{ $bookingData['employee']['profile_photo_url'] ?? asset('images/default-avatar.png') }}" 
+                                 alt="{{ $bookingData['employee']['name'] }}"
+                                 class="w-16 h-16 rounded-full object-cover">
+                            <div class="ml-4">
+                                <h4 class="font-medium text-gray-900">{{ $bookingData['employee']['name'] }}</h4>
+                                <p class="text-sm text-gray-600">{{ $bookingData['employee']['position'] ?? 'Staff' }}</p>
+                                
+                                <!-- Add hidden input for the employee ID -->
+                                <input type="hidden" name="employee_id" value="{{ $bookingData['employee_id'] }}">
+                            </div>
+                        </div>
+                    @else
+                        <!-- No employee data available for single assignment -->
+                        <div class="bg-yellow-50 p-4 rounded-lg border border-yellow-200 text-yellow-700">
+                            <div class="flex items-start">
+                                <svg class="w-5 h-5 mt-0.5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                </svg>
+                                <div>
+                                    <p class="font-medium">Employee information is missing</p>
+                                    <p class="text-sm mt-1">Please go back and select an employee for your service.</p>
+                                    <a href="javascript:history.back()" class="text-blue-600 hover:underline text-sm mt-2 inline-block">
+                                        <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                                        </svg>
+                                        Return to employee selection
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+                @endif
             </div>
 
             <!-- Additional Notes -->
@@ -750,4 +898,4 @@ document.addEventListener('keydown', function(e) {
 </style>
 @endpush
 
-@endsection 
+@endsection     

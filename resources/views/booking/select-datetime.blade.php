@@ -141,8 +141,20 @@ use Illuminate\Support\Facades\Log;
             </div>
         </div>
 
-        <form action="{{ route('booking.confirm.show', $shop) }}" method="GET" id="bookingForm" onsubmit="return validateForm()">
+        <form method="POST" action="{{ route('booking.confirm.show', $shop) }}" id="bookingForm" onsubmit="return validateForm()">
             @csrf
+            
+            <!-- Form diagnostic info (will be hidden in production) -->
+            <div class="bg-gray-100 p-2 rounded-md mb-4 text-xs">
+                <p class="font-medium">Form diagnostics:</p>
+                <p>Shop ID: {{ $shop->id }}</p>
+                <p>Form action: {{ route('booking.confirm.show', $shop) }}</p>
+                <p>Pet count: {{ isset($bookingData['pet_ids']) ? count($bookingData['pet_ids']) : 0 }}</p>
+                <p>Appointment type: {{ $bookingData['appointment_type'] ?? 'unknown' }}</p>
+            </div>
+            
+            <!-- Hidden input for employee assignment type - CRITICAL FIX: Ensure this is OUTSIDE Alpine binding -->
+            <input type="hidden" name="employee_assignment" id="employee_assignment_input" value="single">
             
             <!-- Hidden fields for pet_ids and services -->
             @if(isset($bookingData['pet_ids']))
@@ -156,6 +168,10 @@ use Illuminate\Support\Facades\Log;
                     <input type="hidden" name="services[]" value="{{ $serviceId }}">
                 @endforeach
             @endif
+
+            <!-- Hidden fields for employee selection (backup for Alpine.js) -->
+            <input type="hidden" name="employee_id_backup" id="employee_id_backup" x-bind:value="selectedEmployee">
+            <input type="hidden" name="hidden_employee_id" id="hidden_employee_id" x-bind:value="selectedEmployee">
 
             <!-- Date Selection -->
             <div class="mb-6">
@@ -254,7 +270,38 @@ use Illuminate\Support\Facades\Log;
             <!-- Employee Selection -->
             <div class="mb-6" x-show="selectedTime && !loading">
                 <label class="block text-sm font-medium text-gray-700 mb-2">Select Employee</label>
-                <p class="text-sm text-gray-500 mb-2">Choose an available employee for your service</p>
+                
+                <!-- Multiple Pet Assignment Option -->
+                @if(isset($bookingData['pet_ids']) && count($bookingData['pet_ids']) > 1 && isset($bookingData['appointment_type']) && $bookingData['appointment_type'] === 'multiple')
+                <div class="mb-4">
+                    <p class="text-sm text-gray-700 mb-2">For your multiple pet appointment, you can:</p>
+                    <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4 bg-blue-50 p-3 rounded-lg mb-3">
+                        <div class="flex items-center">
+                            <input type="radio" id="single_employee" name="employee_assignment_radio" value="single" checked
+                                   x-model="employeeAssignmentType"
+                                   @change="document.getElementById('employee_assignment_input').value = 'single'"
+                                   class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                            <label for="single_employee" class="ml-2 text-sm text-gray-700">
+                                One employee handles all pets
+                            </label>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="radio" id="multiple_employees" name="employee_assignment_radio" value="multiple"
+                                   x-model="employeeAssignmentType" 
+                                   @change="document.getElementById('employee_assignment_input').value = 'multiple'"
+                                   class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                            <label for="multiple_employees" class="ml-2 text-sm text-gray-700">
+                                Different employees for each pet
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- REMOVED duplicate hidden input -->
+                </div>
+                @endif
+
+                <p class="text-sm text-gray-500 mb-2" x-show="employeeAssignmentType !== 'multiple'">Choose an available employee for your service</p>
+                <p class="text-sm text-gray-500 mb-2" x-show="employeeAssignmentType === 'multiple'">Assign an employee for each of your pets</p>
 
                 <!-- Employee Loading State -->
                 <div x-show="loadingEmployees" class="text-gray-500 text-sm mb-2">
@@ -271,17 +318,19 @@ use Illuminate\Support\Facades\Log;
                      class="text-red-500 text-sm mb-2">
                 </div>
 
-                <!-- Employee Selection Cards -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" x-show="!loadingEmployees && availableEmployees.length > 0">
+                <!-- Single Employee Selection (Default or when Single Employee is selected) -->
+                <div x-show="!loadingEmployees && availableEmployees.length > 0 && employeeAssignmentType !== 'multiple'">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <template x-for="employee in availableEmployees" :key="employee.id">
                         <label class="relative flex items-start p-4 cursor-pointer bg-white border rounded-lg hover:bg-gray-50">
                             <div class="flex items-center h-5">
                                 <input type="radio" 
+                                       :id="'employee_' + employee.id"
                                        name="employee_id" 
                                        :value="employee.id"
                                        x-model="selectedEmployee"
-                                       class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-                                       required>
+                                       @click="document.getElementById('hidden_employee_id').value = employee.id; console.log('Employee selected:', employee.id, employee.name)"
+                                       class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
                             </div>
                             <div class="ml-3 flex-1">
                                 <div class="flex items-center">
@@ -319,7 +368,76 @@ use Illuminate\Support\Facades\Log;
                         </label>
                     </template>
                 </div>
+                    <!-- CRITICAL FIX: Add employee ID field with consistent naming -->
+                    <input type="hidden" id="hidden_employee_id" name="employee_id" x-bind:value="selectedEmployee">
+                    
+                    <!-- Debugging output for employee selection -->
+                    <div class="bg-gray-100 text-xs p-2 rounded my-2">
+                        <p>Selected employee: <span x-text="selectedEmployee || 'None'"></span></p>
+                        <p>Hidden input value: <span x-text="document.getElementById('hidden_employee_id').value || 'None'"></span></p>
+                    </div>
+                </div>
 
+                <!-- Multiple Employees Selection (When Multiple Employee Assignment is selected) -->
+                <div x-show="!loadingEmployees && availableEmployees.length > 0 && employeeAssignmentType === 'multiple'">
+                    <p class="mb-4 text-blue-600 font-medium">Please select an employee for each of your pets below:</p>
+                    <!-- Debug info for frontend -->
+                    <div class="text-xs text-gray-500 bg-gray-100 p-2 rounded mb-4">
+                        <div>Multiple employees mode: <strong x-text="employeeAssignmentType"></strong></div>
+                        <div>Available employees: <strong x-text="availableEmployees.length"></strong></div>
+                    </div>
+                    
+                    <!-- Pets list with employee selection for each pet -->
+                    @if(isset($pets) && $pets->count() > 0)
+                        @foreach($pets as $pet)
+                            @php
+                                $petId = $pet->id;
+                                $serviceId = isset($bookingData['pet_services'][$petId]) ? $bookingData['pet_services'][$petId] : null;
+                                $service = $serviceId ? \App\Models\Service::find($serviceId) : null;
+                            @endphp
+                            
+                            <div class="mb-6 border p-4 rounded-lg bg-gray-50">
+                                <div class="flex items-center mb-3">
+                                    <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center mr-3 border">
+                                        <svg class="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-medium text-gray-900">{{ $pet->name }}</h3>
+                                        <p class="text-sm text-gray-500">{{ $pet->type }} - {{ $service->name ?? 'Service' }}</p>
+                                    </div>
+                                </div>
+
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Select employee for {{ $pet->name }}</label>
+                                <!-- Make sure the pet ID is correctly formatted in the name attribute -->
+                                <select name="pet_employee_ids[{{ $petId }}]" id="pet_employee_{{ $petId }}" 
+                                        class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50" 
+                                        x-model="petEmployees[{{ $petId }}]"
+                                        :class="{'border-red-500': !petEmployees[{{ $petId }}]}"
+                                        required>
+                                    <option value="">-- Select Employee --</option>
+                                    <template x-for="employee in availableEmployees" :key="employee.id">
+                                        <option :value="employee.id" x-text="employee.name"></option>
+                                    </template>
+                                </select>
+                                
+                                <!-- Hidden input as backup for pet employee selection -->
+                                <input type="hidden" 
+                                       name="hidden_pet_employee_{{ $petId }}" 
+                                       id="hidden_pet_employee_{{ $petId }}" 
+                                       x-bind:value="petEmployees[{{ $petId }}]">
+                                
+                                <!-- Error message for required field -->
+                                <p class="text-red-500 text-xs mt-1" x-show="!petEmployees[{{ $petId }}]">
+                                    Please select an employee for this pet
+                                </p>
+                            </div>
+                        @endforeach
+                    @else
+                        <p class="text-yellow-600 text-sm p-4 bg-yellow-50 rounded-md">No pets available for selection</p>
+                    @endif
+                </div>
                 
                 <!-- No Available Employees Message -->
                 <p x-show="!loadingEmployees && availableEmployees.length === 0" 
@@ -332,7 +450,7 @@ use Illuminate\Support\Facades\Log;
             <div class="mt-6">
                 <button type="submit" 
                         class="w-full bg-blue-500 text-white py-3 rounded-lg font-medium hover:bg-blue-600 transition-colors"
-                        :disabled="!selectedTime || !selectedEmployee || loading || loadingEmployees">
+                        :disabled="!selectedTime || loading || loadingEmployees || (employeeAssignmentType !== 'multiple' && !selectedEmployee)">
                     Next
                 </button>
             </div>
@@ -342,14 +460,101 @@ use Illuminate\Support\Facades\Log;
 
 @push('scripts')
 <script>
+// Initialize page variables
+const isMultiplePetAppointment = {{ isset($bookingData['appointment_type']) && $bookingData['appointment_type'] === 'multiple' ? 'true' : 'false' }};
+
 function validateForm() {
-    const form = document.getElementById('bookingForm');
-    const date = form.querySelector('input[name="appointment_date"]').value;
-    const time = form.querySelector('select[name="appointment_time"]').value;
+    // Get Alpine.js component instance
+    const timeSlotPicker = document.querySelector('[x-data="timeSlotPicker()"]').__x.$data;
     
-    if (!date || !time) {
-        alert('Please select both date and time');
+    console.log('Validating form with data:', {
+        employeeAssignmentType: timeSlotPicker.employeeAssignmentType,
+        selectedEmployee: timeSlotPicker.selectedEmployee,
+        petEmployees: timeSlotPicker.petEmployees,
+        selectedDate: timeSlotPicker.selectedDate,
+        selectedTime: timeSlotPicker.selectedTime
+    });
+    
+    // Check if date and time are selected
+    if (!timeSlotPicker.selectedDate || !timeSlotPicker.selectedTime) {
+        alert('Please select a date and time for your appointment.');
         return false;
+    }
+    
+    // Check employee assignment type
+    const employeeAssignment = timeSlotPicker.employeeAssignmentType;
+    
+    // CRITICAL FIX: Set the input value directly and log it
+    const employeeAssignmentInput = document.getElementById('employee_assignment_input');
+    employeeAssignmentInput.value = employeeAssignment;
+    console.log('Set employee_assignment_input value:', employeeAssignmentInput.value);
+    
+    if (employeeAssignment === 'single') {
+        // For single employee assignment
+        if (!timeSlotPicker.selectedEmployee) {
+            alert('Please select an employee for your service.');
+            return false;
+        }
+        
+        // CRITICAL FIX: Ensure the hidden fields are populated with the selected employee ID
+        const hiddenEmployeeIdField = document.getElementById('hidden_employee_id');
+        const employeeIdBackupField = document.getElementById('employee_id_backup');
+        
+        hiddenEmployeeIdField.value = timeSlotPicker.selectedEmployee;
+        employeeIdBackupField.value = timeSlotPicker.selectedEmployee;
+        
+        console.log('Single employee mode - employee ID fields set:', {
+            'hidden_employee_id': hiddenEmployeeIdField.value,
+            'employee_id_backup': employeeIdBackupField.value
+        });
+        
+    } else if (employeeAssignment === 'multiple') {
+        // For multiple employees assignment
+        const petEmployeeSelects = document.querySelectorAll('select[id^="pet_employee_"]');
+        let allSelected = true;
+        let missingPet = '';
+        let selectedValues = {};
+        
+        petEmployeeSelects.forEach(select => {
+            const petId = select.id.replace('pet_employee_', '');
+            selectedValues[petId] = select.value;
+            
+            if (!select.value) {
+                allSelected = false;
+                // Extract pet name from the label
+                const petName = select.closest('.mb-6').querySelector('h3').textContent;
+                missingPet = petName;
+            }
+            
+            // Also update the hidden field
+            const hiddenField = document.getElementById(`hidden_pet_employee_${petId}`);
+            if (hiddenField) {
+                hiddenField.value = select.value;
+                console.log(`Set hidden_pet_employee_${petId} to:`, hiddenField.value);
+            }
+        });
+        
+        console.log('Multiple employee mode - submitting with pet-employee mapping:', selectedValues);
+        
+        if (!allSelected) {
+            if (missingPet) {
+                alert(`Please select an employee for ${missingPet}.`);
+            } else {
+                alert('Please select an employee for each of your pets.');
+            }
+            return false;
+        }
+    }
+    
+    // Add employee form fields check
+    const formElement = document.getElementById('bookingForm');
+    const formData = new FormData(formElement);
+    
+    console.log('Final form submission data check:');
+    for (let [key, value] of formData.entries()) {
+        if (key.includes('employee')) {
+            console.log(`${key}: ${value}`);
+        }
     }
     
     return true;
@@ -357,15 +562,27 @@ function validateForm() {
 
 function timeSlotPicker() {
     return {
-        selectedDate: '',
-        timeSlots: [],
-        selectedTime: '',
         loading: false,
-        errorMessage: '',
+        selectedDate: '',
+        selectedTime: '',
+        timeSlots: [],
+        timeSlotError: null,
+        employeeAssignmentType: 'single', // Default to single
+        loadingEmployees: false,
         availableEmployees: [],
         selectedEmployee: null,
-        loadingEmployees: false,
-        employeeErrorMessage: '',
+        employeeErrorMessage: null,
+        petEmployees: {}, // Will hold pet_id -> employee_id mappings
+        
+        // Initialize petEmployees structure
+        initPetEmployees() {
+            @if(isset($bookingData['pet_ids']))
+            const petIds = @json($bookingData['pet_ids']);
+            petIds.forEach(petId => {
+                this.petEmployees[petId] = "";
+            });
+            @endif
+        },
         
         async getTimeSlots() {
             if (!this.selectedDate) return;
@@ -373,9 +590,10 @@ function timeSlotPicker() {
             this.loading = true;
             this.timeSlots = [];
             this.selectedTime = '';
-            this.errorMessage = '';
+            this.timeSlotError = null;
             this.availableEmployees = [];
             this.selectedEmployee = null;
+            this.petEmployees = {};
             
             try {
                 // First, get the time slots
@@ -448,11 +666,11 @@ function timeSlotPicker() {
                 this.timeSlots = slots.filter(slot => slot.available_employees > 0);
                 
                 if (this.timeSlots.length === 0) {
-                    this.errorMessage = 'No available time slots for the selected date';
+                    this.timeSlotError = 'No available time slots for the selected date';
                 }
             } catch (error) {
                 console.error('Error loading time slots:', error);
-                this.errorMessage = error.message || 'Failed to load time slots';
+                this.timeSlotError = error.message || 'Failed to load time slots';
             } finally {
                 this.loading = false;
             }
@@ -465,6 +683,8 @@ function timeSlotPicker() {
             this.availableEmployees = [];
             this.selectedEmployee = null;
             this.employeeErrorMessage = '';
+            // Reset pet employees
+            this.petEmployees = {};
 
             try {
                 const serviceIds = @json($bookingData['pet_services'] ?? []);
@@ -615,6 +835,16 @@ function timeSlotPicker() {
                 });
 
                 console.log('Available employees with ratings:', this.availableEmployees);
+                
+                // Initialize pet employees for multiple selection mode
+                @if(isset($bookingData['pet_ids']))
+                const petIds = @json($bookingData['pet_ids']);
+                if (this.employeeAssignmentType === 'multiple' && petIds.length > 0) {
+                    petIds.forEach((petId, index) => {
+                        this.petEmployees[index] = '';
+                    });
+                }
+                @endif
 
             } catch (error) {
                 console.error('Error loading employees:', error);
@@ -622,6 +852,29 @@ function timeSlotPicker() {
             } finally {
                 this.loadingEmployees = false;
             }
+        },
+        
+        // Watch for changes in employeeAssignmentType
+        init() {
+            // Initialize petEmployees structure for multiple assignment
+            this.initPetEmployees();
+            
+            // CRITICAL FIX: Set the hidden input value on component initialization
+            document.getElementById('employee_assignment_input').value = this.employeeAssignmentType;
+
+            this.$watch('employeeAssignmentType', value => {
+                // Reset employee selections when switching modes
+                if (value === 'single') {
+                    this.selectedEmployee = null;
+                    this.petEmployees = {};
+                    this.initPetEmployees();
+                } else {
+                    this.selectedEmployee = null;
+                }
+                
+                // CRITICAL FIX: Update hidden input whenever the assignment type changes
+                document.getElementById('employee_assignment_input').value = value;
+            });
         }
     }
 }

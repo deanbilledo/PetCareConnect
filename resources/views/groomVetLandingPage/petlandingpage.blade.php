@@ -1,3 +1,10 @@
+@php
+    // Suppress notices and warnings in production
+    if (app()->environment('production')) {
+        error_reporting(E_ALL & ~E_NOTICE & ~E_WARNING);
+    }
+@endphp
+
 @extends('layouts.app')
 
 @section('content')
@@ -110,6 +117,20 @@
         <span class="flex-grow border-t border-black mx-2"></span>
     </h2>
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
+        @php
+            try {
+                // Ensure $veterinaryShops is always defined
+                if (!isset($veterinaryShops)) {
+                    $veterinaryShops = collect([]);
+                }
+            } catch (\Exception $e) {
+                $veterinaryShops = collect([]);
+                // Log the error if Laravel's error handling is available
+                if (function_exists('logger')) {
+                    logger('Error in petlandingpage template: ' . $e->getMessage());
+                }
+            }
+        @endphp
         @forelse($veterinaryShops as $shop)
         <div class="rounded-lg shadow-md overflow-hidden transition duration-300 ease-in-out transform hover:-translate-y-1 hover:shadow-xl cursor-pointer" onclick="window.location.href='{{ route('booking.show', $shop) }}'">
             <div class="relative h-64">
@@ -167,6 +188,20 @@
         <span class="flex-grow border-t border-black mx-2"></span>
     </h2>
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+        @php
+            try {
+                // Ensure $veterinaryServices is always defined
+                if (!isset($veterinaryServices)) {
+                    $veterinaryServices = collect([]);
+                }
+            } catch (\Exception $e) {
+                $veterinaryServices = collect([]);
+                // Log the error if Laravel's error handling is available
+                if (function_exists('logger')) {
+                    logger('Error in petlandingpage services section: ' . $e->getMessage());
+                }
+            }
+        @endphp
         @if(count($veterinaryServices) > 0)
             <!-- First service - larger display -->
             @php $firstService = $veterinaryServices->first(); @endphp
@@ -217,6 +252,20 @@
     </h2>
     
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
+        @php
+            try {
+                // Ensure $veterinaryShops is always defined
+                if (!isset($veterinaryShops)) {
+                    $veterinaryShops = collect([]);
+                }
+            } catch (\Exception $e) {
+                $veterinaryShops = collect([]);
+                // Log the error if Laravel's error handling is available
+                if (function_exists('logger')) {
+                    logger('Error in petlandingpage template: ' . $e->getMessage());
+                }
+            }
+        @endphp
         @forelse($veterinaryShops as $shop)
         <div class="rounded-lg shadow-md overflow-hidden transition duration-300 ease-in-out transform hover:-translate-y-1 hover:shadow-xl mb-4 cursor-pointer" onclick="window.location.href='{{ route('booking.show', $shop) }}'">
             <div class="relative h-64">

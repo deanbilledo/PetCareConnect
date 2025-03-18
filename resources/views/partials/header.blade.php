@@ -1,3 +1,10 @@
+@php
+    // Suppress notices and warnings in production
+    if (app()->environment('production')) {
+        error_reporting(E_ALL & ~E_NOTICE & ~E_WARNING);
+    }
+@endphp
+
 <header class="bg-white shadow-sm sticky top-0 z-50">
     <div class="max-w-7xl mx-auto flex items-center justify-between">
         <!-- Remove Shop Mode Mobile Toggle Button -->
@@ -10,7 +17,7 @@
         </div>
 
         <!-- Modern Centered Navigation - Only show in customer mode -->
-        @if(!session('shop_mode'))
+        @if(!isset($shopMode) && !session()->has('shop_mode') || (session()->has('shop_mode') ? !session('shop_mode') : true))
             <nav class="hidden lg:flex flex-1 justify-center">
                 <div class="flex items-center space-x-12" x-data="{ showLoginPrompt: false }">
                     <a href="{{ route('home') }}" 
@@ -123,44 +130,61 @@
                     },
                     
                     markAllAsRead() {
-                        fetch('{{ route('notifications.markAllAsRead') }}', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content
-                            }
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            this.unreadCount = 0;
-                            this.unreadAppointmentCount = 0;
-                            document.querySelectorAll('.notification-item').forEach(item => {
-                                item.classList.remove('border-l-4', 'border-blue-500', 'bg-blue-50');
+                        try {
+                            // Use a direct URL to avoid any route issues
+                            const url = '/notifications/mark-all-as-read';
+                            
+                            fetch(url, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content
+                                }
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                this.unreadCount = 0;
+                                this.unreadAppointmentCount = 0;
+                                document.querySelectorAll('.notification-item').forEach(item => {
+                                    item.classList.remove('border-l-4', 'border-blue-500', 'bg-blue-50');
+                                });
+                            })
+                            .catch(error => {
+                                console.error('Error marking notifications as read:', error);
                             });
-                        });
+                        } catch (e) {
+                            console.error('Error with notifications route:', e);
+                        }
                     },
                     markAsRead(id) {
-                        fetch(`/notifications/${id}/mark-as-read`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content
-                            }
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            this.unreadCount = data.unread_count;
-                            // Recalculate appointment notifications
-                            const notificationElement = document.querySelector(`#notification-${id}`);
-                            if (notificationElement && notificationElement.classList.contains('appointment-notification')) {
-                                this.unreadAppointmentCount--;
-                            }
-                            
-                            const notificationItem = document.querySelector(`#notification-${id}`);
-                            if (notificationItem) {
-                                notificationItem.classList.remove('border-l-4', 'border-blue-500', 'bg-blue-50');
-                            }
-                        });
+                        try {
+                            fetch(`/notifications/${id}/mark-as-read`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content
+                                }
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                this.unreadCount = data.unread_count;
+                                // Recalculate appointment notifications
+                                const notificationElement = document.querySelector(`#notification-${id}`);
+                                if (notificationElement && notificationElement.classList.contains('appointment-notification')) {
+                                    this.unreadAppointmentCount--;
+                                }
+                                
+                                const notificationItem = document.querySelector(`#notification-${id}`);
+                                if (notificationItem) {
+                                    notificationItem.classList.remove('border-l-4', 'border-blue-500', 'bg-blue-50');
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error marking notification as read:', error);
+                            });
+                        } catch (e) {
+                            console.error('Error with notification route:', e);
+                        }
                     },
                     init() {
                         // Add keyboard shortcut to toggle notifications (Ctrl+N) for laptop/desktop users
@@ -410,7 +434,7 @@
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                                         </svg>
                                         <span>Customer Mode</span>
-                                        @if(!session('shop_mode'))
+                                        @if(session()->has('shop_mode') ? !session('shop_mode') : true)
                                             <span class="ml-auto">
                                                 <svg class="h-4 w-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
@@ -425,7 +449,7 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
                                     </svg>
                                     <span>Shop Mode</span>
-                                    @if(session('shop_mode'))
+                                    @if(session()->has('shop_mode') && session('shop_mode'))
                                         <span class="ml-auto">
                                             <svg class="h-4 w-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
@@ -476,7 +500,7 @@
                                      class="px-2 py-2 space-y-1">
                                     
                                     <!-- SHOP MODE: Only shown when in shop mode -->
-                                    @if(session('shop_mode'))
+                                    @if(session()->has('shop_mode') && session('shop_mode'))
                                         <a href="{{ route('shop.dashboard') }}" 
                                            class="flex items-center px-4 py-2 text-sm text-gray-700 rounded-lg hover:bg-gray-100 {{ request()->routeIs('shop.dashboard') ? 'bg-gray-100' : '' }}">
                                             <svg class="mr-3 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

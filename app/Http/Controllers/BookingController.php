@@ -162,14 +162,69 @@ class BookingController extends Controller
     public function selectDateTime(Request $request, Shop $shop)
     {
         try {
-            $validated = $request->validate([
-                'pet_ids' => 'required|array',
-                'pet_ids.*' => 'exists:pets,id',
-                'services' => 'required|array',
-                'services.*' => 'exists:services,id',
-                'add_ons' => 'nullable|array'
+            // CRITICAL FIX: Determine if this is a GET or POST request and handle accordingly
+            $isGetRequest = $request->isMethod('get');
+            
+            Log::info('BookingController@selectDateTime - Request method: ' . $request->method(), [
+                'is_get' => $isGetRequest,
+                'has_form_data' => !empty($request->all())
             ]);
+            
+            if ($isGetRequest) {
+                // For GET requests, load data from session
+                $bookingData = session('booking', []);
+                
+                // Log what data we have for debugging
+                Log::info('Session booking data for GET select-datetime:', [
+                    'has_booking_data' => !empty($bookingData),
+                    'has_pet_ids' => isset($bookingData['pet_ids']),
+                    'has_pet_services' => isset($bookingData['pet_services']),
+                    'appointment_type' => $bookingData['appointment_type'] ?? 'not set'
+                ]);
+                
+                // If we don't have the necessary data to proceed, redirect to the beginning
+                if (empty($bookingData) || !isset($bookingData['pet_ids']) || !isset($bookingData['pet_services'])) {
+                    Log::warning('Missing required booking data for select-datetime GET request');
+                    
+                    // Redirect to the booking process start
+                    return redirect()->route('booking.process', $shop)
+                        ->with('error', 'Please start the booking process from the beginning');
+                }
+                
+                // Get pet and service IDs from session
+                $petIds = $bookingData['pet_ids'];
+                $serviceIds = array_values($bookingData['pet_services'] ?? []);
+            } else {
+                // For POST requests, validate input data
+                $validated = $request->validate([
+                    'pet_ids' => 'required|array',
+                    'pet_ids.*' => 'exists:pets,id',
+                    'services' => 'required|array',
+                    'services.*' => 'exists:services,id',
+                    'add_ons' => 'nullable|array'
+                ]);
+                
+                // Get pet and service IDs from request
+                $petIds = $validated['pet_ids'];
+                $serviceIds = $validated['services'];
+                
+                // Create pet services mapping for session storage
+                $petServices = array_combine($validated['pet_ids'], $validated['services']);
+                
+                // Get existing booking data to preserve appointment_type
+                $existingBookingData = session('booking', []);
+                
+                // Store in session
+                $bookingData = [
+                    'pet_ids' => $validated['pet_ids'],
+                    'pet_services' => $petServices,
+                    'appointment_type' => $existingBookingData['appointment_type'] ?? 'single', // Default to single if not set
+                    'add_ons' => $request->input('add_ons', []) // Store add-ons data
+                ];
+            }
 
+            // Common code for both GET and POST requests
+            
             // Load shop's operating hours
             $operatingHours = $shop->operatingHours()
                 ->orderBy('day')
@@ -177,7 +232,7 @@ class BookingController extends Controller
 
             // Get selected services for duration calculation
             $selectedServices = $shop->services()
-                ->whereIn('id', $validated['services'])
+                ->whereIn('id', $serviceIds)
                 ->where('status', 'active')
                 ->get();
 
@@ -190,43 +245,35 @@ class BookingController extends Controller
 
             // Load pets data
             $pets = auth()->user()->pets()
-                ->whereIn('id', $validated['pet_ids'])
+                ->whereIn('id', $petIds)
                 ->get();
-
-            // Create pet services mapping
-            $petServices = array_combine($validated['pet_ids'], $validated['services']);
-
-            // Get existing booking data to preserve appointment_type
-            $existingBookingData = session('booking', []);
-            
-            // Store in session
-            $bookingData = [
-                'pet_ids' => $validated['pet_ids'],
-                'pet_services' => $petServices,
-                'pets' => $pets,
-                'appointment_type' => $existingBookingData['appointment_type'] ?? 'single', // Default to single if not set
-                'add_ons' => $request->input('add_ons', []) // Store add-ons data
-            ];
-            
-            session(['booking' => $bookingData]);
-
-            // Debug log
-            Log::info('Booking data stored in session:', [
-                'booking_data' => $bookingData,
-                'session_data' => session('booking'),
-                'add_ons' => $bookingData['add_ons']
-            ]);
+                
+            // Add pets to session data if coming from POST
+            if (!$isGetRequest) {
+                $bookingData['pets'] = $pets;
+                session(['booking' => $bookingData]);
+                
+                // Debug log
+                Log::info('Booking data stored in session:', [
+                    'booking_data' => $bookingData,
+                    'session_data' => session('booking'),
+                    'add_ons' => $bookingData['add_ons'] ?? []
+                ]);
+            }
 
             // Pass session data directly to view
             return view('booking.select-datetime', [
                 'shop' => $shop,
                 'operatingHours' => $operatingHours,
                 'totalDuration' => $totalDuration,
-                'bookingData' => $bookingData
+                'bookingData' => $bookingData,
+                'pets' => $pets // Explicitly pass pets collection to the view
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Error in selectDateTime: ' . $e->getMessage());
+            Log::error('Error in selectDateTime: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
             return back()->with('error', 'There was an error loading the booking form. Please try again.');
         }
     }
@@ -234,6 +281,58 @@ class BookingController extends Controller
     public function showConfirm(Request $request, Shop $shop)
     {
         try {
+            // CRITICAL FIX: Add comprehensive debugging for all request data
+            Log::info('BookingController@showConfirm - RECEIVED ALL REQUEST DATA:', [
+                'all_request_data' => $request->all(),
+                'request_method' => $request->method(),
+                'request_path' => $request->path(),
+                'has_employee_id' => $request->has('employee_id'),
+                'has_employee_assignment' => $request->has('employee_assignment'),
+                'employee_id_value' => $request->input('employee_id'),
+                'employee_assignment_value' => $request->input('employee_assignment'),
+            ]);
+            
+            // Enhanced debug logging for troubleshooting employee data issues
+            Log::info('BookingController@showConfirm - EMPLOYEE DATA FIELDS:', [
+                'employee_id' => $request->input('employee_id'),
+                'hidden_employee_id' => $request->input('hidden_employee_id'),
+                'employee_id_backup' => $request->input('employee_id_backup'),
+                'employee_assignment' => $request->input('employee_assignment'),
+            ]);
+            
+            // Log all request keys that might contain employee data
+            $employeeRelatedKeys = [];
+            foreach ($request->all() as $key => $value) {
+                if (strpos($key, 'employee') !== false || strpos($key, 'pet_employee') !== false) {
+                    $employeeRelatedKeys[$key] = $value;
+                }
+            }
+            
+            Log::info('Employee-related form fields:', $employeeRelatedKeys);
+            
+            // Log existing session data
+            Log::info('Existing session data before processing:', [
+                'booking_data' => session('booking'),
+                'has_employee_data' => isset(session('booking')['employee_data']),
+                'has_employee' => isset(session('booking')['employee']),
+                'employee_assignment' => session('booking')['employee_assignment'] ?? 'not set',
+            ]);
+            
+            // Ensure we have the basic data before proceeding
+            if (!$request->has('pet_ids') || !$request->has('services') || 
+                !$request->has('appointment_date') || !$request->has('appointment_time')) {
+                Log::error('Missing basic booking data', ['request' => $request->all()]);
+                return back()->with('error', 'Missing required booking information. Please try again.');
+            }
+            
+            // CRITICAL FIX: If employee_assignment or employee_id is missing, redirect back with error
+            if (!$request->has('employee_assignment')) {
+                Log::error('Missing employee_assignment in request', ['request' => $request->all()]);
+                return redirect()->route('booking.select-datetime', $shop)
+                    ->with('error', 'Please select an employee assignment type before proceeding.');
+            }
+            
+            // Validate base data
             $validated = $request->validate([
                 'pet_ids' => 'required|array',
                 'pet_ids.*' => 'exists:pets,id',
@@ -241,20 +340,121 @@ class BookingController extends Controller
                 'services.*' => 'exists:services,id',
                 'appointment_date' => 'required|date|after:today',
                 'appointment_time' => 'required',
-                'employee_id' => 'required|exists:employees,id'
+                'employee_assignment' => 'required|in:single,multiple',
             ]);
 
-            $appointmentDateTime = Carbon::parse($request->appointment_date . ' ' . $request->appointment_time);
+            // Determine employee assignment type (single or multiple)
+            $employeeAssignment = $validated['employee_assignment'];
+            Log::info('Employee assignment type: ' . $employeeAssignment);
             
-            // Load employee information
-            $employee = $shop->employees()->findOrFail($request->employee_id);
+            // CRITICAL FIX: Get the employee data from the request with fallbacks
+            if ($employeeAssignment === 'single') {
+                $employeeId = $request->input('employee_id') ?? 
+                              $request->input('hidden_employee_id') ?? 
+                              $request->input('employee_id_backup');
+                
+                if (empty($employeeId)) {
+                    Log::error('No employee ID found for single assignment', [
+                        'employee_id' => $request->input('employee_id'),
+                        'hidden_employee_id' => $request->input('hidden_employee_id'),
+                        'employee_id_backup' => $request->input('employee_id_backup')
+                    ]);
+                    
+                    return redirect()->route('booking.select-datetime', $shop)
+                        ->with('error', 'Please select an employee for your service before proceeding.');
+                }
+                
+                // CRITICAL FIX: Load employee data immediately to ensure it exists
+                $employee = $shop->employees()->find($employeeId);
+                if (!$employee) {
+                    Log::error("Employee not found with ID: {$employeeId}");
+                    return redirect()->route('booking.select-datetime', $shop)
+                        ->with('error', 'Selected employee is not available. Please select another employee.');
+                }
+                
+                Log::info('Found employee for single assignment', [
+                    'employee_id' => $employee->id,
+                    'employee_name' => $employee->name
+                ]);
+            } else {
+                // For multiple assignment, check for pet_employee_ids
+                $petEmployeeIds = [];
+                
+                // Get all possible pet employee ID inputs
+                foreach ($request->all() as $key => $value) {
+                    if (strpos($key, 'pet_employee_ids') === 0) {
+                        $petEmployeeIds = $value;
+                        break;
+                    }
+                }
+                
+                // Also check hidden fields as backup
+                if (empty($petEmployeeIds)) {
+                    foreach ($request->all() as $key => $value) {
+                        if (strpos($key, 'hidden_pet_employee_') === 0 && !empty($value)) {
+                            $petId = str_replace('hidden_pet_employee_', '', $key);
+                            $petEmployeeIds[$petId] = $value;
+                        }
+                    }
+                }
+                
+                Log::info('Pet employee IDs collected:', [
+                    'pet_employee_ids' => $petEmployeeIds,
+                    'pet_count' => count($validated['pet_ids'])
+                ]);
+                
+                if (empty($petEmployeeIds)) {
+                    Log::error('No pet employee IDs found for multiple assignment', [
+                        'request_keys' => array_keys($request->all())
+                    ]);
+                    
+                    return redirect()->route('booking.select-datetime', $shop)
+                        ->with('error', 'Please select employees for your pets before proceeding.');
+                }
+                
+                // Extract all employee IDs to fetch employee data
+                $employeeIds = array_values(array_filter($petEmployeeIds));
+                
+                // Get all needed employees at once
+                $employees = $shop->employees()->whereIn('id', $employeeIds)->get();
+                
+                if ($employees->isEmpty()) {
+                    return redirect()->route('booking.select-datetime', $shop)
+                        ->with('error', 'No employees found. Please select employees again.');
+                }
+                
+                // Build employee data for each pet
+                $employeeData = [];
+                foreach ($petEmployeeIds as $petId => $employeeId) {
+                    if (empty($employeeId)) continue;
+                    
+                    $employee = $employees->firstWhere('id', $employeeId);
+                    if ($employee) {
+                        $employeeData[$petId] = [
+                            'id' => $employee->id,
+                            'name' => $employee->name,
+                            'position' => $employee->position ?? 'Groomer',
+                            'profile_photo_url' => $employee->profile_photo_url ?? asset('images/default-avatar.png')
+                        ];
+                    }
+                }
+                
+                // Log the final employee data
+                Log::info('Final employee data for multiple assignment:', [
+                    'employee_data' => $employeeData,
+                    'employee_data_count' => count($employeeData),
+                    'pet_ids_count' => count($validated['pet_ids'])
+                ]);
+            }
+
+            // Load appointment data
+            $appointmentDateTime = Carbon::parse($validated['appointment_date'] . ' ' . $validated['appointment_time']);
             
-            // Load pets with their services
+            // Load pets and services
             $pets = Pet::whereIn('id', $validated['pet_ids'])
                 ->where('user_id', auth()->id())
                 ->get();
             
-            // Load services
             $services = $shop->services()
                 ->whereIn('id', $validated['services'])
                 ->where('status', 'active')
@@ -267,39 +467,67 @@ class BookingController extends Controller
             // Create pet services mapping
             $petServices = array_combine($validated['pet_ids'], $validated['services']);
 
-            // Get existing booking data to preserve appointment_type and add-ons
+            // Get existing booking data to preserve add-ons
             $existingBookingData = session('booking', []);
             
-            // Store booking data
+            // Create booking data with essential information
             $bookingData = [
                 'pet_ids' => $validated['pet_ids'],
                 'pet_services' => $petServices,
-                'pets' => $pets,
                 'appointment_date' => $validated['appointment_date'],
                 'appointment_time' => $validated['appointment_time'],
                 'appointment_type' => $existingBookingData['appointment_type'] ?? 'single',
-                'employee_id' => $employee->id,
-                'employee' => [
-                    'name' => $employee->name,
-                    'position' => $employee->position,
-                    'profile_photo_url' => $employee->profile_photo_url
-                ],
-                // Preserve add-ons data from the previous step
-                'add_ons' => $request->input('add_ons', $existingBookingData['add_ons'] ?? [])
+                'employee_assignment' => $employeeAssignment,
+                'add_ons' => $existingBookingData['add_ons'] ?? []
             ];
-
-            // Debug log the booking data
-            Log::info('Booking data in showConfirm:', [
-                'booking_data' => $bookingData,
-                'appointment_type' => $bookingData['appointment_type'],
-                'add_ons' => $bookingData['add_ons']
-            ]);
-
+            
+            // Add employee data based on assignment type
+            if ($employeeAssignment === 'single') {
+                // Single employee assignment
+                $bookingData['employee_id'] = $employeeId;
+                $bookingData['employee'] = [
+                    'id' => $employee->id,
+                    'name' => $employee->name ?? 'Unknown',
+                    'position' => $employee->position ?? 'Groomer',
+                    'profile_photo_url' => $employee->profile_photo_url ?? asset('images/default-avatar.png')
+                ];
+                // Initialize empty employee_data for consistency
+                $bookingData['employee_data'] = [];
+            } else {
+                // Multiple employee assignment
+                $bookingData['employee_data'] = [];
+                
+                // Explicitly set these to null for consistent structure
+                $bookingData['employee'] = null;
+                $bookingData['employee_id'] = null;
+            }
+            
+            // Store booking data in session
             session(['booking' => $bookingData]);
 
-            return view('booking.confirm', compact('shop', 'pets', 'services', 'appointmentDateTime', 'bookingData'));
+            // Log final booking data
+            Log::info('Booking data stored in session', [
+                'booking_data' => $bookingData,
+                'session_data' => session('booking'),
+                'employee_assignment_type' => $employeeAssignment,
+                'has_employee_data' => !empty($bookingData['employee_data']),
+                'has_employee' => !empty($bookingData['employee'])
+            ]);
+            
+            // Return view with all necessary data
+            return view('booking.confirm', [
+                'shop' => $shop,
+                'bookingData' => $bookingData,
+                'pets' => $pets,
+                'services' => $services,
+                'appointmentDateTime' => $appointmentDateTime,
+                'total' => 0  // This will be calculated in the view
+            ]);
         } catch (\Exception $e) {
-            Log::error('Error in showConfirm method: ' . $e->getMessage());
+            Log::error('Error in showConfirm: ' . $e->getMessage(), [
+                'exception' => $e,
+                'trace' => $e->getTraceAsString()
+            ]);
             return back()->with('error', 'There was an error processing your booking. Please try again.');
         }
     }
@@ -307,6 +535,22 @@ class BookingController extends Controller
     public function confirm(Request $request, Shop $shop)
     {
         try {
+            // CRITICAL FIX: Log the incoming request data
+            Log::info('BookingController@confirm - Request data:', [
+                'all_data' => $request->all(),
+                'method' => $request->method(),
+                'has_employee_assignment' => $request->has('employee_assignment'),
+                'employee_assignment_value' => $request->input('employee_assignment'),
+            ]);
+            
+            // Log existing session data
+            Log::info('BookingController@confirm - Existing session data:', [
+                'booking_data' => session('booking'),
+                'has_employee_data' => isset(session('booking')['employee_data']),
+                'has_employee' => isset(session('booking')['employee']),
+                'employee_assignment' => session('booking')['employee_assignment'] ?? 'not set',
+            ]);
+
             $validated = $request->validate([
                 'pet_ids' => 'required|array',
                 'pet_ids.*' => 'exists:pets,id',
@@ -337,20 +581,70 @@ class BookingController extends Controller
             // Create pet services mapping
             $petServices = array_combine($validated['pet_ids'], $validated['services']);
 
-            // Store booking data
-            $bookingData = [
+            // CRITICAL FIX: Get existing booking data to KEEP employee information
+            $existingBookingData = session('booking', []);
+            
+            // CRITICAL FIX: Check that we have employee data and log it
+            $hasEmployeeData = 
+                isset($existingBookingData['employee_assignment']) && 
+                (
+                    (
+                        $existingBookingData['employee_assignment'] === 'single' && 
+                        isset($existingBookingData['employee_id']) && 
+                        isset($existingBookingData['employee'])
+                    ) ||
+                    (
+                        $existingBookingData['employee_assignment'] === 'multiple' && 
+                        isset($existingBookingData['employee_data']) && 
+                        !empty($existingBookingData['employee_data'])
+                    )
+                );
+                
+            Log::info('BookingController@confirm - Employee data check:', [
+                'has_employee_data' => $hasEmployeeData,
+                'employee_assignment' => $existingBookingData['employee_assignment'] ?? 'not set',
+                'employee_id' => $existingBookingData['employee_id'] ?? null,
+                'has_employee_obj' => isset($existingBookingData['employee']),
+                'has_employee_data_array' => isset($existingBookingData['employee_data']),
+                'employee_data_count' => isset($existingBookingData['employee_data']) ? count($existingBookingData['employee_data']) : 0
+            ]);
+                
+            if (!$hasEmployeeData) {
+                Log::error('Missing employee data in session', [
+                    'session_data' => $existingBookingData
+                ]);
+                return redirect()->route('booking.select-datetime', $shop)
+                    ->with('error', 'Missing employee information. Please select employees before proceeding.');
+            }
+            
+            // Update booking data WITHOUT losing employee info
+            $bookingData = array_merge($existingBookingData, [
                 'pet_ids' => $validated['pet_ids'],
                 'pet_services' => $petServices,
                 'appointment_date' => $validated['appointment_date'],
                 'appointment_time' => $validated['appointment_time']
-            ];
+            ]);
             
+            // CRITICAL FIX: Ensure the employee data is still there
+            Log::info('BookingController@confirm - Final booking data check:', [
+                'has_employee_assignment' => isset($bookingData['employee_assignment']),
+                'employee_assignment' => $bookingData['employee_assignment'] ?? 'not set',
+                'has_employee_id' => isset($bookingData['employee_id']),
+                'employee_id' => $bookingData['employee_id'] ?? null,
+                'has_employee_data' => isset($bookingData['employee_data']),
+                'employee_data_count' => isset($bookingData['employee_data']) ? count($bookingData['employee_data']) : 0
+            ]);
+            
+            // Save complete booking data to session
             session(['booking' => $bookingData]);
 
             Log::info('Confirm booking data:', [
                 'booking_data' => $bookingData,
                 'pets' => $pets->pluck('name', 'id'),
-                'services' => $services->pluck('name', 'id')
+                'services' => $services->pluck('name', 'id'),
+                'has_employee_data' => isset($bookingData['employee_data']),
+                'has_employee' => isset($bookingData['employee']),
+                'employee_assignment' => $bookingData['employee_assignment'] ?? 'not set'
             ]);
 
             return view('booking.confirm', compact('shop', 'pets', 'services', 'appointmentDateTime', 'bookingData'));
@@ -363,166 +657,221 @@ class BookingController extends Controller
     public function store(Shop $shop, Request $request)
     {
         try {
-            Log::info('Booking store request:', $request->all());
+            Log::info('BookingController@store - Starting booking process with request:', [
+                'request_data' => $request->all()
+            ]);
 
-            $request->validate([
+            // Validate basic booking data
+            $validated = $request->validate([
                 'pet_ids' => 'required|array',
                 'pet_ids.*' => 'exists:pets,id',
                 'services' => 'required|array',
                 'services.*' => 'exists:services,id',
-                'appointment_date' => 'required|date|after:today',
+                'appointment_date' => 'required|date',
                 'appointment_time' => 'required',
-                'notes' => 'nullable|string|max:500',
-                'voucher_code' => 'nullable|string',
-                'discount_amount' => 'nullable|numeric',
-                'final_total' => 'nullable|numeric',
-                'add_ons' => 'nullable|array'
+                'notes' => 'nullable|string|max:500'
             ]);
-
-            $appointmentDateTime = Carbon::parse($request->appointment_date . ' ' . $request->appointment_time);
-
-            // Check if shop is open
-            $dayOfWeek = $appointmentDateTime->dayOfWeek;
-            $operatingHours = $shop->operatingHours()
-                ->where('day', $dayOfWeek)
-                ->where('is_open', true)
-                ->first();
-
-            if (!$operatingHours) {
-                return back()->with('error', 'The shop is not open on the selected day.');
-            }
-
-            // Get booking data from session with default values
-            $bookingData = session('booking', []);
-            $bookingData['appointment_type'] = $bookingData['appointment_type'] ?? 'single';
             
-            Log::info('Session booking data:', [
-                'booking_data' => $bookingData,
-                'appointment_type' => $bookingData['appointment_type'],
-                'add_ons' => $bookingData['add_ons'] ?? []
+            // Get booking data from session
+            $bookingData = session('booking', []);
+            
+            // Make sure we have the employee assignment type
+            $employeeAssignment = $bookingData['employee_assignment'] ?? 'single';
+            
+            Log::info('store() - Employee assignment info:', [
+                'assignment_type' => $employeeAssignment,
+                'has_employee_data' => isset($bookingData['employee_data']),
+                'employee_id' => $bookingData['employee_id'] ?? null,
+                'employee_data_count' => isset($bookingData['employee_data']) ? count($bookingData['employee_data']) : 0
             ]);
-
-            // Get all selected services with their prices
-            $services = $shop->services()
-                ->whereIn('id', array_values($bookingData['pet_services'] ?? []))
-                ->where('status', 'active')
+            
+            // Load pets
+            $pets = Pet::whereIn('id', $validated['pet_ids'])
+                ->where('user_id', auth()->id())
                 ->get();
 
+            if ($pets->isEmpty()) {
+                return back()->with('error', 'No valid pets found for booking.');
+            }
+            
+            // Load services
+            $services = $shop->services()
+                ->whereIn('id', $validated['services'])
+                ->where('status', 'active')
+                ->get();
+                
             if ($services->isEmpty()) {
-                return back()->with('error', 'Selected services are no longer available.');
+                return back()->with('error', 'Selected services are not available.');
+            }
+            
+            // Create appointment date time
+            $appointmentDateTime = Carbon::parse($validated['appointment_date'] . ' ' . $validated['appointment_time']);
+            
+            // Get service IDs for each pet
+            $petServices = $bookingData['pet_services'] ?? [];
+            
+            // Map pet IDs to service IDs
+            $petServiceMap = [];
+            foreach ($validated['pet_ids'] as $index => $petId) {
+                $serviceId = $validated['services'][$index] ?? null;
+                if ($serviceId) {
+                    $petServiceMap[$petId] = $serviceId;
+                }
+            }
+            
+            // Create appointments based on employee assignment type
+            $createdAppointments = [];
+            
+            if ($employeeAssignment === 'multiple') {
+                // Multiple employees - one appointment per pet with different employees
+                $employeeData = $bookingData['employee_data'] ?? [];
+                
+                Log::info('Creating multiple appointments with different employees:', [
+                    'employee_data' => $employeeData,
+                    'pet_count' => count($pets)
+                ]);
+                
+                foreach ($pets as $pet) {
+                    $petId = $pet->id;
+                    $serviceId = $petServices[$petId] ?? null;
+                    $service = $services->firstWhere('id', $serviceId);
+                    
+                    if (!$service) {
+                        Log::error("Service not found for pet {$petId}");
+                        continue;
+                    }
+                    
+                    // Get employee for this pet
+                    $petEmployeeData = $employeeData[$petId] ?? null;
+                    $employeeId = $petEmployeeData ? $petEmployeeData['id'] : null;
+                    
+                    if (!$employeeId) {
+                        Log::error("Employee ID not found for pet {$petId}");
+                        continue;
+                    }
+                    
+                    // Get price based on pet size
+                    $price = $this->calculateServicePrice($service, $pet);
+                    
+                    // Create appointment
+                    $appointment = new Appointment([
+                        'shop_id' => $shop->id,
+                        'user_id' => auth()->id(),
+                        'pet_id' => $petId,
+                        'employee_id' => $employeeId,
+                        'service_id' => $serviceId,
+                        'appointment_date' => $appointmentDateTime->format('Y-m-d'),
+                        'appointment_time' => $appointmentDateTime->format('g:i A'),
+                        'status' => 'pending',
+                        'payment_status' => 'pending',
+                        'price' => $price,
+                        'notes' => $validated['notes'] ?? null,
+                        'reference_number' => $this->generateReferenceNumber()
+                    ]);
+                    
+                    $appointment->save();
+                    $createdAppointments[] = $appointment;
+                    
+                    Log::info("Created appointment for pet {$petId} with employee {$employeeId}", [
+                        'appointment_id' => $appointment->id,
+                        'reference_number' => $appointment->reference_number
+                    ]);
+                }
+            } else {
+                // Single employee for all pets - could be one appointment for each pet with the same employee
+                $employeeId = $bookingData['employee_id'] ?? null;
+                
+                if (!$employeeId) {
+                    Log::error('Employee ID not found for single assignment');
+                    return back()->with('error', 'Employee information is missing. Please try again.');
+                }
+                
+                // Get employee details from database
+                $employee = $shop->employees()->find($employeeId);
+                if (!$employee) {
+                    Log::error("Employee not found with ID: {$employeeId}");
+                    return back()->with('error', 'Selected employee not found. Please choose another employee.');
+                }
+                
+                Log::info('Creating appointments with same employee:', [
+                    'employee_id' => $employeeId,
+                    'employee_name' => $employee->name,
+                    'pet_count' => count($pets)
+                ]);
+                
+                foreach ($pets as $pet) {
+                    $petId = $pet->id;
+                    $serviceId = $petServices[$petId] ?? null;
+                    $service = $services->firstWhere('id', $serviceId);
+                    
+                    if (!$service) {
+                        Log::error("Service not found for pet {$petId}");
+                        continue;
+                    }
+                    
+                    // Get price based on pet size
+                    $price = $this->calculateServicePrice($service, $pet);
+                    
+                    // Create appointment
+                    $appointment = new Appointment([
+                        'shop_id' => $shop->id,
+                        'user_id' => auth()->id(),
+                        'pet_id' => $petId,
+                        'employee_id' => $employeeId,
+                        'service_id' => $serviceId,
+                        'appointment_date' => $appointmentDateTime->format('Y-m-d'),
+                        'appointment_time' => $appointmentDateTime->format('g:i A'),
+                        'status' => 'pending',
+                        'payment_status' => 'pending',
+                        'price' => $price,
+                        'notes' => $validated['notes'] ?? null,
+                        'reference_number' => $this->generateReferenceNumber()
+                    ]);
+                    
+                    $appointment->save();
+                    $createdAppointments[] = $appointment;
+                    
+                    Log::info("Created appointment for pet {$petId} with employee {$employeeId}", [
+                        'appointment_id' => $appointment->id,
+                        'reference_number' => $appointment->reference_number
+                    ]);
+                }
             }
 
-            DB::beginTransaction();
-            
-            try {
-                $servicesBreakdown = [];
-                $total = 0;
-                $currentDateTime = clone $appointmentDateTime;
-
-                // Get the employee data from the booking session
-                $employee = $shop->employees()->findOrFail($bookingData['employee_id']);
-
-                // Create appointments for each pet
-                foreach ($bookingData['pet_ids'] as $petId) {
-                    $serviceId = $bookingData['pet_services'][$petId] ?? null;
-                    $service = $services->firstWhere('id', $serviceId);
-                    $pet = Pet::find($petId);
-                    
-                    if (!$service || !$pet) {
-                        throw new \Exception("Service or pet not found for pet ID: $petId");
-                    }
-
-                    Log::info('Creating appointment:', [
-                        'pet_id' => $petId,
-                        'service_id' => $serviceId,
-                        'datetime' => $currentDateTime->format('Y-m-d H:i:s')
-                    ]);
-
-                    // Calculate price based on pet size
-                    $price = $service->getPriceForSize($pet->size_category);
-
-                    // Calculate add-ons total
-                    $addOnTotal = 0;
-                    $selectedAddOns = $bookingData['add_ons'][$petId][$serviceId] ?? [];
-                    $addOnDetails = [];
-                    
-                    if (!empty($selectedAddOns) && !empty($service->add_ons)) {
-                        foreach ($selectedAddOns as $selectedAddOn) {
-                            foreach ($service->add_ons as $addOn) {
-                                if ($addOn['name'] === $selectedAddOn) {
-                                    $addOnTotal += (float) $addOn['price'];
-                                    $addOnDetails[] = $addOn;
-                                }
-                            }
-                        }
-                    }
-
-                    // Apply discount if voucher code is present
-                    $originalPrice = $price + $addOnTotal;
-                    $finalPrice = $originalPrice;
-                    
-                    if ($request->filled('voucher_code')) {
-                        $discountedPrice = $service->getDiscountedPrice($originalPrice, $request->voucher_code);
-                        $finalPrice = $discountedPrice;
-                    }
-
-                    $total += $finalPrice;
-
-                    $appointment = Appointment::create([
-                        'user_id' => auth()->id(),
-                        'shop_id' => $shop->id,
-                        'pet_id' => $petId,
-                        'employee_id' => $employee->id,
-                        'service_type' => $service->name,
-                        'service_price' => $finalPrice,
-                        'original_price' => $originalPrice,
-                        'add_ons' => !empty($addOnDetails) ? json_encode($addOnDetails) : null,
-                        'add_ons_total' => $addOnTotal,
-                        'voucher_code' => $request->voucher_code,
-                        'discount_amount' => $request->filled('voucher_code') ? 
-                            ($originalPrice - $finalPrice) : null,
-                        'appointment_date' => $currentDateTime,
-                        'notes' => $request->notes,
-                        'status' => 'pending'
-                    ]);
-
-                    // Add to services breakdown
-                    $servicesBreakdown[] = [
-                        'pet_id' => $pet->id,
-                        'pet_name' => $pet->name,
-                        'service_name' => $service->name,
-                        'size' => $pet->size_category,
-                        'price' => $price,
-                        'add_ons' => $addOnDetails,
-                        'add_ons_total' => $addOnTotal,
-                        'final_price' => $finalPrice
-                    ];
-                    
-                    // For multiple appointments, add service duration
-                    if ($bookingData['appointment_type'] === 'multiple') {
-                        $currentDateTime->addMinutes($service->duration);
-                    }
-                }
-
-                DB::commit();
-
-                // Store booking details in session for thank you page
-                session(['booking_details' => [
+                // Prepare booking details for session
+                $bookingDetails = [
                     'shop_name' => $shop->name,
                     'date' => $appointmentDateTime->format('F j, Y'),
                     'time' => $appointmentDateTime->format('g:i A'),
-                    'services' => $servicesBreakdown,
-                    'total_amount' => $total,
-                    'original_total' => array_sum(array_column($servicesBreakdown, 'final_price')),
-                    'discount_amount' => $request->discount_amount,
-                    'voucher_code' => $request->voucher_code,
-                    'appointment_type' => $bookingData['appointment_type'] ?? 'single',
-                    'employee' => [
-                        'name' => $employee->name,
-                        'position' => $employee->position,
-                        'profile_photo_url' => $employee->profile_photo_url
-                    ]
-                ]]);
+                'services' => $createdAppointments,
+                'total_amount' => array_sum(array_column($createdAppointments, 'price')),
+                'original_total' => array_sum(array_column($createdAppointments, 'price')),
+                'discount_amount' => 0,
+                'voucher_code' => null,
+                    'appointment_type' => $bookingData['appointment_type'],
+                'employee_assignment' => $employeeAssignment,
+                'appointments' => $createdAppointments
+                ];
+                
+                // Add employee information based on assignment type
+            if ($employeeAssignment === 'single' && $employeeId) {
+                    $bookingDetails['employee'] = [
+                        'id' => $employee->id,
+                        'name' => $employee->name ?? 'Unknown',
+                        'position' => $employee->position ?? 'Groomer',
+                        'profile_photo_url' => $employee->profile_photo_url ?? asset('images/default-avatar.png')
+                    ];
+                } else {
+                $bookingDetails['employee_data'] = $employeeData;
+                }
+                
+                // Store booking details in session for thank you page
+                session(['booking_details' => $bookingDetails]);
+                
+                // Log the final booking details
+                Log::info('Final booking details stored in session:', [
+                    'booking_details' => $bookingDetails
+                ]);
 
                 // Clear booking session data
                 session()->forget('booking');
@@ -532,7 +881,7 @@ class BookingController extends Controller
                                          ->where('shop_id', $shop->id)
                                          ->where('status', 'pending')
                                          ->whereNull('viewed_at')
-                                         ->whereIn('pet_id', array_column($servicesBreakdown, 'pet_id'))
+                                     ->whereIn('pet_id', array_column($createdAppointments, 'pet_id'))
                                          ->orderBy('created_at', 'desc')
                                          ->get();
                 
@@ -543,13 +892,11 @@ class BookingController extends Controller
                 return redirect()->route('booking.thank-you', $shop)
                     ->with('success', 'Your appointment has been booked successfully!');
 
-            } catch (\Exception $e) {
-                DB::rollBack();
-                Log::error('Transaction error: ' . $e->getMessage());
-                throw $e;
-            }
         } catch (\Exception $e) {
-            Log::error('Error in store method: ' . $e->getMessage());
+            Log::error('Error in store method: ' . $e->getMessage(), [
+                'exception' => $e,
+                'trace' => $e->getTraceAsString()
+            ]);
             return back()->with('error', 'There was an error processing your booking. Please try again.');
         }
     }
@@ -880,6 +1227,24 @@ class BookingController extends Controller
 
             // Filter out employees who already have appointments during the requested time slot
             $availableEmployees = $employees->filter(function ($employee) use ($appointmentDateTime, $appointmentEndTime, $existingAppointments, $time) {
+                // First check if employee has any time off requests for this date
+                if ($employee->timeOffRequests->isNotEmpty()) {
+                    foreach ($employee->timeOffRequests as $timeOff) {
+                        // Employee has pending or approved time off on this date
+                        if ($timeOff->status === 'pending' || $timeOff->status === 'approved') {
+                            \Log::info('Employee has time off on requested date', [
+                                'employee_id' => $employee->id,
+                                'employee_name' => $employee->name,
+                                'time_off_id' => $timeOff->id,
+                                'start_date' => $timeOff->start_date,
+                                'end_date' => $timeOff->end_date,
+                                'status' => $timeOff->status
+                            ]);
+                            return false;
+                        }
+                    }
+                }
+                
                 // Check if employee has any overlapping appointments
                 foreach ($existingAppointments as $appointment) {
                     // Skip if this appointment is not for this employee
@@ -1049,5 +1414,41 @@ class BookingController extends Controller
                 'message' => 'An error occurred while validating the discount'
             ], 500);
         }
+    }
+
+    // Helper method to calculate service price based on pet size
+    private function calculateServicePrice($service, $pet)
+    {
+        // Default to base price
+        $price = $service->base_price; 
+        
+        // If variable pricing is available, use it
+        if ($service && !empty($service->variable_pricing)) {
+            // Convert variable_pricing from string to array if needed
+            $variablePricing = is_string($service->variable_pricing) ? 
+                json_decode($service->variable_pricing, true) : 
+                $service->variable_pricing;
+            
+            // Find matching size price
+            $sizePrice = collect($variablePricing)->first(function($pricing) use ($pet) {
+                return strtolower($pricing['size']) === strtolower($pet->size_category);
+            });
+            
+            if ($sizePrice && isset($sizePrice['price'])) {
+                $price = (float) $sizePrice['price'];
+            }
+        }
+        
+        return $price;
+    }
+    
+    // Helper method to generate a reference number for appointments
+    private function generateReferenceNumber()
+    {
+        $prefix = 'PCC'; // PetCareConnect prefix
+        $timestamp = now()->format('YmdHis');
+        $random = strtoupper(substr(md5(uniqid(rand(), true)), 0, 6));
+        
+        return $prefix . $timestamp . $random;
     }
 } 

@@ -1,7 +1,45 @@
 @extends(session('shop_mode') ? 'layouts.shop' : 'layouts.app')
 
 @section('content')
-<div class="min-h-screen bg-gray-50">
+<div class="min-h-screen bg-gray-50" x-data="{ 
+    markAllAsRead() {
+        try {
+            // Try to use the route, but have a fallback direct URL
+            const url = @json(
+                (function() {
+                    try {
+                        return route('notifications.markAllAsRead', [], false);
+                    } catch (e) {
+                        return '/notifications/mark-all-as-read';
+                    }
+                })()
+            ) || '/notifications/mark-all-as-read';
+            
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name=\"csrf-token\"]').content
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.querySelectorAll('.notification-item').forEach(item => {
+                    item.classList.remove('border-l-4', 'border-blue-500', 'bg-blue-50');
+                    const markAsReadButton = item.querySelector('button');
+                    if (markAsReadButton) {
+                        markAsReadButton.remove();
+                    }
+                });
+            })
+            .catch(error => {
+                console.error('Error marking all notifications as read:', error);
+            });
+        } catch (e) {
+            console.error('Error with notifications route:', e);
+        }
+    }
+}">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div class="bg-white rounded-lg shadow">
             <!-- Header -->
@@ -82,42 +120,34 @@
 @push('scripts')
 <script>
 function markAsRead(id) {
-    fetch(`/notifications/${id}/mark-as-read`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        const notification = document.querySelector(`#notification-${id}`);
-        notification.classList.remove('border-l-4', 'border-blue-500', 'bg-blue-50');
-        const markAsReadButton = notification.querySelector('button');
-        if (markAsReadButton) {
-            markAsReadButton.remove();
-        }
-    });
-}
-
-function markAllAsRead() {
-    fetch('{{ route('notifications.markAllAsRead') }}', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        document.querySelectorAll('.notification-item').forEach(item => {
-            item.classList.remove('border-l-4', 'border-blue-500', 'bg-blue-50');
-            const markAsReadButton = item.querySelector('button');
-            if (markAsReadButton) {
-                markAsReadButton.remove();
+    try {
+        // Use a direct URL to avoid route() errors
+        const url = `/notifications/${id}/mark-as-read`;
+        
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
             }
+        })
+        .then(response => response.json())
+        .then(data => {
+            const notification = document.querySelector(`#notification-${id}`);
+            if (notification) {
+                notification.classList.remove('border-l-4', 'border-blue-500', 'bg-blue-50');
+                const markAsReadButton = notification.querySelector('button');
+                if (markAsReadButton) {
+                    markAsReadButton.remove();
+                }
+            }
+        })
+        .catch(error => {
+            console.error(`Error marking notification ${id} as read:`, error);
         });
-    });
+    } catch (e) {
+        console.error('Error with notification route:', e);
+    }
 }
 </script>
 @endpush

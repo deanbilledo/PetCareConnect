@@ -1,3 +1,10 @@
+@php
+    // Suppress notices and warnings in production
+    if (app()->environment('production')) {
+        error_reporting(E_ALL & ~E_NOTICE & ~E_WARNING);
+    }
+@endphp
+
 @extends('layouts.app')
 
 @section('content')
@@ -109,6 +116,20 @@
         <span class="flex-grow border-t border-black mx-2"></span>
     </h2>
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
+        @php
+            try {
+                // Ensure $groomingShops is always defined
+                if (!isset($groomingShops)) {
+                    $groomingShops = collect([]);
+                }
+            } catch (\Exception $e) {
+                $groomingShops = collect([]);
+                // Log the error if Laravel's error handling is available
+                if (function_exists('logger')) {
+                    logger('Error in groominglandingpage template: ' . $e->getMessage());
+                }
+            }
+        @endphp
         @forelse($groomingShops as $shop)
         <div class="rounded-lg shadow-md overflow-hidden transition duration-300 ease-in-out transform hover:-translate-y-1 hover:shadow-xl cursor-pointer" onclick="window.location.href='{{ route('booking.show', $shop) }}'">
             <div class="relative h-64">
@@ -165,6 +186,20 @@
         <span class="flex-grow border-t border-black mx-2"></span>
     </h2>
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+        @php
+            try {
+                // Ensure $groomingServices is always defined
+                if (!isset($groomingServices)) {
+                    $groomingServices = collect([]);
+                }
+            } catch (\Exception $e) {
+                $groomingServices = collect([]);
+                // Log the error if Laravel's error handling is available
+                if (function_exists('logger')) {
+                    logger('Error in groominglandingpage services section: ' . $e->getMessage());
+                }
+            }
+        @endphp
         @if(count($groomingServices) > 0)
             <!-- First service - larger display -->
             @php $firstService = $groomingServices->first(); @endphp
@@ -214,6 +249,20 @@
     </h2>
     
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
+        @php
+            try {
+                // Ensure $groomingShops is always defined (second instance)
+                if (!isset($groomingShops)) {
+                    $groomingShops = collect([]);
+                }
+            } catch (\Exception $e) {
+                $groomingShops = collect([]);
+                // Log the error if Laravel's error handling is available
+                if (function_exists('logger')) {
+                    logger('Error in groominglandingpage template: ' . $e->getMessage());
+                }
+            }
+        @endphp
         @forelse($groomingShops as $shop)
         <div class="rounded-lg shadow-md overflow-hidden transition duration-300 ease-in-out transform hover:-translate-y-1 hover:shadow-xl mb-4 cursor-pointer" onclick="window.location.href='{{ route('booking.show', $shop) }}'">
             <div class="relative h-64">
