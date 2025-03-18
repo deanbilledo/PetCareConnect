@@ -152,7 +152,7 @@ use Illuminate\Support\Str;
         
         @if(session('error'))
             <div class="bg-red-50 border-l-4 border-red-400 p-4 mb-6 rounded-md">
-                <div class="flex items-center">
+                <div class="flex">
                     <div class="flex-shrink-0">
                         <svg class="h-5 w-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -164,6 +164,20 @@ use Illuminate\Support\Str;
                 </div>
             </div>
         @endif
+        
+        <!-- Information about deceased pets -->
+        <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6 rounded-md">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm text-blue-700">Only active (non-deceased) pets are shown below. Deceased pets cannot be booked for appointments.</p>
+                </div>
+            </div>
+        </div>
 
         <form action="{{ route('booking.select-service', $shop) }}" method="POST">
             @csrf

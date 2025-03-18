@@ -538,6 +538,15 @@ use Illuminate\Support\Str;
                 console.error('Edit modal not found');
             }
         };
+
+        // Deceased modal functionality
+        function openDeceasedModal() {
+            document.getElementById('deceased-modal').classList.remove('hidden');
+        }
+        
+        function closeDeceasedModal() {
+            document.getElementById('deceased-modal').classList.add('hidden');
+        }
     </script>
     @endpush
 </div>
