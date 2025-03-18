@@ -741,4 +741,25 @@ class ShopAppointmentController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Cancel an appointment.
+     * This method delegates to the AppointmentController's cancel method.
+     * 
+     * @param Appointment $appointment
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function cancel(Appointment $appointment, Request $request)
+    {
+        // Log the request for debugging
+        Log::info('ShopAppointmentController@cancel called', [
+            'appointment_id' => $appointment->id,
+            'user_id' => auth()->id(),
+            'request_data' => $request->all()
+        ]);
+        
+        // Just delegate to the AppointmentController
+        return app(\App\Http\Controllers\AppointmentController::class)->cancel($appointment, $request);
+    }
 } 
