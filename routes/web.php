@@ -247,7 +247,6 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/appointments/{appointment}/accept', [AppointmentController::class, 'accept'])->name('appointments.accept');
         Route::post('/appointments/{appointment}/mark-as-paid', [AppointmentController::class, 'markAsPaid'])->name('appointments.mark-as-paid');
         Route::post('/appointments/{appointment}/shop-cancel', [AppointmentController::class, 'shopCancel'])->name('appointments.shop-cancel');
-        Route::post('/appointments/{appointment}/add-note', [AppointmentController::class, 'addNote'])->name('appointments.add-note');
         Route::get('/appointments/{appointment}/note', [AppointmentController::class, 'getNote'])->name('appointments.get-note');
         Route::get('/appointments/{appointment}/download-receipt', [AppointmentController::class, 'downloadReceipt'])->name('appointments.download-receipt');
         
@@ -294,6 +293,20 @@ Route::middleware(['auth'])->group(function () {
     // User report appeal routes
     Route::get('/user/report/{report}/appeal', [AppealController::class, 'showUserAppealForm'])->name('user.report.appeal.form');
     Route::post('/user/report/{report}/appeal', [AppealController::class, 'submitUserAppeal'])->name('user.report.appeal.submit');
+
+    // Shop Appointment Actions
+    Route::get('/appointments/{appointment}/accept', [ShopAppointmentController::class, 'accept'])->name('shop.appointments.accept');
+    Route::post('/appointments/{appointment}/cancel', [ShopAppointmentController::class, 'cancel'])->name('appointments.cancel');
+    Route::post('/appointments/{appointment}/mark-paid', [ShopAppointmentController::class, 'markAsPaid'])->name('appointments.mark-paid');
+    Route::post('/appointments/{appointment}/reassign', [ShopAppointmentController::class, 'reassign'])->name('appointments.reassign');
+    Route::post('/appointments/{appointment}/report', [ShopAppointmentController::class, 'submitReport'])->name('appointments.report');
+
+    // Follow-up Appointment Routes
+    Route::get('/appointments/{appointment}/follow-up', [ShopAppointmentController::class, 'showFollowUpForm'])->name('appointments.follow-up-form');
+    Route::post('/appointments/{appointment}/schedule-follow-up', [ShopAppointmentController::class, 'scheduleFollowUp'])->name('appointments.schedule-follow-up');
+
+    // Add appointment note route - fixed name to match what's used in the template
+    Route::post('/appointments/{appointment}/add-note', [ShopAppointmentController::class, 'addNote'])->name('shop.appointments.add-note');
 });
 
 // Admin routes
@@ -444,6 +457,9 @@ Route::middleware(['auth', 'has-shop'])->prefix('shop')->name('shop.')->group(fu
     Route::get('/analytics', [App\Http\Controllers\Shop\AnalyticsController::class, 'index'])->name('analytics');
     Route::get('/analytics/export/{type}', [App\Http\Controllers\Shop\AnalyticsController::class, 'export'])->name('analytics.export');
     
+    // Add appointment note route
+    Route::post('/appointments/{appointment}/add-note', [ShopAppointmentController::class, 'addNote'])->name('shop.appointments.add-note');
+    
     // Other routes
 });
 
@@ -495,18 +511,6 @@ Route::get('/service-lookup', function (Request $request) {
         return response()->json(['error' => 'Failed to look up service'], 500);
     }
 });
-
-// Shop Appointment Actions
-Route::get('/appointments/{appointment}/accept', [ShopAppointmentController::class, 'accept'])->name('appointments.accept');
-Route::post('/appointments/{appointment}/cancel', [ShopAppointmentController::class, 'cancel'])->name('appointments.cancel');
-Route::post('/appointments/{appointment}/mark-paid', [ShopAppointmentController::class, 'markAsPaid'])->name('appointments.mark-paid');
-Route::post('/appointments/{appointment}/add-note', [ShopAppointmentController::class, 'addNote'])->name('appointments.add-note');
-Route::post('/appointments/{appointment}/reassign', [ShopAppointmentController::class, 'reassign'])->name('appointments.reassign');
-Route::post('/appointments/{appointment}/report', [ShopAppointmentController::class, 'submitReport'])->name('appointments.report');
-
-// Follow-up Appointment Routes
-Route::get('/appointments/{appointment}/follow-up', [ShopAppointmentController::class, 'showFollowUpForm'])->name('appointments.follow-up-form');
-Route::post('/appointments/{appointment}/schedule-follow-up', [ShopAppointmentController::class, 'scheduleFollowUp'])->name('appointments.schedule-follow-up');
 
 // Debug routes - only available in local environment
 if (app()->environment('local')) {

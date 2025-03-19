@@ -301,55 +301,58 @@ function shopSettings(initialData) {
         updateHours() {
             // Format the hours data before sending
             const formattedHours = this.hours.days.map(day => {
-                // Ensure time values are in HH:mm:ss format
-                let openTime = day.is_open ? day.open_time : null;
-                let closeTime = day.is_open ? day.close_time : null;
-                let lunchStart = null;
-                let lunchEnd = null;
-
-                // Only process lunch break times if the day is open and has lunch break
-                if (day.is_open && day.has_lunch_break) {
-                    lunchStart = day.lunch_start;
-                    lunchEnd = day.lunch_end;
-
-                    // Add seconds to lunch times if needed
-                    if (lunchStart && !lunchStart.includes(':')) {
-                        lunchStart = lunchStart + ':00';
-                    } else if (lunchStart && lunchStart.split(':').length === 2) {
-                        lunchStart = lunchStart + ':00';
+                // Default time values
+                let openTime = '09:00:00';
+                let closeTime = '17:00:00';
+                let lunchStart = '12:00:00'; 
+                let lunchEnd = '13:00:00';
+                
+                // If day is open, use the actual time values
+                if (day.is_open) {
+                    // Format open and close times
+                    openTime = day.open_time || '09:00';
+                    closeTime = day.close_time || '17:00';
+                    
+                    // Add seconds if they're missing
+                    if (!openTime.includes(':')) {
+                        openTime = openTime + ':00';
+                    } else if (openTime.split(':').length === 2) {
+                        openTime = openTime + ':00';
                     }
                     
-                    if (lunchEnd && !lunchEnd.includes(':')) {
-                        lunchEnd = lunchEnd + ':00';
-                    } else if (lunchEnd && lunchEnd.split(':').length === 2) {
-                        lunchEnd = lunchEnd + ':00';
+                    if (!closeTime.includes(':')) {
+                        closeTime = closeTime + ':00';
+                    } else if (closeTime.split(':').length === 2) {
+                        closeTime = closeTime + ':00';
                     }
+                }
+
+                // Handle lunch break times - always provide values even if has_lunch_break is false
+                // The backend will ignore them when has_lunch_break is false
+                if (day.is_open && day.has_lunch_break) {
+                    lunchStart = day.lunch_start || '12:00';
+                    lunchEnd = day.lunch_end || '13:00';
                 }
                 
-                if (day.is_open) {
-                    // Add seconds if they're missing for open/close times
-                    if (openTime && !openTime.includes(':')) {
-                        openTime = openTime + ':00';
-                    } else if (openTime && openTime.split(':').length === 2) {
-                        openTime = openTime + ':00';
-                    }
-                    
-                    if (closeTime && !closeTime.includes(':')) {
-                        closeTime = closeTime + ':00';
-                    } else if (closeTime && closeTime.split(':').length === 2) {
-                        closeTime = closeTime + ':00';
-                    }
+                // Add seconds to lunch times if needed
+                if (!lunchStart.includes(':')) {
+                    lunchStart = lunchStart + ':00';
+                } else if (lunchStart.split(':').length === 2) {
+                    lunchStart = lunchStart + ':00';
                 }
-
-                // Ensure has_lunch_break is always boolean
-                const hasLunchBreak = Boolean(day.has_lunch_break);
+                
+                if (!lunchEnd.includes(':')) {
+                    lunchEnd = lunchEnd + ':00';
+                } else if (lunchEnd.split(':').length === 2) {
+                    lunchEnd = lunchEnd + ':00';
+                }
 
                 return {
                     day: day.day,
                     is_open: Boolean(day.is_open),
                     open_time: openTime,
                     close_time: closeTime,
-                    has_lunch_break: hasLunchBreak,
+                    has_lunch_break: Boolean(day.has_lunch_break),
                     lunch_start: lunchStart,
                     lunch_end: lunchEnd
                 };
@@ -366,6 +369,11 @@ function shopSettings(initialData) {
             .then(async response => {
                 const data = await response.json();
                 if (!response.ok) {
+                    // Show detailed validation errors if available
+                    if (data.errors) {
+                        const errorMessages = Object.values(data.errors).flat().join('\n');
+                        throw new Error(errorMessages || 'Validation failed');
+                    }
                     throw new Error(data.message || 'Failed to update hours');
                 }
                 return data;

@@ -6,6 +6,7 @@ use App\Models\Shop;
 use Illuminate\Http\Request;
 use App\Models\Rating;
 use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
 
 class ShopController extends Controller
 
@@ -26,6 +27,142 @@ class ShopController extends Controller
     {
 
         return view('shops.grooming');
+
+    }
+
+
+
+    /**
+
+     * Check if a shop is currently open based on its operating hours
+
+     *
+
+     * @param Shop $shop
+
+     * @return bool
+
+     */
+
+    public function isShopOpen(Shop $shop)
+
+    {
+
+        try {
+
+            // Get current day and time
+
+            $now = Carbon::now();
+
+            $currentDayOfWeek = $now->dayOfWeek; // 0 (Sunday) through 6 (Saturday)
+
+            
+
+            // Find the operating hours for today
+
+            $todayHours = $shop->operatingHours()
+
+                            ->where('day', $currentDayOfWeek)
+
+                            ->first();
+
+            
+
+            // If no hours set for today or shop is marked as closed today
+
+            if (!$todayHours || !$todayHours->is_open) {
+
+                return false;
+
+            }
+
+            
+
+            // Convert times to Carbon instances for comparison
+
+            $openTime = Carbon::createFromTimeString($todayHours->open_time);
+
+            $closeTime = Carbon::createFromTimeString($todayHours->close_time);
+
+            
+
+            // Check if current time is within operating hours
+
+            $currentTimeOfDay = Carbon::createFromTimeString($now->format('H:i:s'));
+
+            
+
+            // If current time is before opening time or after closing time
+
+            if ($currentTimeOfDay->lt($openTime) || $currentTimeOfDay->gt($closeTime)) {
+
+                return false;
+
+            }
+
+            
+
+            // Check if it's during lunch break
+
+            if ($todayHours->has_lunch_break) {
+
+                $lunchStart = Carbon::createFromTimeString($todayHours->lunch_start);
+
+                $lunchEnd = Carbon::createFromTimeString($todayHours->lunch_end);
+
+                
+
+                // If current time is during lunch break
+
+                if ($currentTimeOfDay->gte($lunchStart) && $currentTimeOfDay->lte($lunchEnd)) {
+
+                    return false;
+
+                }
+
+            }
+
+            
+
+            // If we reached here, the shop is open
+
+            return true;
+
+        } catch (\Exception $e) {
+
+            Log::error('Error checking if shop is open: ' . $e->getMessage());
+
+            // Default to closed in case of any errors
+
+            return false;
+
+        }
+
+    }
+
+    
+
+    /**
+
+     * Get shop details with dynamic open status
+
+     *
+
+     * @param Shop $shop
+
+     * @return Shop
+
+     */
+
+    public function getShopWithOpenStatus(Shop $shop)
+
+    {
+
+        // Add dynamic is_open property based on operating hours
+
+        $shop->setAttribute('is_open', $this->isShopOpen($shop));
+
+        return $shop;
 
     }
 
@@ -287,9 +424,11 @@ class ShopController extends Controller
 
             
 
-            // Add result_type field to identify as shop
+            // Add dynamic is_open status and result_type field
 
             $shops->transform(function($shop) {
+
+                $shop->is_open = $this->isShopOpen($shop);
 
                 $shop->result_type = 'shop';
 
@@ -393,6 +532,12 @@ class ShopController extends Controller
 
                     
 
+                    // Add dynamic is_open property
+
+                    $isOpen = $this->isShopOpen($service->shop);
+
+                    
+
                     return [
 
                         'id' => $service->id,
@@ -423,7 +568,9 @@ class ShopController extends Controller
 
                         'longitude' => $service->shop->longitude,
 
-                        'distance' => $distance
+                        'distance' => $distance,
+
+                        'is_open' => $isOpen
 
                     ];
 
@@ -517,6 +664,12 @@ class ShopController extends Controller
             }
             
             $shops = $shopsQuery->get();
+            
+            // Add dynamic open status
+            $shops->transform(function($shop) {
+                $shop->is_open = $this->isShopOpen($shop);
+                return $shop;
+            });
             
             return response()->json([
                 'success' => true,

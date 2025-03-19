@@ -28,18 +28,18 @@
     
     <!-- Status Information -->
     <div x-show="!isLoading && groomingStatus" x-cloak>
-        <div x-show="groomingStatus.needs_grooming" class="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-md">
+        <div x-show="groomingStatus && groomingStatus.needs_grooming" class="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-md">
             <div class="flex items-start">
                 <svg class="w-5 h-5 text-amber-500 mt-0.5 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
                 </svg>
                 <div>
-                    <p class="text-sm font-medium text-amber-800" x-text="groomingStatus.message"></p>
+                    <p class="text-sm font-medium text-amber-800" x-text="groomingStatus && groomingStatus.message ? groomingStatus.message : ''"></p>
                     <p class="text-xs text-amber-700 mt-1">Regular grooming helps maintain your pet's health and comfort.</p>
                 </div>
             </div>
             <div class="mt-3">
-                <a href="/book?pet={{ $pet->id }}&type=grooming" class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md bg-amber-100 text-amber-800 hover:bg-amber-200 transition-colors">
+                <a href="{{ route('grooming', ['pet' => $pet->id]) }}" class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md bg-amber-100 text-amber-800 hover:bg-amber-200 transition-colors">
                     Book Grooming Appointment
                     <svg class="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
@@ -48,18 +48,18 @@
             </div>
         </div>
         
-        <div x-show="!groomingStatus.needs_grooming" class="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
+        <div x-show="groomingStatus && !groomingStatus.needs_grooming" class="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
             <div class="flex items-start">
                 <svg class="w-5 h-5 text-green-500 mt-0.5 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                 </svg>
                 <div>
-                    <p class="text-sm font-medium text-green-800" x-text="groomingStatus.message"></p>
+                    <p class="text-sm font-medium text-green-800" x-text="groomingStatus && groomingStatus.message ? groomingStatus.message : ''"></p>
                     <p class="text-xs text-green-700 mt-1">
-                        <template x-if="groomingStatus.next_recommended_grooming">
+                        <template x-if="groomingStatus && groomingStatus.next_recommended_grooming">
                             <span>Next grooming recommended by <span x-text="formatDate(groomingStatus.next_recommended_grooming)"></span></span>
                         </template>
-                        <template x-if="!groomingStatus.next_recommended_grooming">
+                        <template x-if="groomingStatus && !groomingStatus.next_recommended_grooming">
                             <span>Keep up the good work maintaining your pet's grooming schedule!</span>
                         </template>
                     </p>
@@ -75,7 +75,7 @@
                 <span>Recommended grooming every <span class="font-medium" x-text="daysText"></span></span>
             </div>
             
-            <template x-if="groomingStatus.last_grooming_date">
+            <template x-if="groomingStatus && groomingStatus.last_grooming_date">
                 <div class="flex items-center">
                     <svg class="w-4 h-4 text-gray-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"></path>

@@ -723,17 +723,52 @@
 
     <script>
         function reportShop() {
-            document.getElementById('reportModal').classList.remove('hidden');
+            try {
+                const reportModal = document.getElementById('reportModal');
+                if (reportModal) {
+                    reportModal.classList.remove('hidden');
+                } else {
+                    console.error('Report modal element not found');
+                }
+            } catch (error) {
+                console.error('Error showing report modal:', error);
+            }
         }
 
         function closeReportModal() {
-            document.getElementById('reportModal').classList.add('hidden');
-            // Our new component handles form resetting internally, so we don't need to reset it here
-            // Just make sure the form container is hidden
+            try {
+                const modal = document.getElementById('reportModal');
+                if (modal) {
+                    modal.classList.add('hidden');
+                    
+                    // Reset the form to clear any previous data or error messages
+                    const form = document.getElementById('shop-report-form');
+                    if (form) {
+                        form.reset();
+                        
+                        // Hide error messages
+                        const errorElements = form.querySelectorAll('.text-red-500:not(.hidden)');
+                        errorElements.forEach(el => el.classList.add('hidden'));
+                        
+                        // Hide image preview if it exists
+                        const imagePreview = document.getElementById('image-preview-container');
+                        if (imagePreview && !imagePreview.classList.contains('hidden')) {
+                            imagePreview.classList.add('hidden');
+                        }
+                        
+                        // Hide form feedback if visible
+                        const formFeedback = document.getElementById('form-feedback');
+                        if (formFeedback && !formFeedback.classList.contains('hidden')) {
+                            formFeedback.classList.add('hidden');
+                        }
+                    }
+                } else {
+                    console.error('Report modal element not found when trying to close');
+                }
+            } catch (error) {
+                console.error('Error closing report modal:', error);
+            }
         }
-
-        // We don't need the old submitReport function as our component handles form submission
-        // The component handles validation and submission via its own event listeners
 
         // Store gallery images data
         const galleryImages = @json($shop->gallery->map(function($image) {

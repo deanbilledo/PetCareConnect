@@ -136,17 +136,29 @@
                     <div class="absolute inset-0">
                         <img src="{{ $pet->profile_photo_url }}" 
                              alt="{{ $pet->name }}" 
-                             class="w-full h-full object-cover transition-transform duration-700 ease-in-out group-hover:scale-105">
+                             class="w-full h-full object-cover transition-transform duration-700 ease-in-out group-hover:scale-105 {{ $pet->isDeceased() ? 'filter grayscale' : '' }}">
                         <div class="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-transparent opacity-80"></div>
                     </div>
                     
                     <!-- Status indicator dot -->
                     <div class="absolute top-4 left-4 z-10">
                         <span class="flex h-3 w-3">
-                            <span class="{{ $pet->health_score >= 80 ? 'bg-green-500' : ($pet->health_score >= 60 ? 'bg-yellow-500' : 'bg-red-500') }} animate-ping absolute inline-flex h-full w-full rounded-full opacity-75"></span>
-                            <span class="{{ $pet->health_score >= 80 ? 'bg-green-500' : ($pet->health_score >= 60 ? 'bg-yellow-500' : 'bg-red-500') }} relative inline-flex rounded-full h-3 w-3"></span>
+                            @if($pet->isDeceased())
+                                <span class="bg-gray-500 animate-ping absolute inline-flex h-full w-full rounded-full opacity-75"></span>
+                                <span class="bg-gray-500 relative inline-flex rounded-full h-3 w-3"></span>
+                            @else
+                                <span class="{{ $pet->health_score >= 80 ? 'bg-green-500' : ($pet->health_score >= 60 ? 'bg-yellow-500' : 'bg-red-500') }} animate-ping absolute inline-flex h-full w-full rounded-full opacity-75"></span>
+                                <span class="{{ $pet->health_score >= 80 ? 'bg-green-500' : ($pet->health_score >= 60 ? 'bg-yellow-500' : 'bg-red-500') }} relative inline-flex rounded-full h-3 w-3"></span>
+                            @endif
                         </span>
                     </div>
+                    
+                    <!-- Deceased banner if applicable -->
+                    @if($pet->isDeceased())
+                        <div class="absolute top-12 right-0 z-10 bg-red-800/90 text-white px-3 py-1 text-sm font-medium transform rotate-0 shadow-md">
+                            Deceased
+                        </div>
+                    @endif
                     
                     <!-- Context menu -->
                     <div class="absolute top-4 right-4 z-10">
@@ -163,12 +175,14 @@
                                     </svg>
                                     Edit Profile
                                 </a>
+                                @if(!$pet->isDeceased())
                                 <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center">
                                     <svg class="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                     </svg>
                                     Schedule Appointment
                                 </a>
+                                @endif
                                 <a href="#" class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center">
                                     <svg class="w-4 h-4 mr-2 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -197,11 +211,22 @@
                         <div class="space-y-6">
                             <!-- Pet Name and Info -->
                             <div>
-                                <h3 class="text-white text-2xl font-bold mb-1">{{ $pet->name }}</h3>
+                                <h3 class="text-white text-2xl font-bold mb-1">
+                                    {{ $pet->name }}
+                                    @if($pet->isDeceased())
+                                        <span class="text-gray-300 text-sm font-normal ml-2">(Deceased)</span>
+                                    @endif
+                                </h3>
                                 <div class="flex items-center text-white/80 text-sm mb-2">
                                     <span>{{ $pet->breed }}</span>
                                     <span class="mx-2">•</span>
-                                    <span>{{ $pet->date_of_birth->age }} years old</span>
+                                    <span>
+                                        @if($pet->isDeceased())
+                                            Died {{ $pet->death_date->format('M d, Y') }}
+                                        @else
+                                            {{ $pet->date_of_birth->age }} years old
+                                        @endif
+                                    </span>
                                 </div>
                             </div>
 
@@ -275,6 +300,14 @@
 
                             <!-- Status Chips -->
                             <div class="flex flex-wrap gap-2 mb-5">
+                                @if($pet->isDeceased())
+                                    <span class="bg-gray-500/50 text-white text-xs px-2 py-1 rounded-full flex items-center backdrop-blur-sm">
+                                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z"/>
+                                        </svg>
+                                        Deceased
+                                    </span>
+                                @endif
                                 @if($pet->is_microchipped)
                                     <span class="bg-white/10 text-white text-xs px-2 py-1 rounded-full flex items-center backdrop-blur-sm">
                                         <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -291,7 +324,7 @@
                                         Neutered
                                     </span>
                                 @endif
-                                @if(isset($pet->upcoming_appointment) && $pet->upcoming_appointment)
+                                @if(isset($pet->upcoming_appointment) && $pet->upcoming_appointment && !$pet->isDeceased())
                                     <span class="bg-white/10 text-white text-xs px-2 py-1 rounded-full flex items-center backdrop-blur-sm">
                                         <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />

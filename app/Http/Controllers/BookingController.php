@@ -39,6 +39,10 @@ class BookingController extends Controller
                 'ratings_count' => $shop->ratings->count()
             ]);
 
+            // Dynamically calculate if the shop is open based on operating hours
+            $shopController = new \App\Http\Controllers\ShopController();
+            $shop->setAttribute('is_open', $shopController->isShopOpen($shop));
+
             return view('booking.book', compact('shop'));
         } catch (\Exception $e) {
             Log::error('Error in show method: ' . $e->getMessage(), [
@@ -52,25 +56,23 @@ class BookingController extends Controller
     public function process(Shop $shop)
     {
         try {
-            $pets = auth()->user()->pets;
-            
-            // Separate exotic and non-exotic pets
-            $exoticPets = $pets->filter(function($pet) {
-                return strtolower($pet->type) === 'exotic';
-            });
-            
-            $regularPets = $pets->filter(function($pet) {
-                return strtolower($pet->type) !== 'exotic';
-            });
+            // Use our updated method to get only living pets (non-deceased)
+            $petsByType = $this->getPetsByType(auth()->user());
+            $exoticPets = $petsByType['exoticPets'];
+            $regularPets = $petsByType['regularPets'];
             
             // Debug log
             Log::info('Processing pets for booking:', [
-                'total_pets' => $pets->count(),
+                'total_pets' => $exoticPets->count() + $regularPets->count(),
                 'exotic_pets' => $exoticPets->count(),
                 'regular_pets' => $regularPets->count()
             ]);
             
-            return view('booking.process', compact('shop', 'pets', 'exoticPets', 'regularPets'));
+            // Dynamically calculate if the shop is open based on operating hours
+            $shopController = new \App\Http\Controllers\ShopController();
+            $shop->setAttribute('is_open', $shopController->isShopOpen($shop));
+            
+            return view('booking.process', compact('shop', 'exoticPets', 'regularPets'));
         } catch (\Exception $e) {
             Log::error('Error in process method: ' . $e->getMessage());
             return back()->with('error', 'There was an error processing your request. Please try again.');
@@ -90,6 +92,16 @@ class BookingController extends Controller
             $pets = Pet::whereIn('id', $validated['pet_ids'])
                 ->where('user_id', auth()->id())
                 ->get();
+            
+            // Check if any of the selected pets are deceased
+            $deceasedPets = $pets->filter(function($pet) {
+                return $pet->isDeceased();
+            });
+            
+            if ($deceasedPets->count() > 0) {
+                $petNames = $deceasedPets->pluck('name')->implode(', ');
+                return back()->with('error', "Cannot book appointments for deceased pets: {$petNames}");
+            }
 
             // Check for mixed exotic and non-exotic pets
             $hasExotic = $pets->contains(function($pet) {
@@ -149,6 +161,10 @@ class BookingController extends Controller
                 'pet_ids' => $validated['pet_ids'],
                 'session_data' => session('booking')
             ]);
+
+            // Dynamically calculate if the shop is open based on operating hours
+            $shopController = new \App\Http\Controllers\ShopController();
+            $shop->setAttribute('is_open', $shopController->isShopOpen($shop));
 
             return view('booking.select-service', compact('shop', 'pets', 'services', 'bookingData'));
         } catch (\Exception $e) {
@@ -216,6 +232,10 @@ class BookingController extends Controller
                 'session_data' => session('booking'),
                 'add_ons' => $bookingData['add_ons']
             ]);
+
+            // Dynamically calculate if the shop is open based on operating hours
+            $shopController = new \App\Http\Controllers\ShopController();
+            $shop->setAttribute('is_open', $shopController->isShopOpen($shop));
 
             // Pass session data directly to view
             return view('booking.select-datetime', [
@@ -297,6 +317,10 @@ class BookingController extends Controller
 
             session(['booking' => $bookingData]);
 
+            // Dynamically calculate if the shop is open based on operating hours
+            $shopController = new \App\Http\Controllers\ShopController();
+            $shop->setAttribute('is_open', $shopController->isShopOpen($shop));
+
             return view('booking.confirm', compact('shop', 'pets', 'services', 'appointmentDateTime', 'bookingData'));
         } catch (\Exception $e) {
             Log::error('Error in showConfirm method: ' . $e->getMessage());
@@ -352,6 +376,10 @@ class BookingController extends Controller
                 'pets' => $pets->pluck('name', 'id'),
                 'services' => $services->pluck('name', 'id')
             ]);
+
+            // Dynamically calculate if the shop is open based on operating hours
+            $shopController = new \App\Http\Controllers\ShopController();
+            $shop->setAttribute('is_open', $shopController->isShopOpen($shop));
 
             return view('booking.confirm', compact('shop', 'pets', 'services', 'appointmentDateTime', 'bookingData'));
         } catch (\Exception $e) {
@@ -779,6 +807,10 @@ class BookingController extends Controller
             return redirect()->route('home');
         }
 
+        // Dynamically calculate if the shop is open based on operating hours
+        $shopController = new \App\Http\Controllers\ShopController();
+        $shop->setAttribute('is_open', $shopController->isShopOpen($shop));
+
         return view('booking.thank-you', [
             'shop' => $shop,
             'booking_details' => session('booking_details')
@@ -1049,5 +1081,29 @@ class BookingController extends Controller
                 'message' => 'An error occurred while validating the discount'
             ], 500);
         }
+    }
+
+    // Get the user's pets filtered by type (exotic and regular)
+    private function getPetsByType($user)
+    {
+        // Get all active (non-deceased) pets for the user
+        $pets = $user->pets()->whereNull('death_date')->get();
+        
+        // Define exotic pet types (case-insensitive)
+        $exoticTypes = ['bird', 'reptile', 'exotic', 'amphibian', 'small mammal', 'other'];
+        
+        // Split pets by type
+        $exoticPets = $pets->filter(function($pet) use ($exoticTypes) {
+            return in_array(strtolower($pet->type), $exoticTypes);
+        });
+        
+        $regularPets = $pets->filter(function($pet) use ($exoticTypes) {
+            return !in_array(strtolower($pet->type), $exoticTypes);
+        });
+        
+        return [
+            'exoticPets' => $exoticPets,
+            'regularPets' => $regularPets
+        ];
     }
 } 

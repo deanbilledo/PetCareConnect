@@ -690,4 +690,76 @@ class ShopAppointmentController extends Controller
                 ->withInput();
         }
     }
+
+    /**
+     * Add a note to an appointment
+     */
+    public function addNote(Request $request, Appointment $appointment)
+    {
+        try {
+            // Check if user is authorized (must be shop owner)
+            $shop = auth()->user()->shop;
+            if (!$shop || $appointment->shop_id !== $shop->id) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Unauthorized to add notes to this appointment'
+                ], 403);
+            }
+
+            // Validate the request
+            $validated = $request->validate([
+                'note' => 'required_without:note_image|nullable|string|max:1000',
+                'note_image' => 'required_without:note|nullable|image|max:5120' // Max 5MB image
+            ]);
+
+            // Initialize data with an empty note value to ensure it's never null
+            $data = [
+                'note' => $validated['note'] ?? ''  // Provide empty string if note is not set
+            ];
+
+            // Handle image upload if present
+            if ($request->hasFile('note_image')) {
+                $image = $request->file('note_image');
+                $imagePath = $image->store('appointment-notes', 'public');
+                $data['image'] = $imagePath;
+            }
+
+            // Create a new note
+            $note = $appointment->appointmentNotes()->create($data);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Note added successfully',
+                'note' => $note,
+                'image_url' => $request->hasFile('note_image') ? asset('storage/' . $imagePath) : null
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error adding note to appointment: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'error' => 'An error occurred while adding the note: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Cancel an appointment.
+     * This method delegates to the AppointmentController's cancel method.
+     * 
+     * @param Appointment $appointment
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function cancel(Appointment $appointment, Request $request)
+    {
+        // Log the request for debugging
+        Log::info('ShopAppointmentController@cancel called', [
+            'appointment_id' => $appointment->id,
+            'user_id' => auth()->id(),
+            'request_data' => $request->all()
+        ]);
+        
+        // Just delegate to the AppointmentController
+        return app(\App\Http\Controllers\AppointmentController::class)->cancel($appointment, $request);
+    }
 } 

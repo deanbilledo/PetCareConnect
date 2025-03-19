@@ -32,18 +32,34 @@
                 return;
             }
 
-            const formData = new FormData();
-            formData.append('note', noteText);
+            // Get the form element
+            const form = document.getElementById('noteForm');
+            const formData = new FormData(form);
+            
+            // Make sure the note field has a value (even if empty)
+            formData.set('note', noteText || '');
+            
+            // Ensure we have the image if selected (should already be in the form, but let's make sure)
             if (noteImage) {
-                formData.append('note_image', noteImage);
+                formData.set('note_image', noteImage);
             }
-            formData.append('_token', '{{ csrf_token() }}');
 
             try {
-                const response = await fetch(`/appointments/{{ $appointment->id }}/add-note`, {
+                const response = await fetch(`{{ route('shop.appointments.add-note', ['appointment' => $appointment->id]) }}`, {
                     method: 'POST',
                     body: formData
                 });
+
+                if (!response.ok) {
+                    // Handle error responses
+                    const contentType = response.headers.get('content-type');
+                    if (contentType && contentType.includes('application/json')) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || `Error: ${response.status}`);
+                    } else {
+                        throw new Error(`Server error: ${response.status}`);
+                    }
+                }
 
                 const result = await response.json();
 
@@ -57,7 +73,7 @@
                 }
             } catch (error) {
                 console.error('Error:', error);
-                alert('An error occurred while adding the note');
+                alert(`An error occurred while adding the note: ${error.message}`);
             }
         }
      }">
@@ -581,28 +597,34 @@
                 <h3 class="text-lg leading-6 font-medium text-gray-900">Add Appointment Note</h3>
                 <div class="mt-4">
                     <div class="space-y-4">
-                        <div>
-                            <label for="note" class="block text-sm font-medium text-gray-700">Note</label>
-                            <textarea id="note" 
-                                    x-model="noteText"
-                                    rows="4" 
-                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500"
-                                    placeholder="Enter your note here..."></textarea>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Add Image (optional)</label>
-                            <div class="mt-1 flex items-center">
-                                <input type="file" 
-                                       id="noteImage" 
-                                       accept="image/*"
-                                       @change="handleImagePreview($event)"
-                                       class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100">
+                        <form id="noteForm" method="POST" enctype="multipart/form-data">
+                            @csrf
+                            <input type="hidden" name="_token" value="{{ csrf_token() }}">
+                            <div>
+                                <label for="note" class="block text-sm font-medium text-gray-700">Note</label>
+                                <textarea id="note" 
+                                        x-model="noteText"
+                                        name="note"
+                                        rows="4" 
+                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500"
+                                        placeholder="Enter your note here..."></textarea>
                             </div>
-                            <!-- Image Preview -->
-                            <div x-show="imagePreview" class="mt-2">
-                                <img :src="imagePreview" class="max-h-32 rounded">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Add Image (optional)</label>
+                                <div class="mt-1 flex items-center">
+                                    <input type="file" 
+                                           id="noteImage"
+                                           name="note_image" 
+                                           accept="image/*"
+                                           @change="handleImagePreview($event)"
+                                           class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100">
+                                </div>
+                                <!-- Image Preview -->
+                                <div x-show="imagePreview" class="mt-2">
+                                    <img :src="imagePreview" class="max-h-32 rounded">
+                                </div>
                             </div>
-                        </div>
+                        </form>
                         <div class="flex justify-end space-x-3">
                             <button type="button" 
                                     @click="showNoteModal = false"
@@ -872,7 +894,7 @@ async function markAsPaid(appointmentId) {
         confirmBtn.disabled = true;
         confirmBtn.textContent = 'Processing...';
 
-        const response = await fetch(`/appointments/${appointmentId}/mark-as-paid`, {
+        const response = await fetch(`{{ route('shop.appointments.add-note', ['appointment' => $appointment->id]) }}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
