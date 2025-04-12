@@ -94,7 +94,7 @@
                     <!-- Pet Graphic - Optional -->
                     <tr>
                         <td align="center" style="padding: 10px 40px 30px;">
-                            <img src="{{ url('/images/pet-icon.png') }}" alt="Pet Icon" style="max-width: 100px; height: auto; display: block; margin: 0 auto;">
+                            <img src="{{ url('/images/pet-icon. png') }}" alt="Pet Icon" style="max-width: 100px; height: auto; display: block; margin: 0 auto;">
                         </td>
                     </tr>
                     
