@@ -912,6 +912,44 @@ class BookingController extends Controller
 
             // Filter out employees who already have appointments during the requested time slot
             $availableEmployees = $employees->filter(function ($employee) use ($appointmentDateTime, $appointmentEndTime, $existingAppointments, $time) {
+                // First, check if employee has time off for this date
+                if ($employee->timeOffRequests && count($employee->timeOffRequests) > 0) {
+                    foreach ($employee->timeOffRequests as $timeOff) {
+                        // Only consider approved or pending time off requests
+                        if (in_array($timeOff->status, ['approved', 'pending'])) {
+                            $timeOffStart = \Carbon\Carbon::parse($timeOff->start_date);
+                            $timeOffEnd = \Carbon\Carbon::parse($timeOff->end_date);
+                            
+                            // Make sure we're comparing dates only
+                            $timeOffStart->startOfDay();
+                            $timeOffEnd->endOfDay();
+                            $appointmentDate = (clone $appointmentDateTime)->startOfDay();
+                            
+                            // If the appointment date is within the time off period, employee is not available
+                            if ($appointmentDate->between($timeOffStart, $timeOffEnd)) {
+                                \Log::info('Employee has time off', [
+                                    'employee_id' => $employee->id,
+                                    'employee_name' => $employee->name,
+                                    'timeoff_id' => $timeOff->id,
+                                    'timeoff_start' => $timeOffStart->format('Y-m-d'),
+                                    'timeoff_end' => $timeOffEnd->format('Y-m-d'),
+                                    'appointment_date' => $appointmentDate->format('Y-m-d')
+                                ]);
+                                return false;
+                            }
+                        }
+                    }
+                }
+                
+                // Additional logging to check relationship counts
+                \Log::info('Employee relationship counts', [
+                    'employee_id' => $employee->id,
+                    'employee_name' => $employee->name,
+                    'timeOffRequests_count' => $employee->timeOffRequests ? count($employee->timeOffRequests) : 0,
+                    'appointments_count' => $employee->appointments ? count($employee->appointments) : 0,
+                    'schedules_count' => $employee->schedules ? count($employee->schedules) : 0
+                ]);
+                
                 // Check if employee has any overlapping appointments
                 foreach ($existingAppointments as $appointment) {
                     // Skip if this appointment is not for this employee
@@ -965,9 +1003,45 @@ class BookingController extends Controller
                 return true;
             });
 
+            // Log data before returning response
+            \Log::info('Available employees data before response', [
+                'available_employees_count' => $availableEmployees->count(),
+                'sample_employee' => $availableEmployees->first() ? [
+                    'id' => $availableEmployees->first()->id,
+                    'name' => $availableEmployees->first()->name,
+                    'has_time_off_data' => $availableEmployees->first()->timeOffRequests ? true : false,
+                    'time_off_count' => $availableEmployees->first()->timeOffRequests ? $availableEmployees->first()->timeOffRequests->count() : 0
+                ] : null
+            ]);
+
+            // Debug the first employee's data before mapping
+            if ($availableEmployees->isNotEmpty()) {
+                $firstEmployee = $availableEmployees->first();
+                \Log::info('First employee data before mapping', [
+                    'id' => $firstEmployee->id,
+                    'name' => $firstEmployee->name,
+                    'has_timeOffRequests' => $firstEmployee->timeOffRequests ? true : false,
+                    'timeOffRequests_count' => $firstEmployee->timeOffRequests ? $firstEmployee->timeOffRequests->count() : 0,
+                    'timeOffRequests_data' => $firstEmployee->timeOffRequests ? $firstEmployee->timeOffRequests->toArray() : []
+                ]);
+            }
+
             return response()->json([
                 'success' => true,
-                'employees' => $availableEmployees->values()
+                'employees' => $availableEmployees->values()->map(function($employee) {
+                    // Create a custom array with the desired structure
+                    return [
+                        'id' => $employee->id,
+                        'name' => $employee->name,
+                        'position' => $employee->position,
+                        'profile_photo_url' => $employee->profile_photo_url,
+                        'rating' => $employee->rating ?? 0,
+                        'ratings_count' => $employee->ratings_count ?? 0,
+                        // Rename timeOffRequests to time_off_requests to match frontend expectations
+                        'time_off_requests' => $employee->timeOffRequests ? $employee->timeOffRequests->toArray() : [],
+                        'appointments' => $employee->appointments ? $employee->appointments->toArray() : []
+                    ];
+                })
             ]);
 
         } catch (\Exception $e) {

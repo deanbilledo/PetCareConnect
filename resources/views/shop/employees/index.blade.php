@@ -18,6 +18,16 @@
     .rating-stars .star {
         color: #FFC107;
     }
+    /* Custom styles for time off events */
+    .time-off-event, 
+    .fc-event-title:contains('time off') {
+        background-color: #ff4d4d !important;
+        border-color: #ff4d4d !important;
+    }
+    .fc-event[title*="time off"] .fc-event-main,
+    .fc-event[title*="Time off"] .fc-event-main {
+        background-color: #ff4d4d !important;
+    }
 </style>
 @endsection
 
@@ -362,63 +372,56 @@
                             </button>
                         </div>
                     </div>
-
-                    <!-- Time Off Management Card -->
-                    <div class="bg-white rounded-lg shadow-sm p-6">
-                        <div class="flex justify-between items-center mb-4">
-                            <h3 class="text-lg font-semibold text-gray-900">Time Off Management</h3>
-                            <button @click="showTimeOffModal = true" 
-                                    class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-150">
-                                Add Time Off
-                            </button>
-                        </div>
-                        
-                        <div class="overflow-hidden rounded-lg border border-gray-200">
-                            <!-- Debug info -->
-                            <div class="p-2 space-y-1 text-sm text-gray-500 border-b border-gray-200">
-                                <div x-text="'Total entries: ' + timeOffList.length"></div>
-                                <div x-text="'Current tab: ' + currentTab"></div>
-                                <div x-text="'Data loaded: ' + (timeOffList ? 'Yes' : 'No')"></div>
-                            </div>
-                            
-                            <table class="min-w-full divide-y divide-gray-200">
-                                <thead class="bg-gray-50">
-                                    <tr>
-                                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Employee</th>
-                                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Dates</th>
-                                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="bg-white divide-y divide-gray-200">
-                                    <template x-for="(timeOff, index) in timeOffList" :key="timeOff.id || index">
-                                        <tr class="hover:bg-gray-50">
-                                            <td class="px-4 py-3 whitespace-nowrap">
-                                                <div class="text-sm font-medium text-gray-900" x-text="timeOff.employee_name || 'Unknown'"></div>
-                                            </td>
-                                            <td class="px-4 py-3 whitespace-nowrap">
-                                                <div class="text-sm text-gray-900">
-                                                    <div x-text="timeOff.start_date ? new Date(timeOff.start_date).toLocaleDateString() : 'Invalid date'"></div>
-                                                    <div class="text-gray-500" x-text="timeOff.end_date ? 'to ' + new Date(timeOff.end_date).toLocaleDateString() : ''"></div>
-                                                </div>
-                                            </td>
-                                            <td class="px-4 py-3 whitespace-nowrap text-right text-sm">
-                                                <button @click="deleteTimeOff(timeOff.id)" 
-                                                        class="text-red-600 hover:text-red-900 focus:outline-none"
-                                                        x-show="timeOff.id">
-                                                    Delete
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    </template>
-                                    <tr x-show="timeOffList.length === 0">
-                                        <td colspan="3" class="px-4 py-3 text-center text-sm text-gray-500">
-                                            No time off entries found. Click "Add Time Off" to create one.
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+                </div>
+            </div>
+            
+            <!-- Time Off Management - Moved below calendar -->
+            <div class="bg-white rounded-lg shadow-sm p-6 mt-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900">Time Off Management</h3>
+                    <button @click="showTimeOffModal = true" 
+                            class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-150">
+                        Add Time Off
+                    </button>
+                </div>
+                
+                <div class="overflow-hidden rounded-lg border border-gray-200">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Employee</th>
+                                <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Dates</th>
+                                <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <template x-for="(timeOff, index) in timeOffList" :key="timeOff.id || index">
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-4 py-3 whitespace-nowrap">
+                                        <div class="text-sm font-medium text-gray-900" x-text="timeOff.employee_name || 'Unknown'"></div>
+                                    </td>
+                                    <td class="px-4 py-3 whitespace-nowrap">
+                                        <div class="text-sm text-gray-900">
+                                            <div x-text="timeOff.start_date ? new Date(timeOff.start_date).toLocaleDateString() : 'Invalid date'"></div>
+                                            <div class="text-gray-500" x-text="timeOff.end_date ? 'to ' + new Date(timeOff.end_date).toLocaleDateString() : ''"></div>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-3 whitespace-nowrap text-right text-sm">
+                                        <button @click="deleteTimeOff(timeOff.id)" 
+                                                class="text-red-600 hover:text-red-900 focus:outline-none"
+                                                x-show="timeOff.id">
+                                            Delete
+                                        </button>
+                                    </td>
+                                </tr>
+                            </template>
+                            <tr x-show="timeOffList.length === 0">
+                                <td colspan="3" class="px-4 py-3 text-center text-sm text-gray-500">
+                                    No time off entries found. Click "Add Time Off" to create one.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -784,7 +787,7 @@ document.addEventListener('alpine:init', () => {
             start: '',
             end: '',
             employee_id: '',
-            type: 'shift',
+            type: 'time_off',
             notes: ''
         },
         analyticsPeriod: '30',
@@ -827,7 +830,11 @@ document.addEventListener('alpine:init', () => {
                     this.$nextTick(() => {
                         if (!this.calendar && document.getElementById('calendar')) {
                             this.initializeCalendar();
+                        } else if (this.calendar) {
+                            this.calendar.refetchEvents();
                         }
+                        // Always reload time off list when switching to schedule tab
+                        this.loadTimeOffList();
                     });
                 } else if (value === 'analytics') {
                     // Load analytics data when switching to analytics tab
@@ -852,6 +859,10 @@ document.addEventListener('alpine:init', () => {
             this.$watch('calendarView', (value) => {
                 if (this.calendar) {
                     this.calendar.changeView(value);
+                    // Force refresh events when view changes
+                    setTimeout(() => {
+                        this.calendar.refetchEvents();
+                    }, 100);
                 }
             });
             
@@ -899,6 +910,19 @@ document.addEventListener('alpine:init', () => {
                     hour: 'numeric',
                     minute: '2-digit',
                     meridiem: 'short'
+                },
+                eventDidMount: function(info) {
+                    // Add custom styling to time off events
+                    if ((info.event.extendedProps && info.event.extendedProps.type === 'time_off') || 
+                        info.event.title.toLowerCase().includes('time off')) {
+                        info.el.style.backgroundColor = '#ff4d4d';
+                        info.el.style.borderColor = '#ff4d4d';
+                        
+                        // Add a hover tooltip with reason
+                        if (info.event.extendedProps && info.event.extendedProps.notes) {
+                            info.el.title = info.event.extendedProps.notes;
+                        }
+                    }
                 }
             });
 
@@ -1072,16 +1096,57 @@ document.addEventListener('alpine:init', () => {
                             title: event.title || 'Untitled Event',
                             start: new Date(event.start).toISOString(),
                             end: new Date(event.end).toISOString(),
-                            color: event.type === 'time_off' ? '#ff4d4d' : '#4299e1',
+                            color: event.type === 'time_off' || event.title?.toLowerCase().includes('time off') ? '#ff4d4d' : '#4299e1',
                             employee_id: event.employee_id,
-                            type: event.type || 'shift',
+                            type: event.type === 'time_off' || event.title?.toLowerCase().includes('time off') ? 'time_off' : (event.type || 'shift'),
                             status: event.status || 'active',
                             extendedProps: {
                                 employee_id: event.employee_id,
-                                type: event.type || 'shift',
-                                notes: event.notes || ''
+                                type: event.type === 'time_off' || event.title?.toLowerCase().includes('time off') ? 'time_off' : (event.type || 'shift'),
+                                notes: event.notes || event.reason || ''
                             }
                         }));
+                        
+                        // Add time off entries if they're not already included
+                        if (this.timeOffList && this.timeOffList.length > 0) {
+                            const timeOffEvents = this.timeOffList
+                                .filter(timeOff => {
+                                    // Skip if employee filter is active and this is for a different employee
+                                    if (this.selectedEmployee && 
+                                        timeOff.employee_id && 
+                                        timeOff.employee_id != this.selectedEmployee) {
+                                        return false;
+                                    }
+                                    return true;
+                                })
+                                .map(timeOff => ({
+                                    id: `timeoff_${timeOff.id}`,
+                                    title: `Time Off - ${timeOff.employee_name}`,
+                                    start: new Date(timeOff.start_date).toISOString(),
+                                    end: new Date(timeOff.end_date).toISOString(),
+                                    color: '#ff4d4d', // Force red color
+                                    backgroundColor: '#ff4d4d',
+                                    borderColor: '#ff4d4d',
+                                    classNames: ['time-off-event'],
+                                    allDay: true,
+                                    employee_id: timeOff.employee_id,
+                                    type: 'time_off',
+                                    status: 'active',
+                                    extendedProps: {
+                                        employee_id: timeOff.employee_id,
+                                        type: 'time_off',
+                                        notes: timeOff.reason || 'Time off'
+                                    }
+                                }));
+                            
+                            // Combine events, avoiding duplicates
+                            const eventIds = new Set(formattedEvents.map(e => e.id));
+                            for (const event of timeOffEvents) {
+                                if (!eventIds.has(event.id)) {
+                                    formattedEvents.push(event);
+                                }
+                            }
+                        }
                         
                         if (typeof successCallback === 'function') {
                             successCallback(formattedEvents);
@@ -1114,7 +1179,7 @@ document.addEventListener('alpine:init', () => {
                 start: start,
                 end: end,
                 employee_id: this.selectedEmployee || '',
-                type: 'shift',
+                type: 'time_off',
                 notes: ''
             };
             this.eventModalTitle = 'Add Event';
@@ -1131,7 +1196,7 @@ document.addEventListener('alpine:init', () => {
                 start: start,
                 end: end,
                 employee_id: info.event.extendedProps.employee_id || '',
-                type: info.event.extendedProps.type || 'shift',
+                type: info.event.extendedProps.type || 'time_off',
                 notes: info.event.extendedProps.notes || ''
             };
             this.eventModalTitle = 'Edit Event';
@@ -1245,73 +1310,137 @@ document.addEventListener('alpine:init', () => {
                 start: '',
                 end: '',
                 employee_id: '',
-                type: 'shift',
+                type: 'time_off',
                 notes: ''
             };
         },
 
         async submitTimeOff() {
+            if (!this.timeOffForm.employee_id || !this.timeOffForm.start_date || !this.timeOffForm.end_date) {
+                alert('Please fill in all required fields');
+                return;
+            }
+
             try {
+                // Create a payload with the form data
+                const payload = {
+                    employee_id: this.timeOffForm.employee_id,
+                    start_date: this.timeOffForm.start_date,
+                    end_date: this.timeOffForm.end_date,
+                    reason: this.timeOffForm.reason || 'Time off',
+                    shop_id: document.querySelector('meta[name="shop-id"]')?.content
+                };
+
+                console.log('Submitting time off with payload:', payload);
+
                 const response = await fetch('/shop/schedule/time-off', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json'
                     },
-                    body: JSON.stringify(this.timeOffForm)
+                    body: JSON.stringify(payload)
                 });
 
+                const data = await response.json();
+                
                 if (!response.ok) {
-                    throw new Error('Failed to set employee time off');
+                    throw new Error(data.message || 'Failed to set employee time off');
                 }
 
-                const data = await response.json();
                 if (data.success) {
-                    this.showTimeOffModal = false;
+                    // Clear form and close modal
                     this.timeOffForm = {
                         employee_id: '',
                         start_date: '',
                         end_date: '',
                         reason: ''
                     };
+                    this.showTimeOffModal = false;
+                    
+                    // Refresh data
                     this.loadTimeOffList();
-                    this.calendar.refetchEvents();
+                    
+                    // Refresh calendar events if calendar exists
+                    if (this.calendar) {
+                        this.calendar.refetchEvents();
+                    }
+                    
+                    alert('Time off successfully added!');
+                } else {
+                    throw new Error(data.message || 'Failed to set employee time off');
                 }
             } catch (error) {
                 console.error('Error setting time off:', error);
-                alert('Failed to set employee time off');
+                alert(error.message || 'Failed to set employee time off');
             }
         },
 
         async loadTimeOffList() {
             try {
-                console.log('Fetching time off list...'); // Debug log
-                const response = await fetch('/shop/schedule/time-off');
-                
-                console.log('Response status:', response.status); // Debug log
-                const data = await response.json();
-                console.log('Raw API response:', data); // Debug log
+                // Show loading state if needed
+                // this.timeOffLoading = true;
 
-                if (!data.timeOff || !Array.isArray(data.timeOff)) {
-                    console.error('Invalid data format received:', data);
+                // Fetch time off data with shop ID as a parameter if available
+                const shopId = document.querySelector('meta[name="shop-id"]')?.content;
+                const url = shopId 
+                    ? `/shop/schedule/time-off?shop_id=${shopId}` 
+                    : '/shop/schedule/time-off';
+                
+                const response = await fetch(url, {
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                if (data.success === false) {
+                    throw new Error(data.message || 'Failed to load time off data');
+                }
+
+                // Check if we have the expected data structure
+                if (!data.timeOff) {
+                    console.warn('No timeOff data in response:', data);
+                    this.timeOffList = [];
                     return;
                 }
 
-                this.timeOffList = data.timeOff.map(item => {
-                    console.log('Processing item:', item); // Debug log
+                // Map the data to our expected format
+                this.timeOffList = Array.isArray(data.timeOff) ? data.timeOff.map(item => {
+                    // Get the employee name - handle both object references and simple employee_name fields
+                    let employeeName = 'Unknown Employee';
+                    if (item.employee && typeof item.employee === 'object' && item.employee.name) {
+                        employeeName = item.employee.name;
+                    } else if (item.employee_name) {
+                        employeeName = item.employee_name;
+                    }
+
                     return {
                         id: item.id,
-                        employee_name: item.employee?.name || 'Unknown Employee',
-                        start_date: item.start,
-                        end_date: item.end,
-                        reason: item.reason || ''
+                        employee_id: item.employee_id || null,
+                        employee_name: employeeName,
+                        start_date: item.start || item.start_date,
+                        end_date: item.end || item.end_date,
+                        reason: item.reason || 'Time off'
                     };
-                });
-                
-                console.log('Final timeOffList:', this.timeOffList); // Debug log
+                }) : [];
+
+                console.log('Time off data loaded successfully:', this.timeOffList.length, 'entries');
             } catch (error) {
-                console.error('Error in loadTimeOffList:', error);
-                this.timeOffList = []; // Ensure timeOffList is initialized even on error
+                console.error('Failed to load time off list:', error);
+                this.timeOffList = [];
+                // Show error notification if needed
+                // alert('Failed to load time off data: ' + error.message);
+            } finally {
+                // Clear loading state if needed
+                // this.timeOffLoading = false;
             }
         },
 
@@ -1324,7 +1453,8 @@ document.addEventListener('alpine:init', () => {
                 const response = await fetch(`/shop/schedule/time-off/${id}`, {
                     method: 'DELETE',
                     headers: {
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json'
                     }
                 });
 
@@ -1332,11 +1462,27 @@ document.addEventListener('alpine:init', () => {
                     throw new Error('Failed to delete time off');
                 }
 
-                this.loadTimeOffList();
-                this.calendar.refetchEvents();
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Remove the deleted item from the local list to update UI immediately
+                    this.timeOffList = this.timeOffList.filter(item => item.id !== id);
+                    
+                    // Reload the list from server to ensure data consistency
+                    this.loadTimeOffList();
+                    
+                    // Refresh calendar if available
+                    if (this.calendar) {
+                        this.calendar.refetchEvents();
+                    }
+                    
+                    alert('Time off period has been deleted successfully.');
+                } else {
+                    throw new Error(data.message || 'Failed to delete time off');
+                }
             } catch (error) {
                 console.error('Error deleting time off:', error);
-                alert('Failed to delete time off');
+                alert('Failed to delete time off: ' + error.message);
             }
         },
 
