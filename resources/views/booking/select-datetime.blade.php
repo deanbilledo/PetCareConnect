@@ -495,6 +495,24 @@ function timeSlotPicker() {
                     throw new Error(data.error);
                 }
 
+                // Debug employee time off data
+                console.log('Raw employee data from API:', data.employees);
+                
+                // Check if time_off_requests data is present
+                const hasTimeOffData = data.employees.some(emp => emp.time_off_requests && emp.time_off_requests.length > 0);
+                console.log('Does API include time_off_requests data?', hasTimeOffData);
+                
+                if (!hasTimeOffData) {
+                    console.warn('⚠️ No time_off_requests data found in the API response. This might be why time off is not being considered.');
+                } else {
+                    // Log details of time off data
+                    data.employees.forEach(emp => {
+                        if (emp.time_off_requests && emp.time_off_requests.length > 0) {
+                            console.log(`Employee ${emp.name} has ${emp.time_off_requests.length} time off request(s):`, emp.time_off_requests);
+                        }
+                    });
+                }
+
                 // Parse the selected appointment start time properly
                 const [selectedTimeHours, selectedTimeMinutes, selectedTimePeriod] = this.selectedTime.match(/(\d+):(\d+)\s*([APM]{2})/).slice(1);
                 let hours = parseInt(selectedTimeHours);
@@ -515,19 +533,36 @@ function timeSlotPicker() {
                 })).filter(employee => {
                     // Check for time off requests
                     const hasTimeOff = employee.time_off_requests?.some(timeOff => {
+                        // Only consider approved or pending time off requests
+                        if (timeOff.status !== 'approved' && timeOff.status !== 'pending') {
+                            return false;
+                        }
+                        
+                        // Create date objects for proper comparison
                         const timeOffStart = new Date(timeOff.start_date);
                         const timeOffEnd = new Date(timeOff.end_date);
                         
+                        // Set times to beginning/end of day for date comparison only
                         timeOffStart.setHours(0, 0, 0, 0);
                         timeOffEnd.setHours(23, 59, 59, 999);
                         
                         const appointmentDate = new Date(this.selectedDate);
                         appointmentDate.setHours(0, 0, 0, 0);
                         
+                        // If time off status is listed, log it for debugging
+                        console.log(`Checking time off for employee ${employee.name}:`, {
+                            timeOffId: timeOff.id,
+                            status: timeOff.status,
+                            startDate: timeOffStart.toLocaleDateString(),
+                            endDate: timeOffEnd.toLocaleDateString(),
+                            appointmentDate: appointmentDate.toLocaleDateString(),
+                            isInTimeOffRange: appointmentDate >= timeOffStart && appointmentDate <= timeOffEnd
+                        });
+                        
+                        // Return true if the appointment date is within the time off period
                         return (
                             appointmentDate >= timeOffStart && 
-                            appointmentDate <= timeOffEnd &&
-                            timeOff.status !== 'rejected'
+                            appointmentDate <= timeOffEnd
                         );
                     });
                     
