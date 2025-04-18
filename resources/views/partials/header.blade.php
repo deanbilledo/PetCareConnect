@@ -492,11 +492,12 @@
                         @endif
 
                         <!-- User Actions Section -->
-                        <div class="py-1" x-data="{ activeSection: null }">
+                        <div class="py-1" x-data="{ activeSection: null, preventShopModeSwitch: true }">
                             <!-- Mobile Navigation Links (Only visible on mobile) -->
                             <div class="lg:hidden">
                                 <!-- Navigation Section Toggle -->
-                                <button @click="activeSection = activeSection === 'navigation' ? null : 'navigation'" 
+                                <button @click.stop.prevent="activeSection = activeSection === 'navigation' ? null : 'navigation'" 
+                                        type="button"
                                         class="flex items-center justify-between w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                     <div class="flex items-center">
                                         <svg class="mr-3 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -519,6 +520,7 @@
                                      x-transition:leave="transition ease-in duration-150"
                                      x-transition:leave-start="opacity-100 transform translate-y-0"
                                      x-transition:leave-end="opacity-0 transform -translate-y-2"
+                                     @click.outside="activeSection = null"
                                      class="px-2 py-2 space-y-1">
                                     
                                     <!-- SHOP MODE: Only shown when in shop mode -->
@@ -571,16 +573,20 @@
                                             Reviews
                                         </a>
 
-                                        <!-- Switch to Customer Mode -->
-                                        <form action="{{ route('shop.mode.customer') }}" method="POST">
-                                            @csrf
-                                            <button type="submit" class="flex w-full items-center px-4 py-2 text-sm text-gray-700 rounded-lg hover:bg-gray-100">
-                                                <svg class="mr-3 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
-                                                </svg>
-                                                Switch to Customer Mode
-                                            </button>
-                                        </form>
+                                        <!-- Switch to Customer Mode - Isolated button -->
+                                        <div>
+                                            <form action="{{ route('shop.mode.customer') }}" method="POST" x-ref="customerModeForm" @submit.prevent="preventShopModeSwitch ? null : $refs.customerModeForm.submit()">
+                                                @csrf
+                                                <button type="button" 
+                                                        @click.stop="$refs.customerModeForm.submit()"
+                                                        class="flex w-full items-center px-4 py-2 text-sm text-gray-700 rounded-lg hover:bg-gray-100">
+                                                    <svg class="mr-3 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                                                    </svg>
+                                                    Switch to Customer Mode
+                                                </button>
+                                            </form>
+                                        </div>
                                     @else
                                         <!-- REGULAR MODE: Standard navigation links -->
                                         <a href="{{ route('home') }}" 
@@ -601,6 +607,7 @@
                                             </a>
                                         @else
                                             <button @click="open = false; showLoginPrompt = true" 
+                                                    type="button"
                                                     class="flex w-full items-center px-4 py-2 text-sm text-gray-700 rounded-lg hover:bg-gray-100">
                                                 <svg class="mr-3 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
