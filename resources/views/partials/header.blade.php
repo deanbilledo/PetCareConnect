@@ -1,12 +1,59 @@
 <header class="bg-white shadow-sm sticky top-0 z-50">
-    <div class="max-w-7xl mx-auto flex items-center justify-between">
-        <!-- Remove Shop Mode Mobile Toggle Button -->
-        
+    <div class="max-w-7xl mx-auto flex items-center justify-between px-2 sm:px-4 md:px-6 lg:px-8 py-1 sm:py-2">
+        <!-- Left side: Logo and mobile dropdown -->
+        <div class="flex items-center space-x-1 sm:space-x-2">
         <!-- Logo with proper spacing -->
-        <div class="flex-shrink-0 p-2 sm:p-4 w-32 sm:w-56">
+            <div class="flex-shrink-0 p-1 sm:p-2 md:p-4 w-24 sm:w-32 md:w-56">
             <a href="{{ route('home') }}">
-                <img src="{{ asset('images/logo.png') }}" alt="Pet Care Connect Logo" class="h-auto w-full max-w-[120px] sm:max-w-[200px] transition-all duration-300">
-            </a>
+                    <img src="{{ asset('images/logo.png') }}" alt="Pet Care Connect Logo" class="h-auto w-full max-w-[70px] sm:max-w-[120px] md:max-w-[200px] transition-all duration-300">
+                </a>
+            </div>
+
+            <!-- Mobile Clinics Dropdown - Only show on mobile/small screens and when not in shop mode -->
+            @if(!session('shop_mode'))
+            <div class="lg:hidden relative" x-data="{ open: false }">
+                <button 
+                    @click="open = !open" 
+                    class="flex items-center py-1 px-2 text-gray-700 hover:bg-gray-200 hover:text-gray-900 rounded-md transition-colors duration-200"
+                >
+                    <span class="text-xs sm:text-sm">Clinics</span>
+                    <svg class="h-3 w-3 sm:h-4 sm:w-4 ml-1 text-gray-500" 
+                         :class="{'transform rotate-180': open}"
+                         fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+                
+                <!-- Dropdown Menu -->
+                <div 
+                    x-show="open" 
+                    @click.away="open = false"
+                    x-transition:enter="transition ease-out duration-200"
+                    x-transition:enter-start="opacity-0 transform -translate-y-2"
+                    x-transition:enter-end="opacity-100 transform translate-y-0"
+                    x-transition:leave="transition ease-in duration-150"
+                    x-transition:leave-start="opacity-100 transform translate-y-0"
+                    x-transition:leave-end="opacity-0 transform -translate-y-2"
+                    class="absolute left-0 right-0 mt-1 z-30 bg-white shadow-lg rounded-md overflow-hidden border border-gray-200 w-48"
+                    style="top: 100%;"
+                >
+                    <div class="py-1">
+                        <a href="{{ route('grooming') }}" class="flex items-center px-4 py-2 text-sm {{ request()->routeIs('grooming') ? 'text-blue-600 bg-blue-50 font-medium' : 'text-gray-700 hover:bg-gray-100' }}">
+                            <svg class="h-4 w-4 mr-2 {{ request()->routeIs('grooming') ? 'text-blue-500' : 'text-gray-500' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                            </svg>
+                            Grooming
+                        </a>
+                        <a href="{{ route('petlandingpage') }}" class="flex items-center px-4 py-2 text-sm {{ request()->routeIs('petlandingpage') ? 'text-blue-600 bg-blue-50 font-medium' : 'text-gray-700 hover:bg-gray-100' }}">
+                            <svg class="h-4 w-4 mr-2 {{ request()->routeIs('petlandingpage') ? 'text-blue-500' : 'text-gray-500' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                            </svg>
+                            Pet Clinics
+                        </a>
+                    </div>
+                </div>
+            </div>
+            @endif
         </div>
 
         <!-- Modern Centered Navigation - Only show in customer mode -->
@@ -109,7 +156,7 @@
             </nav>
         @endif
 
-        <div class="flex items-center space-x-2">
+        <div class="flex items-center space-x-1 sm:space-x-2">
             @auth
                 <!-- Notification Button -->
                 <div class="relative" x-data="{ 
@@ -213,23 +260,23 @@
                 }" 
                 @click.away="showNotifications = false">
                     <button @click="showNotifications = !showNotifications" 
-                            class="mr-2 sm:mr-4 relative p-1 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 lg:p-2 lg:transition-all lg:duration-200"
+                            class="mr-0.5 sm:mr-1 md:mr-2 relative p-1 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 lg:p-2 lg:transition-all lg:duration-200"
                             :class="{'lg:bg-gray-100': showNotifications}"
                             title="Notifications (Ctrl+N)">
-                        <svg class="h-5 w-5 sm:h-6 sm:w-6 text-gray-500" 
+                        <svg class="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-gray-500" 
                              :class="{'text-blue-600': showNotifications && unreadCount > 0}"
                              fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                         </svg>
                         <!-- Dynamic Notification Badge -->
                         <template x-if="unreadCount > 0">
-                            <span class="absolute -top-1 -left-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 sm:h-5 sm:w-5 lg:h-5 lg:w-5 flex items-center justify-center" x-text="unreadCount">
+                            <span class="absolute -top-1 -left-1 bg-red-500 text-white text-xs rounded-full h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 flex items-center justify-center text-[8px] sm:text-[10px] md:text-xs" x-text="unreadCount">
                             </span>
                         </template>
                         
                         <!-- Appointment Notification Badge -->
                         <template x-if="unreadAppointmentCount > 0">
-                            <span class="absolute top-1 -right-1 bg-blue-500 border-2 border-white text-white text-xs rounded-full h-2 w-2 sm:h-3 sm:w-3 lg:h-3 lg:w-3 flex items-center justify-center">
+                            <span class="absolute top-1 -right-1 bg-blue-500 border-[1px] sm:border-2 border-white text-white text-xs rounded-full h-1.5 w-1.5 sm:h-2 sm:w-2 md:h-3 md:w-3 flex items-center justify-center">
                             </span>
                         </template>
                     </button>
@@ -238,7 +285,7 @@
                     <div x-show="showNotifications"
                          x-cloak
                          @keydown.escape.window="showNotifications = false"
-                         class="fixed inset-x-0 top-[60px] mx-auto sm:absolute sm:right-0 sm:left-auto sm:top-auto sm:inset-x-auto sm:mt-2 w-full sm:w-[450px] md:w-[550px] lg:w-[650px] xl:w-[750px] bg-white rounded-none sm:rounded-lg shadow-xl py-2 z-50 max-h-[90vh] sm:max-h-[80vh] md:max-h-[70vh] lg:max-h-[600px] flex flex-col"
+                         class="fixed inset-x-0 top-[45px] mx-auto sm:absolute sm:right-0 sm:left-auto sm:top-auto sm:inset-x-auto sm:mt-2 w-full sm:w-[450px] md:w-[550px] lg:w-[650px] xl:w-[750px] bg-white rounded-none sm:rounded-lg shadow-xl py-2 z-50 max-h-[90vh] sm:max-h-[80vh] md:max-h-[70vh] lg:max-h-[600px] flex flex-col"
                          x-transition:enter="transition ease-out duration-200"
                          x-transition:enter-start="opacity-0 transform translate-y-1 sm:scale-95"
                          x-transition:enter-end="opacity-100 transform translate-y-0 sm:scale-100"
@@ -380,14 +427,14 @@
 
                 <!-- User Profile Dropdown -->
                 <div class="relative" x-data="{ open: false }">
-                    <button @click="open = !open" class="flex items-center space-x-2 focus:outline-none">
+                    <button @click="open = !open" class="flex items-center space-x-0.5 sm:space-x-1 md:space-x-2 focus:outline-none hover:bg-gray-100 p-1 rounded-full">
                         <!-- Profile Image -->
                         <img src="{{ auth()->user()->profile_photo_url }}" 
                              alt="{{ auth()->user()->name }}" 
-                             class="h-8 w-8 rounded-full object-cover"
+                             class="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 rounded-full object-cover"
                              onerror="this.src='{{ asset('images/default-profile.png') }}'">
-                        <span class="text-gray-700">{{ auth()->user()->first_name }}</span>
-                        <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <span class="text-xs sm:text-sm md:text-base text-gray-700 max-[360px]:hidden">{{ auth()->user()->first_name }}</span>
+                        <svg class="h-3 w-3 sm:h-4 sm:w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                         </svg>
                     </button>
@@ -395,11 +442,11 @@
                     <!-- Dropdown Menu -->
                     <div x-show="open" 
                          @click.away="open = false"
-                         class="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 divide-y divide-gray-100">
+                         class="absolute right-0 mt-2 w-44 sm:w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 divide-y divide-gray-100">
                         
                         <!-- Mode Switch Section -->
                         @if(auth()->user()->shop && auth()->user()->shop->status === 'active')
-                        <div class="px-4 py-2">
+                        <div class="px-3 sm:px-4 py-2">
                             <p class="text-xs text-gray-500 mb-2">Current Mode</p>
                             <div class="space-y-2">
                                 <form action="{{ route('shop.mode.customer') }}" method="POST">
@@ -432,7 +479,6 @@
                                             </svg>
                                         </span>
                                     @endif
-                                </a>
                             </div>
                         </div>
                         @elseif(auth()->user()->shop && auth()->user()->shop->status === 'pending')
@@ -657,18 +703,20 @@
                     </div>
                 </div>
             @else
-                <a href="{{ route('login') }}" class="flex items-center py-2 px-4 text-gray-700 hover:bg-gray-200 hover:text-gray-900 rounded-md transition-colors duration-200">
-                    <svg class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div class="flex items-center space-x-1 sm:space-x-2">
+                    <a href="{{ route('login') }}" class="flex items-center py-1 sm:py-2 px-2 sm:px-4 text-gray-700 hover:bg-gray-200 hover:text-gray-900 rounded-md transition-colors duration-200">
+                        <svg class="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
                     </svg>
-                    Login
+                        <span class="ml-1 sm:ml-2 text-xs sm:text-sm md:text-base max-[360px]:hidden">Login</span>
                 </a>
-                <a href="{{ route('register') }}" class="flex items-center py-2 px-4 text-gray-700 hover:bg-gray-200 hover:text-gray-900 rounded-md transition-colors duration-200">
-                    <svg class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <a href="{{ route('register') }}" class="flex items-center py-1 sm:py-2 px-2 sm:px-4 text-gray-700 hover:bg-gray-200 hover:text-gray-900 rounded-md transition-colors duration-200">
+                        <svg class="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
                     </svg>
-                    Sign Up
+                        <span class="ml-1 sm:ml-2 text-xs sm:text-sm md:text-base max-[360px]:hidden">Sign Up</span>
                 </a>
+                </div>
             @endauth
         </div>
     </div>
