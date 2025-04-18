@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use App\Models\Shop;
@@ -17,7 +16,7 @@ class FavoriteController extends Controller
     {
         $user = auth()->user();
         
-        if ($user->favorites()->where('shop_id', $shop->id)->exists()) {
+        if ($user->favorites()->where('shop_id', $shop->id)->exists()) {        
             $user->favorites()->where('shop_id', $shop->id)->delete();
             $isFavorited = false;
         } else {
@@ -33,15 +32,15 @@ class FavoriteController extends Controller
 
         return back()->with('success', $isFavorited ? 'Added to favorites' : 'Removed from favorites');
     }
-    
+
     public function check(Shop $shop)
     {
         if (!auth()->check()) {
             return response()->json(['isFavorited' => false]);
         }
-        
+
         $isFavorited = auth()->user()->favorites()->where('shop_id', $shop->id)->exists();
-        
+
         return response()->json([
             'isFavorited' => $isFavorited
         ]);

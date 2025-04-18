@@ -229,9 +229,9 @@
 
     <!-- Main Content with Sidebar -->
     <div class="pt-16 flex flex-col w-full" x-data="{ sidebarOpen: false }" x-init="$watch('sidebarOpen', value => document.body.classList.toggle('overflow-hidden', value && window.innerWidth < 768))">
-        <!-- Mobile Hamburger Menu Button -->
+        <!-- Mobile Hamburger Menu Button - Only visible when bottom nav is not shown -->
         <button @click="sidebarOpen = !sidebarOpen" 
-                class="md:hidden fixed top-4 left-4 z-30 p-2 bg-gray-50 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-150" 
+                class="md:hidden fixed top-4 left-4 z-30 p-2 bg-gray-50 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-150 hidden" 
                 aria-label="Toggle sidebar">
             <svg x-show="!sidebarOpen" class="h-6 w-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
@@ -254,7 +254,7 @@
         </div>
         
         <div class="flex-1 flex">
-            <!-- Fixed Sidebar container -->
+            <!-- Fixed Sidebar container - Hidden on mobile, now using bottom navigation instead -->
             <div class="bg-gray-50 overflow-y-auto sidebar-container transition-all duration-300 shrink-0 h-[calc(100vh-4rem)] hidden md:block"
                 :class="{
                     'fixed left-0 top-16 bottom-0 z-45': true,
@@ -296,28 +296,35 @@
             </div>
         </div>
     </div>
+    
+    <!-- Mobile Bottom Navigation -->
+    @include('partials.bottom-nav')
 
     <!-- Initialize Session Messages as Toast Notifications -->
     <script>
         document.addEventListener('alpine:init', () => {
+            // Shared function to refresh notification count
+            window.refreshNotificationCount = function() {
+                fetch('/shop/notifications/count')
+                    .then(response => response.json())
+                    .then(data => {
+                        Alpine.store('notifications', {
+                            count: data.count,
+                            appointmentCount: data.appointment_count || 0,
+                            loading: false,
+                            items: []
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Error fetching notification count:', error);
+                    });
+            }
+            
             Alpine.store('sidebar', {
-                collapsed: true,
+                collapsed: localStorage.getItem('sidebar-collapsed') === 'true',
                 toggle() {
                     this.collapsed = !this.collapsed;
-                    
-                    // Only update sidebar width on desktop
-                    if (window.innerWidth >= 768) {
-                        const mainContent = document.querySelector('.content-area-wrapper');
-                        if (mainContent) {
-                            mainContent.classList.toggle('ml-20', this.collapsed);
-                            mainContent.classList.toggle('ml-56', !this.collapsed);
-                        }
-                        
-                        // Make sure layout container has the right background color
-                        document.querySelectorAll('.fixed.inset-y-0').forEach(el => {
-                            el.classList.add('bg-gray-50');
-                        });
-                    }
+                    localStorage.setItem('sidebar-collapsed', this.collapsed.toString());
                 }
             });
             

@@ -34,8 +34,8 @@
 @section('content')
 <div x-data="employeeManager()" class="container mx-auto px-4 py-6">
     <!-- Navigation Tabs -->
-    <div class="mb-6 border-b border-gray-200">
-        <nav class="-mb-px flex space-x-8">
+    <div class="mb-6 border-b border-gray-200 overflow-x-auto whitespace-nowrap pb-2">
+        <nav class="-mb-px inline-flex space-x-8">
             <button @click="currentTab = 'list'" 
                     :class="{'border-blue-500 text-blue-600': currentTab === 'list',
                             'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': currentTab !== 'list'}"
@@ -59,10 +59,10 @@
 
     <!-- Employees List Tab -->
     <div x-show="currentTab === 'list'">
-        <div class="flex justify-between items-center mb-6">
+        <div class="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-6">
             <h1 class="text-2xl font-bold">Employees</h1>
             <button @click="openAddModal()" type="button"
-                    class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors">
+                    class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors self-start md:self-center">
                 Add New Employee
             </button>
         </div>
