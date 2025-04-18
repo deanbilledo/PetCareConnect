@@ -49,11 +49,12 @@
                         @auth
                         <!-- Favorite Button -->
                         <button 
+                            type="button"
                             class="favorite-btn absolute top-4 right-4 p-2.5 rounded-full bg-white/95 hover:bg-white shadow-sm transition-all duration-200 transform hover:scale-110 focus:outline-none z-10"
                             data-shop-id="{{ $shop->id }}"
-                            onclick="toggleFavorite(event, this, {{ $shop->id }})"
+                            data-is-favorited="{{ auth()->user()->favorites()->where('shop_id', $shop->id)->exists() ? 'true' : 'false' }}"
                         >
-                            <svg class="h-5 w-5 text-gray-400 transition-transform duration-300" 
+                            <svg class="h-5 w-5 {{ auth()->user()->favorites()->where('shop_id', $shop->id)->exists() ? 'text-red-500' : 'text-gray-400' }} transition-transform duration-300" 
                                  fill="currentColor" 
                                  viewBox="0 0 24 24">
                                 <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
@@ -119,129 +120,10 @@
 </section>
 
 @push('scripts')
+<script src="{{ asset('js/favorite-handler.js') }}"></script>
 <script>
-async function toggleFavorite(event, button, shopId) {
-    // Prevent the default action (navigation)
-    event.preventDefault();
-    event.stopPropagation();
-    
-    if (!@json(auth()->check())) {
-        window.location.href = '{{ route('login') }}';
-        return;
-    }
-
-    const svg = button.querySelector('svg');
-    
-    // Add immediate visual feedback with animation
-    button.classList.add('animate-favorite-click');
-    setTimeout(() => button.classList.remove('animate-favorite-click'), 300);
-    
-    try {
-        // Get CSRF token
-        const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-        
-        // Setup form data for submission
-        const formData = new FormData();
-        formData.append('_token', token);
-        
-        const response = await fetch(`/favorites/${shopId}`, {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': token,
-                'Accept': 'application/json'
-            },
-            body: formData
-        });
-
-        if (response.ok) {
-            const data = await response.json();
-            
-            if (data.isFavorited) {
-                svg.classList.add('text-red-500', 'animate-favorite-pop');
-                svg.classList.remove('text-gray-400');
-                button.classList.add('bg-red-50');
-                setTimeout(() => svg.classList.remove('animate-favorite-pop'), 500);
-            } else {
-                svg.classList.remove('text-red-500', 'animate-favorite-pop');
-                svg.classList.add('text-gray-400', 'animate-favorite-unpop');
-                button.classList.remove('bg-red-50');
-                setTimeout(() => svg.classList.remove('animate-favorite-unpop'), 500);
-            }
-        }
-    } catch (error) {
-        console.error('Error:', error);
-    }
-}
-
-// Check initial favorite status and setup animations
-document.addEventListener('DOMContentLoaded', async () => {
-    // Add animation styles
-    const style = document.createElement('style');
-    style.textContent = `
-        @keyframes favoriteClick {
-            0% { transform: scale(1); }
-            50% { transform: scale(0.85); }
-            100% { transform: scale(1); }
-        }
-        
-        @keyframes favoritePop {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.35); }
-            70% { transform: scale(0.9); }
-            100% { transform: scale(1); }
-        }
-        
-        @keyframes favoriteUnpop {
-            0% { transform: scale(1); }
-            30% { transform: scale(0.8); }
-            60% { transform: scale(1.1); }
-            100% { transform: scale(1); }
-        }
-        
-        .animate-favorite-click {
-            animation: favoriteClick 300ms ease-in-out;
-        }
-        
-        .animate-favorite-pop {
-            animation: favoritePop 500ms cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-        
-        .animate-favorite-unpop {
-            animation: favoriteUnpop 500ms ease-in-out;
-        }
-        
-        .favorite-btn:hover svg {
-            transform: scale(1.1);
-        }
-    `;
-    document.head.appendChild(style);
-
-    // Existing favorite status check
-    if (@json(auth()->check())) {
-        const buttons = document.querySelectorAll('.favorite-btn');
-        for (const button of buttons) {
-            const shopId = button.dataset.shopId;
-            try {
-                const response = await fetch(`/favorites/${shopId}/check`);
-                const data = await response.json();
-                const svg = button.querySelector('svg');
-                
-                if (data.isFavorited) {
-                    svg.classList.add('text-red-500');
-                    svg.classList.remove('text-gray-400');
-                    button.classList.add('bg-red-50');
-                } else {
-                    svg.classList.remove('text-red-500');
-                    svg.classList.add('text-gray-400');
-                    button.classList.remove('bg-red-50');
-                }
-            } catch (error) {
-                console.error('Error checking favorite status:', error);
-            }
-        }
-    }
-
-    // Carousel functionality
+// Carousel functionality
+document.addEventListener('DOMContentLoaded', function() {
     const carousel = document.querySelector('.shops-carousel');
     const prevBtn = document.querySelector('.carousel-prev-btn');
     const nextBtn = document.querySelector('.carousel-next-btn');
