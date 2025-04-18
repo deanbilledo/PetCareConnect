@@ -35,6 +35,25 @@
                     {{ ucfirst($shop->type) }}
                 </span>
             </div>
+            
+            @auth
+            <!-- Favorite Button -->
+            <div class="absolute top-6 right-6">
+                <button 
+                    type="button"
+                    class="favorite-btn px-4 py-2 rounded-full bg-white/90 text-gray-800 hover:bg-white shadow-lg backdrop-blur-sm flex items-center gap-2 transition-all duration-200 transform hover:scale-105"
+                    data-shop-id="{{ $shop->id }}"
+                    data-is-favorited="{{ auth()->user()->favorites()->where('shop_id', $shop->id)->exists() ? 'true' : 'false' }}"
+                >
+                    <svg class="h-5 w-5 {{ auth()->user()->favorites()->where('shop_id', $shop->id)->exists() ? 'text-red-500' : 'text-gray-400' }} transition-transform duration-300" 
+                         fill="currentColor" 
+                         viewBox="0 0 24 24">
+                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                    </svg>
+                    <span>{{ auth()->user()->favorites()->where('shop_id', $shop->id)->exists() ? 'Favorited' : 'Add to favorites' }}</span>
+                </button>
+            </div>
+            @endauth
 
             <!-- Shop Info Overlay -->
             <div class="absolute bottom-0 left-0 right-0 p-8 text-white">
@@ -853,6 +872,33 @@
             }
         });
     </script>
+
+    @push('scripts')
+    <script src="{{ asset('js/favorite-handler.js') }}"></script>
+    <script>
+        // Update favorite button text when its state changes
+        document.addEventListener('DOMContentLoaded', function() {
+            const favoriteBtn = document.querySelector('.favorite-btn');
+            if (favoriteBtn) {
+                // Create a MutationObserver to watch for attribute changes
+                const observer = new MutationObserver(function(mutations) {
+                    mutations.forEach(function(mutation) {
+                        if (mutation.attributeName === 'data-is-favorited') {
+                            const isFavorited = favoriteBtn.getAttribute('data-is-favorited') === 'true';
+                            const textSpan = favoriteBtn.querySelector('span');
+                            if (textSpan) {
+                                textSpan.textContent = isFavorited ? 'Favorited' : 'Add to favorites';
+                            }
+                        }
+                    });
+                });
+                
+                // Start observing the button for attribute changes
+                observer.observe(favoriteBtn, { attributes: true });
+            }
+        });
+    </script>
+    @endpush
 
 @endsection
 
