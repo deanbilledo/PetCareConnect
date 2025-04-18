@@ -10,14 +10,38 @@
             fetch('{{ route('notifications.index') }}?type=appointment', {
                 headers: {
                     'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Cache-Control': 'no-cache'
+                },
+                cache: 'no-store'
             })
             .then(response => {
                 if (!response.ok) {
-                    throw new Error('Network response was not ok');
+                    throw new Error(`Network response was not ok: ${response.status}`);
                 }
-                return response.json();
+                return response.text().then(text => {
+                    try {
+                        // First check if response is empty
+                        if (!text || text.trim() === '') {
+                            console.warn('Empty response received');
+                            return { unread_count: 0 };
+                        }
+                        
+                        // Try to clean the response if it contains invalid JSON characters
+                        // (like leading commas, BOM marks, etc.)
+                        let cleanText = text;
+                        // Remove BOM if present
+                        cleanText = cleanText.replace(/^\uFEFF/, '');
+                        // Remove any leading commas or invalid characters
+                        cleanText = cleanText.replace(/^[,\s]+/, '');
+                        
+                        // Try to parse JSON
+                        return JSON.parse(cleanText);
+                    } catch (error) {
+                        console.error('Error parsing JSON response:', error, 'Response text:', text);
+                        throw new Error('Invalid JSON in response');
+                    }
+                });
             })
             .then(data => {
                 this.appointmentCount = data.unread_count || 0;

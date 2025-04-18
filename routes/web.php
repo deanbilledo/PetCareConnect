@@ -1,4 +1,4 @@
-<?php
+,<?php
 
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\AppointmentController;
@@ -129,6 +129,7 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/appointments/{appointment}/schedule-follow-up', [ShopAppointmentController::class, 'scheduleFollowUp'])->name('appointments.schedule-follow-up');
             Route::get('/payments', [ShopAppointmentController::class, 'payments'])->name('payments');
             Route::post('/mode/customer', [ShopDashboardController::class, 'switchToCustomerMode'])->name('mode.customer');
+            Route::post('/mode/shop', [ShopDashboardController::class, 'switchToShopMode'])->name('mode.shop');
             
             // Reviews routes
             Route::get('/reviews', [ShopDashboardController::class, 'reviews'])->name('reviews');

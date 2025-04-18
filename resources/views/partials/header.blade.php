@@ -466,19 +466,23 @@
                                         @endif
                                     </button>
                                 </form>
-                                <a href="{{ route('shop.dashboard') }}" 
-                                   class="flex items-center space-x-2 text-sm text-gray-700 hover:text-custom-blue">
-                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                                    </svg>
-                                    <span>Shop Mode</span>
-                                    @if(session('shop_mode'))
-                                        <span class="ml-auto">
-                                            <svg class="h-4 w-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                                            </svg>
-                                        </span>
-                                    @endif
+                                <form action="{{ route('shop.mode.shop') }}" method="POST">
+                                    @csrf
+                                    <button type="submit" 
+                                            class="flex items-center space-x-2 text-sm text-gray-700 hover:text-custom-blue w-full">
+                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                                        </svg>
+                                        <span>Shop Mode</span>
+                                        @if(session('shop_mode'))
+                                            <span class="ml-auto">
+                                                <svg class="h-4 w-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                                </svg>
+                                            </span>
+                                        @endif
+                                    </button>
+                                </form>
                             </div>
                         </div>
                         @elseif(auth()->user()->shop && auth()->user()->shop->status === 'pending')
@@ -571,16 +575,7 @@
                                             Reviews
                                         </a>
 
-                                        <!-- Switch to Customer Mode -->
-                                        <form action="{{ route('shop.mode.customer') }}" method="POST">
-                                            @csrf
-                                            <button type="submit" class="flex w-full items-center px-4 py-2 text-sm text-gray-700 rounded-lg hover:bg-gray-100">
-                                                <svg class="mr-3 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
-                                                </svg>
-                                                Switch to Customer Mode
-                                            </button>
-                                        </form>
+                                        
                                     @else
                                         <!-- REGULAR MODE: Standard navigation links -->
                                         <a href="{{ route('home') }}" 
@@ -685,9 +680,23 @@
                                 </svg>
                                 My Favorites
                             </a>
-                        </div>
+                            </div>
+                            <!-- Switch to Shop Mode (if applicable and not already in shop mode) -->
+                            @if(auth()->user()->shop && auth()->user()->shop->status === 'active' && !session('shop_mode'))
+                                <div class="border-t border-gray-100 my-1"></div>
+                                <form action="{{ route('shop.mode.shop') }}" method="POST" class="px-2 py-1">
+                                    @csrf
+                                    <button type="submit" class="flex w-full items-center px-2 py-2 text-sm text-gray-700 rounded-lg hover:bg-gray-100">
+                                        <svg class="mr-3 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                                        </svg>
+                                        Switch to Shop Mode
+                                    </button>
+                                </form>
+                            @endif
 
                         <!-- Logout Section -->
+                        <div class="border-t border-gray-100 my-1"></div>
                         <div class="py-1">
                             <form method="POST" action="{{ route('logout') }}">
                                 @csrf
