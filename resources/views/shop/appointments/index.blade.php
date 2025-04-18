@@ -109,12 +109,12 @@
     </div>
     @endif
 
-    <div class="flex justify-between items-center mb-6">
+    <div class="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-6">
         <h1 class="text-2xl font-bold">Appointments</h1>
         
         <!-- Filter Toggle Button -->
         <button @click="showFilters = !showFilters"
-                class="flex items-center gap-2 px-4 py-2 bg-white rounded-lg shadow-sm hover:bg-gray-50 transition-colors">
+                class="flex items-center gap-2 px-4 py-2 bg-white rounded-lg shadow-sm hover:bg-gray-50 transition-colors self-start md:self-center">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
             </svg>
@@ -175,8 +175,8 @@
     </div>
 
     <!-- Tabs Navigation -->
-    <div class="mb-6">
-        <nav class="flex space-x-4 border-b">
+    <div class="mb-6 overflow-x-auto whitespace-nowrap pb-2">
+        <nav class="inline-flex space-x-4 border-b">
             <button @click="activeTab = 'appointments'"
                     :class="{'border-b-2 border-blue-500 text-blue-600': activeTab === 'appointments',
                             'text-gray-500 hover:text-gray-700': activeTab !== 'appointments'}"
