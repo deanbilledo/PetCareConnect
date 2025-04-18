@@ -9,11 +9,6 @@ class CheckShopMode
 {
     public function handle(Request $request, Closure $next)
     {
-        // Skip session mode changes for Ajax/API requests to prevent JSON corruption
-        if ($request->ajax() || $request->wantsJson() || $request->isJson()) {
-            return $next($request);
-        }
-        
         // Get referrer and current route info
         $previousUrl = url()->previous();
         $currentUrl = $request->url();

@@ -75,14 +75,6 @@ class ShopDashboardController extends Controller
         return redirect()->route('home');
     }
 
-    // Add this method to handle switching to shop mode
-    public function switchToShopMode()
-    {
-        session(['shop_mode' => true]);
-        session()->save(); // Ensure the session is saved
-        return redirect()->route('shop.dashboard');
-    }
-
     public function reviews()
     {
         $shop = auth()->user()->shop;

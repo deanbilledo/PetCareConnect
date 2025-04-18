@@ -36,18 +36,10 @@ class NotificationController extends Controller
         
         $unreadCount = $unreadQuery->count();
 
-        if (request()->ajax() || request()->wantsJson()) {
-            // Clear any previous output buffers that might be causing issues
-            if (ob_get_level()) {
-                ob_end_clean();
-            }
-            
+        if (request()->wantsJson()) {
             return response()->json([
                 'notifications' => $notifications,
                 'unread_count' => $unreadCount
-            ], 200, [
-                'Content-Type' => 'application/json',
-                'Cache-Control' => 'no-cache, private'
             ]);
         }
 
