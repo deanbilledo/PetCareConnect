@@ -111,6 +111,8 @@ use Illuminate\Support\Facades\Log;
         <div class="flex flex-col sm:flex-row justify-center items-center gap-4">
             <!-- Acknowledgement Receipt Button -->
             <a href="{{ route('booking.acknowledgement.download', ['shop' => $shop, 'booking_details' => $booking_details]) }}" 
+               data-no-loading
+               id="download-receipt-btn"
                class="w-full sm:w-auto inline-flex justify-center items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-green-600 hover:bg-green-700 transition-colors whitespace-nowrap">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"/>
@@ -147,4 +149,28 @@ use Illuminate\Support\Facades\Log;
         </div>
     </div>
 </div>
-@endsection 
+@endsection
+
+@push('scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const downloadBtn = document.getElementById('download-receipt-btn');
+        
+        if (downloadBtn) {
+            downloadBtn.addEventListener('click', function(e) {
+                // Show loading screen manually
+                showGlobalLoading();
+                
+                // Set a timeout to hide the loading screen after a reasonable time
+                // This ensures the loading screen disappears even if download takes time
+                setTimeout(function() {
+                    hideGlobalLoading();
+                }, 3000); // 3 seconds should be enough for most downloads to start
+                
+                // Continue with normal link behavior
+                return true;
+            });
+        }
+    });
+</script>
+@endpush 

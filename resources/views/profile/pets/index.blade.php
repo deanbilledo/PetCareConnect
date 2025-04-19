@@ -49,6 +49,67 @@
             transform: translateY(0);
         }
     }
+    
+    /* Calendar styles */
+    .calendar-dropdown {
+        position: absolute;
+        width: 310px !important;
+        z-index: 9999;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(209, 213, 219, 0.5);
+        overflow: visible !important;
+    }
+    
+    #add-pet-modal {
+        overflow-y: auto;
+    }
+    
+    #add-pet-modal .modal-content {
+        overflow: visible !important;
+        position: relative;
+    }
+    
+    /* Fix for date picker positioning */
+    .date-picker-container {
+        position: static;
+    }
+    
+    .date-picker-container .absolute {
+        z-index: 100;
+    }
+    
+    /* Calendar day hover and transition effects */
+    .calendar-dropdown button {
+        transition: all 0.2s ease;
+    }
+    
+    .calendar-dropdown button:hover:not(:disabled) {
+        transform: translateY(-1px);
+    }
+    
+    .calendar-dropdown button:active:not(:disabled) {
+        transform: translateY(0);
+    }
+    
+    /* Selected day animation */
+    .calendar-dropdown button.selected {
+        animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    
+    @keyframes pulse {
+        0%, 100% {
+            box-shadow: 0 0 0 0 rgba(20, 184, 166, 0.5);
+        }
+        50% {
+            box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.25);
+        }
+    }
+    
+    /* Ensure the calendar can appear outside its container */
+    .overflow-visible {
+        overflow: visible !important;
+    }
 </style>
 @endsection
 
@@ -379,10 +440,10 @@
 </div>
 
 <!-- Add Pet Modal -->
-<div id="add-pet-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 hidden z-50" x-data="{ petType: '' }">
-    <div class="flex items-center justify-center min-h-screen px-4">
-        <div class="bg-white rounded-xl shadow-xl max-w-2xl w-full fade-in">
-            <div class="p-6">
+<div id="add-pet-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 hidden z-50 overflow-y-auto" x-data="{ petType: '' }">
+    <div class="flex items-center justify-center min-h-screen px-4 py-8">
+        <div class="bg-white rounded-xl shadow-xl max-w-2xl w-full fade-in relative">
+            <div class="p-6 overflow-visible">
                 <div class="flex justify-between items-center mb-6">
                     <h3 class="text-xl font-bold text-gray-900">Add New Pet</h3>
                     <button onclick="closeAddPetModal()" class="text-gray-400 hover:text-gray-500 transition-colors">
@@ -452,7 +513,14 @@
                                 <option value="Dog">Dog</option>
                                 <option value="Cat">Cat</option>
                                 <option value="Bird">Bird</option>
+                                <option value="Rabbit">Rabbit</option>
+                                <option value="Hamster">Hamster</option>
+                                <option value="Guinea Pig">Guinea Pig</option>
+                                <option value="Fish">Fish</option>
+                                <option value="Ferret">Ferret</option>
+                                <option value="Turtle">Turtle</option>
                                 <option value="Exotic">Exotic</option>
+                                <option value="Other">Other</option>
                             </select>
                         </div>
 
@@ -493,15 +561,63 @@
                             </select>
                         </div>
 
+                        <div x-show="petType === 'Other'" class="slide-down">
+                            <label for="other_species" class="block text-sm font-medium text-gray-700">Specify Pet Type</label>
+                            <input type="text" id="other_species" name="other_species" 
+                                   x-bind:required="petType === 'Other'"
+                                   class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 transition-colors">
+                        </div>
+
                         <div>
                             <label for="breed" class="block text-sm font-medium text-gray-700">Breed</label>
-                            <input type="text" id="breed" name="breed" required
+                            <input type="text" id="breed" name="breed" required list="breed-list"
                                    class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 transition-colors">
+                            <!-- Dynamic breed datalists based on pet type -->
+                            <datalist id="breed-list" x-data="{
+                                dogBreeds: ['Labrador Retriever', 'German Shepherd', 'Golden Retriever', 'Bulldog', 'Beagle', 'Poodle', 'Rottweiler', 'Yorkshire Terrier', 'Boxer', 'Dachshund', 'Shih Tzu', 'Siberian Husky', 'Great Dane', 'Chihuahua', 'Pomeranian', 'Border Collie', 'French Bulldog', 'Australian Shepherd', 'Cocker Spaniel', 'Doberman Pinscher', 'Mixed Breed'],
+                                catBreeds: ['Domestic Shorthair', 'Domestic Longhair', 'Siamese', 'Persian', 'Maine Coon', 'Ragdoll', 'Bengal', 'Sphynx', 'British Shorthair', 'Scottish Fold', 'Abyssinian', 'Russian Blue', 'Norwegian Forest Cat', 'Burmese', 'Himalayan', 'Bombay', 'American Shorthair', 'Devon Rex', 'Cornish Rex', 'Mixed Breed'],
+                                birdBreeds: ['Canary', 'Budgerigar (Budgie)', 'Cockatiel', 'Lovebird', 'Finch', 'Parrot', 'Conure', 'Macaw', 'African Grey', 'Cockatoo', 'Parakeet', 'Amazon Parrot', 'Dove', 'Lory', 'Mynah Bird'],
+                                rabbitBreeds: ['Dutch', 'Holland Lop', 'Mini Rex', 'Netherland Dwarf', 'Lionhead', 'Jersey Wooly', 'Flemish Giant', 'Mini Lop', 'English Lop', 'French Lop'],
+                                hamsterBreeds: ['Syrian', 'Dwarf Campbell Russian', 'Dwarf Winter White Russian', 'Roborovski Dwarf', 'Chinese', 'Hybrid'],
+                                guineaPigBreeds: ['American', 'Abyssinian', 'Peruvian', 'Silkie', 'Teddy', 'Texel', 'Skinny Pig', 'Rex'],
+                                fishBreeds: ['Betta', 'Goldfish', 'Guppy', 'Angelfish', 'Neon Tetra', 'Molly', 'Platy', 'Swordtail', 'Discus', 'Oscar'],
+                                ferretBreeds: ['Sable', 'Albino', 'Cinnamon', 'Champagne', 'Silver', 'Black Sable', 'Chocolate', 'Panda'],
+                                turtleBreeds: ['Red-Eared Slider', 'Painted Turtle', 'Box Turtle', 'Map Turtle', 'Mud Turtle', 'Musk Turtle', 'Softshell Turtle', 'Snapping Turtle'],
+                                activeBreeds: []
+                            }"
+                            x-init="activeBreeds = dogBreeds; $watch('petType', value => {
+                                switch(value) {
+                                    case 'Dog': activeBreeds = dogBreeds; break;
+                                    case 'Cat': activeBreeds = catBreeds; break;
+                                    case 'Bird': activeBreeds = birdBreeds; break;
+                                    case 'Rabbit': activeBreeds = rabbitBreeds; break;
+                                    case 'Hamster': activeBreeds = hamsterBreeds; break;
+                                    case 'Guinea Pig': activeBreeds = guineaPigBreeds; break;
+                                    case 'Fish': activeBreeds = fishBreeds; break;
+                                    case 'Ferret': activeBreeds = ferretBreeds; break;
+                                    case 'Turtle': activeBreeds = turtleBreeds; break;
+                                    default: activeBreeds = [];
+                                }
+                                
+                                // Clear and recreate datalist options
+                                const breedList = document.getElementById('breed-list');
+                                while (breedList.firstChild) {
+                                    breedList.removeChild(breedList.firstChild);
+                                }
+                                
+                                activeBreeds.forEach(breed => {
+                                    const option = document.createElement('option');
+                                    option.value = breed;
+                                    breedList.appendChild(option);
+                                });
+                            })">
+                            </datalist>
                         </div>
 
                         <div>
                             <label for="size_category" class="block text-sm font-medium text-gray-700">Size Category</label>
                             <select id="size_category" name="size_category" required
+                                    onchange="validateWeightAgainstSize()"
                                     class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 transition-colors">
                                 <option value="">Select Size</option>
                                 <option value="Small">Small (0-15 kg)</option>
@@ -515,7 +631,7 @@
                             <div class="relative mt-1">
                                 <input type="number" id="weight" name="weight" step="0.1" required
                                        min="0.1" max="100"
-                                       oninput="validateWeight(this)"
+                                       oninput="validateWeightAgainstSize()"
                                        class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 transition-colors">
                                 <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                                     <span class="text-gray-500 sm:text-sm">kg</span>
@@ -545,12 +661,98 @@
                             </select>
                         </div>
 
-                        <div>
-                            <label for="date_of_birth" class="block text-sm font-medium text-gray-700">Date of Birth</label>
-                            <input type="date" id="date_of_birth" name="date_of_birth" required max="{{ date('Y-m-d') }}"
-                                   class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 transition-colors"
-                                   x-data
-                                   x-init="$el.max = new Date().toISOString().split('T')[0]">
+                        <div x-data="datePicker()" x-init="init()" class="relative">
+                            <label for="pet_birthdate" class="block text-sm font-medium text-gray-700">Birth Date</label>
+                            
+                            <!-- Date Input Display -->
+                            <div class="relative mt-1">
+                                <input 
+                                    type="text" 
+                                    placeholder="Select a date" 
+                                    readonly 
+                                    x-model="displayValue"
+                                    @click="toggleCalendar()" 
+                                    class="w-full px-4 py-2 text-gray-700 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent cursor-pointer"
+                                >
+                                
+                                <!-- Calendar Icon Button -->
+                                <div class="absolute inset-y-0 right-0 flex items-center px-2">
+                                    <button @click="toggleCalendar()" type="button" class="text-gray-500 focus:outline-none">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Hidden input for form submission -->
+                            <input type="hidden" id="pet_birthdate" name="date_of_birth" x-model="formattedDate">
+                            
+                            <!-- Calendar Dropdown -->
+                            <div 
+                                x-show="isOpen" 
+                                x-ref="calendarDropdown"
+                                @click.away="isOpen = false" 
+                                class="calendar-dropdown bg-white rounded-md shadow-lg p-4"
+                                x-transition:enter="transition ease-out duration-100"
+                                x-transition:enter-start="transform opacity-0 scale-95"
+                                x-transition:enter-end="transform opacity-100 scale-100"
+                                x-transition:leave="transition ease-in duration-75"
+                                x-transition:leave-start="transform opacity-100 scale-100"
+                                x-transition:leave-end="transform opacity-0 scale-95"
+                            >
+                                <!-- Calendar Header -->
+                                <div class="flex items-center justify-between mb-2">
+                                    <!-- Previous Month Button -->
+                                    <button 
+                                        @click="previousMonth()" 
+                                        type="button" 
+                                        class="p-1 text-gray-500 rounded-full hover:bg-gray-100 focus:outline-none"
+                                    >
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                                        </svg>
+                                    </button>
+                                    
+                                    <!-- Month & Year Display -->
+                                    <div class="text-gray-800 font-semibold" x-text="getMonthName() + ' ' + year"></div>
+                                    
+                                    <!-- Next Month Button -->
+                                    <button 
+                                        @click="nextMonth()" 
+                                        type="button" 
+                                        class="p-1 text-gray-500 rounded-full hover:bg-gray-100 focus:outline-none"
+                                    >
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                                
+                                <!-- Weekday Headers -->
+                                <div class="grid grid-cols-7 mb-2">
+                                    <template x-for="weekDay in ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']">
+                                        <div class="text-gray-500 text-center text-xs font-medium py-1" x-text="weekDay"></div>
+                                    </template>
+                                </div>
+                                
+                                <!-- Calendar Days -->
+                                <div class="grid grid-cols-7 gap-1">
+                                    <!-- Blank days from previous month -->
+                                    <template x-for="blankDay in blankDaysInMonth" :key="blankDay">
+                                        <div class="w-8 h-8"></div>
+                                    </template>
+                                    
+                                    <!-- Days of current month -->
+                                    <template x-for="day in daysInMonth" :key="day">
+                                        <div 
+                                            @click="selectDate(day)" 
+                                            :class="getDayClass(day)"
+                                            x-text="day"
+                                        ></div>
+                                    </template>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -578,6 +780,203 @@
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
 <script>
+    // Date picker function for the custom calendar
+    function datePicker() {
+        return {
+            dateFormat: 'YYYY-MM-DD',
+            isOpen: false,
+            selectedDate: null,
+            displayValue: '',
+            formattedDate: '',
+            month: '',
+            year: '',
+            daysInMonth: [],
+            blankDaysInMonth: [],
+            // Initialize the date picker
+            init() {
+                let today = new Date();
+                this.month = today.getMonth();
+                this.year = today.getFullYear();
+                this.selectedDate = null;
+                this.displayValue = '';
+                this.formattedDate = '';
+                this.calculateDays();
+            },
+            // Toggle the calendar dropdown
+            toggleCalendar() {
+                this.isOpen = !this.isOpen;
+                if (this.isOpen) {
+                    this.$nextTick(() => {
+                        // Position the calendar properly
+                        const dropdown = this.$refs.calendarDropdown;
+                        const inputContainer = this.$el;
+                        
+                        if (dropdown && inputContainer) {
+                            // Get viewport dimensions
+                            const viewportWidth = window.innerWidth;
+                            const viewportHeight = window.innerHeight;
+                            
+                            // Get input position
+                            const inputRect = inputContainer.getBoundingClientRect();
+                            
+                            // Make sure the dropdown has the calendar-dropdown class
+                            dropdown.classList.add('calendar-dropdown');
+                            
+                            // Calculate if we need to show above or below
+                            const spaceBelow = viewportHeight - inputRect.bottom;
+                            const spaceNeeded = 340; // Height of calendar
+                            
+                            if (spaceBelow < spaceNeeded && inputRect.top > spaceNeeded) {
+                                // Position above the input
+                                dropdown.style.bottom = inputContainer.offsetHeight + 5 + 'px';
+                                dropdown.style.top = 'auto';
+                            } else {
+                                // Position below the input
+                                dropdown.style.top = inputContainer.offsetHeight + 5 + 'px';
+                                dropdown.style.bottom = 'auto';
+                            }
+                            
+                            // Left align by default, but check right edge overflow
+                            const calendarWidth = 310;
+                            if (inputRect.left + calendarWidth > viewportWidth) {
+                                // Right align instead
+                                dropdown.style.right = '0';
+                                dropdown.style.left = 'auto';
+                            } else {
+                                // Left align
+                                dropdown.style.left = '0';
+                                dropdown.style.right = 'auto';
+                            }
+                            
+                            // Make sure the calendar is visible with fixed dimensions
+                            dropdown.style.width = '310px';
+                            dropdown.style.position = 'absolute';
+                            dropdown.style.zIndex = '9999';
+                        }
+                    });
+                }
+            },
+            // Calculate the days for the current month and year
+            calculateDays() {
+                // Reset
+                this.daysInMonth = [];
+                this.blankDaysInMonth = [];
+    
+                // First day of the month (0-6, where 0 is Sunday)
+                let firstDay = new Date(this.year, this.month, 1).getDay();
+    
+                // Adjust blank days - we want to start from Monday (1) instead of Sunday (0)
+                firstDay = firstDay === 0 ? 6 : firstDay - 1;
+    
+                // Add blank days
+                for (let i = 0; i < firstDay; i++) {
+                    this.blankDaysInMonth.push(i);
+                }
+    
+                // Days in month
+                let daysInMonth = new Date(this.year, this.month + 1, 0).getDate();
+    
+                // Add days
+                for (let i = 1; i <= daysInMonth; i++) {
+                    this.daysInMonth.push(i);
+                }
+            },
+            // Check if a day should be disabled
+            isDisabled(day) {
+                // Disable future dates
+                const currentDate = new Date();
+                const dayDate = new Date(this.year, this.month, day);
+                return dayDate > currentDate;
+            },
+            // Check if a day is today
+            isToday(day) {
+                const today = new Date();
+                return day === today.getDate() && this.month === today.getMonth() && this.year === today.getFullYear();
+            },
+            // Check if a day is the selected date
+            isSelectedDate(day) {
+                if (!this.selectedDate) return false;
+                return day === this.selectedDate.getDate() && this.month === this.selectedDate.getMonth() && this.year === this.selectedDate.getFullYear();
+            },
+            // Get the day class based on selection, today, etc.
+            getDayClass(day) {
+                let classes = 'rounded-full flex items-center justify-center w-8 h-8 cursor-pointer';
+                
+                if (this.isDisabled(day)) {
+                    return classes + ' text-gray-300 cursor-not-allowed';
+                }
+                
+                if (this.isSelectedDate(day)) {
+                    return classes + ' bg-teal-500 text-white hover:bg-teal-600';
+                }
+                
+                if (this.isToday(day)) {
+                    return classes + ' border border-teal-500 text-teal-500 hover:bg-teal-100';
+                }
+                
+                return classes + ' hover:bg-gray-100';
+            },
+            // Select a day
+            selectDate(day) {
+                if (this.isDisabled(day)) return;
+                
+                this.selectedDate = new Date(this.year, this.month, day);
+                this.formattedDate = this.formatDate(this.selectedDate);
+                this.displayValue = this.formatDisplayDate(this.selectedDate);
+                this.isOpen = false;
+                
+                // Set the hidden input value with correct name
+                document.getElementById('pet_birthdate').value = this.formattedDate;
+                
+                // Dispatch a change event to trigger any validation
+                const event = new Event('change', { bubbles: true });
+                document.getElementById('pet_birthdate').dispatchEvent(event);
+            },
+            // Format date for display
+            formatDisplayDate(date) {
+                if (!date) return '';
+                
+                const options = { year: 'numeric', month: 'long', day: 'numeric' };
+                return date.toLocaleDateString('en-US', options);
+            },
+            // Format date for form submission (YYYY-MM-DD)
+            formatDate(date) {
+                if (!date) return '';
+                
+                let day = date.getDate().toString().padStart(2, '0');
+                let month = (date.getMonth() + 1).toString().padStart(2, '0');
+                let year = date.getFullYear();
+                
+                return `${year}-${month}-${day}`;
+            },
+            // Navigate to the previous month
+            previousMonth() {
+                if (this.month === 0) {
+                    this.year--;
+                    this.month = 11;
+                } else {
+                    this.month--;
+                }
+                this.calculateDays();
+            },
+            // Navigate to the next month
+            nextMonth() {
+                if (this.month === 11) {
+                    this.year++;
+                    this.month = 0;
+                } else {
+                    this.month++;
+                }
+                this.calculateDays();
+            },
+            // Get the month name
+            getMonthName() {
+                const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+                return months[this.month];
+            }
+        };
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
         // Initialize modal functionality
         const addPetModal = document.getElementById('add-pet-modal');
@@ -618,6 +1017,8 @@
         if (petTypeSelect) {
             petTypeSelect.addEventListener('change', function() {
                 const speciesField = document.querySelector('div[x-show="petType === \'Exotic\'"]');
+                const otherField = document.querySelector('div[x-show="petType === \'Other\'"]');
+                
                 if (speciesField) {
                     if (this.value === 'Exotic') {
                         speciesField.style.display = 'block';
@@ -632,6 +1033,17 @@
                         }
                     }
                 }
+                
+                if (otherField) {
+                    otherField.style.display = this.value === 'Other' ? 'block' : 'none';
+                }
+                
+                // Update breed suggestions
+                const breedInput = document.getElementById('breed');
+                if (breedInput) {
+                    // Clear input value when type changes
+                    breedInput.value = '';
+                }
             });
         }
         
@@ -640,8 +1052,15 @@
         if (petForm) {
             if (petForm.querySelector('input[name="weight"]')) {
                 petForm.addEventListener('submit', function(e) {
-                    const weightInput = this.querySelector('input[name="weight"]');
-                    if (!validateWeight(weightInput)) {
+                    // Check if birth date is set
+                    const birthDateInput = document.getElementById('pet_birthdate');
+                    if (!birthDateInput.value) {
+                        e.preventDefault();
+                        alert('Please select a birth date for your pet.');
+                        return false;
+                    }
+                    
+                    if (!validateWeightAgainstSize()) {
                         e.preventDefault();
                         return false;
                     }
@@ -690,6 +1109,32 @@
             const form = modal.querySelector('form');
             if (form) {
                 form.reset();
+                
+                // Reset birth date hidden input explicitly
+                const birthDateInput = document.getElementById('pet_birthdate');
+                if (birthDateInput) {
+                    birthDateInput.value = '';
+                }
+                
+                // Reset validation state
+                const submitButton = form.querySelector('button[type="submit"]');
+                if (submitButton) {
+                    submitButton.disabled = false;
+                    submitButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
+                
+                // Reset date picker display
+                setTimeout(() => {
+                    const datePicker = document.getElementById('date_of_birth_display');
+                    if (datePicker) {
+                        // Set to empty or today's date based on Alpine.js initialization
+                        // This will be picked up by Alpine's x-model
+                        if (window.Alpine) {
+                            window.Alpine.raw(datePicker).$el._x_dataStack[0].formattedDate = '';
+                            window.Alpine.raw(datePicker).$el._x_dataStack[0].inputDate = '';
+                        }
+                    }
+                }, 100);
             }
             
             // Clear error messages
@@ -720,6 +1165,71 @@
             return false;
         }
         
+        weightError.classList.add('hidden');
+        submitButton.disabled = false;
+        submitButton.classList.remove('opacity-50', 'cursor-not-allowed');
+        return true;
+    }
+    
+    function validateWeightAgainstSize() {
+        const weightInput = document.getElementById('weight');
+        const sizeSelect = document.getElementById('size_category');
+        const weightError = document.getElementById('weight-error');
+        const submitButton = weightInput.closest('form').querySelector('button[type="submit"]');
+        const weight = parseFloat(weightInput.value);
+        const size = sizeSelect.value;
+        
+        // First do basic weight validation
+        if (weight <= 0) {
+            weightError.textContent = 'Weight must be greater than 0 kg';
+            weightError.classList.remove('hidden');
+            submitButton.disabled = true;
+            submitButton.classList.add('opacity-50', 'cursor-not-allowed');
+            return false;
+        }
+        
+        if (weight > 100) {
+            weightError.textContent = 'Please enter a valid weight (less than 100 kg)';
+            weightError.classList.remove('hidden');
+            submitButton.disabled = true;
+            submitButton.classList.add('opacity-50', 'cursor-not-allowed');
+            return false;
+        }
+        
+        // Then validate against size category if both values are present
+        if (weight && size) {
+            let isValid = true;
+            
+            switch (size) {
+                case 'Small':
+                    if (weight > 15) {
+                        weightError.textContent = 'Small pets should weigh 15 kg or less';
+                        isValid = false;
+                    }
+                    break;
+                case 'Medium':
+                    if (weight <= 15 || weight > 30) {
+                        weightError.textContent = 'Medium pets should weigh between 15-30 kg';
+                        isValid = false;
+                    }
+                    break;
+                case 'Large':
+                    if (weight <= 30) {
+                        weightError.textContent = 'Large pets should weigh more than 30 kg';
+                        isValid = false;
+                    }
+                    break;
+            }
+            
+            if (!isValid) {
+                weightError.classList.remove('hidden');
+                submitButton.disabled = true;
+                submitButton.classList.add('opacity-50', 'cursor-not-allowed');
+                return false;
+            }
+        }
+        
+        // If we get here, everything is valid
         weightError.classList.add('hidden');
         submitButton.disabled = false;
         submitButton.classList.remove('opacity-50', 'cursor-not-allowed');

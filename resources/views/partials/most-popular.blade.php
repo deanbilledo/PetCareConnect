@@ -135,6 +135,11 @@ document.addEventListener('DOMContentLoaded', function() {
     let totalSlides = shopItems.length;
     let isTransitioning = false;
     
+    // Touch swipe variables
+    let touchStartX = 0;
+    let touchEndX = 0;
+    const minSwipeDistance = 50; // Minimum distance required for a swipe
+    
     // Check if we have enough items to need a carousel
     const shouldEnableCarousel = totalSlides > 1;
     
@@ -240,6 +245,44 @@ document.addEventListener('DOMContentLoaded', function() {
         startSlideInterval();
     }
     
+    // Handle touch events for mobile swipe
+    function handleTouchStart(e) {
+        touchStartX = e.touches[0].clientX;
+    }
+    
+    function handleTouchMove(e) {
+        touchEndX = e.touches[0].clientX;
+    }
+    
+    function handleTouchEnd() {
+        // Calculate swipe distance
+        const swipeDistance = touchEndX - touchStartX;
+        
+        // Check if the swipe was significant enough
+        if (Math.abs(swipeDistance) > minSwipeDistance) {
+            if (swipeDistance > 0) {
+                // Swipe right - go to previous slide
+                if (currentSlide === 0) {
+                    // Handle going backwards from first slide
+                    goToSlide(totalSlides - 1, true);
+                    setTimeout(() => {
+                        goToSlide(totalSlides - 1);
+                    }, 50);
+                } else {
+                    goToSlide(currentSlide - 1);
+                }
+            } else {
+                // Swipe left - go to next slide
+                goToSlide(currentSlide + 1);
+            }
+            resetInterval();
+        }
+        
+        // Reset touch positions
+        touchStartX = 0;
+        touchEndX = 0;
+    }
+    
     // Event listeners for buttons
     if (prevBtn && shouldEnableCarousel) {
         prevBtn.addEventListener('click', () => {
@@ -271,6 +314,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 resetInterval();
             });
         });
+    }
+    
+    // Add touch event listeners
+    if (carousel && shouldEnableCarousel) {
+        carousel.addEventListener('touchstart', handleTouchStart, {passive: true});
+        carousel.addEventListener('touchmove', handleTouchMove, {passive: true});
+        carousel.addEventListener('touchend', handleTouchEnd, {passive: true});
     }
     
     // Handle window resize
