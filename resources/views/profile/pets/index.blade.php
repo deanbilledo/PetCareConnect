@@ -53,12 +53,12 @@
     /* Calendar styles */
     .calendar-dropdown {
         position: absolute;
-        max-height: 400px;
-        overflow-y: auto;
+        width: 310px !important;
         z-index: 9999;
         box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
         backdrop-filter: blur(8px);
         border: 1px solid rgba(209, 213, 219, 0.5);
+        overflow: visible !important;
     }
     
     #add-pet-modal {
@@ -661,106 +661,96 @@
                             </select>
                         </div>
 
-                        <div x-data="datePicker()" class="relative date-picker-container">
-                            <label for="date_of_birth" class="block text-sm font-medium text-gray-700">Date of Birth</label>
-                            <div class="mt-1 relative">
-                                <input type="text" 
-                                       id="date_of_birth_display" 
-                                       x-model="formattedDate" 
-                                       placeholder="Select date" 
-                                       @click="toggleCalendar"
-                                       readonly
-                                       class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 transition-colors cursor-pointer bg-white pl-3 pr-10 py-2.5">
-                                <input type="hidden" 
-                                       id="date_of_birth" 
-                                       name="date_of_birth" 
-                                       x-model="inputDate" 
-                                       required>
-                                <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                                    <svg class="h-5 w-5 text-teal-500" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
-                                    </svg>
+                        <div x-data="datePicker()" x-init="init()" class="relative">
+                            <label for="pet_birthdate" class="block text-sm font-medium text-gray-700">Birth Date</label>
+                            
+                            <!-- Date Input Display -->
+                            <div class="relative mt-1">
+                                <input 
+                                    type="text" 
+                                    placeholder="Select a date" 
+                                    readonly 
+                                    x-model="displayValue"
+                                    @click="toggleCalendar()" 
+                                    class="w-full px-4 py-2 text-gray-700 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent cursor-pointer"
+                                >
+                                
+                                <!-- Calendar Icon Button -->
+                                <div class="absolute inset-y-0 right-0 flex items-center px-2">
+                                    <button @click="toggleCalendar()" type="button" class="text-gray-500 focus:outline-none">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Hidden input for form submission -->
+                            <input type="hidden" id="pet_birthdate" name="date_of_birth" x-model="formattedDate">
+                            
+                            <!-- Calendar Dropdown -->
+                            <div 
+                                x-show="isOpen" 
+                                x-ref="calendarDropdown"
+                                @click.away="isOpen = false" 
+                                class="calendar-dropdown bg-white rounded-md shadow-lg p-4"
+                                x-transition:enter="transition ease-out duration-100"
+                                x-transition:enter-start="transform opacity-0 scale-95"
+                                x-transition:enter-end="transform opacity-100 scale-100"
+                                x-transition:leave="transition ease-in duration-75"
+                                x-transition:leave-start="transform opacity-100 scale-100"
+                                x-transition:leave-end="transform opacity-0 scale-95"
+                            >
+                                <!-- Calendar Header -->
+                                <div class="flex items-center justify-between mb-2">
+                                    <!-- Previous Month Button -->
+                                    <button 
+                                        @click="previousMonth()" 
+                                        type="button" 
+                                        class="p-1 text-gray-500 rounded-full hover:bg-gray-100 focus:outline-none"
+                                    >
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                                        </svg>
+                                    </button>
+                                    
+                                    <!-- Month & Year Display -->
+                                    <div class="text-gray-800 font-semibold" x-text="getMonthName() + ' ' + year"></div>
+                                    
+                                    <!-- Next Month Button -->
+                                    <button 
+                                        @click="nextMonth()" 
+                                        type="button" 
+                                        class="p-1 text-gray-500 rounded-full hover:bg-gray-100 focus:outline-none"
+                                    >
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                        </svg>
+                                    </button>
                                 </div>
                                 
-                                <!-- Calendar dropdown -->
-                                <div x-show="isOpen" 
-                                     @click.away="isOpen = false" 
-                                     class="calendar-dropdown absolute bg-white border border-gray-200 rounded-lg shadow-xl z-[100] w-80 p-5"
-                                     x-transition:enter="transition ease-out duration-200"
-                                     x-transition:enter-start="opacity-0 scale-95"
-                                     x-transition:enter-end="opacity-100 scale-100"
-                                     x-transition:leave="transition ease-in duration-150"
-                                     x-transition:leave-start="opacity-100 scale-100"
-                                     x-transition:leave-end="opacity-0 scale-95"
-                                     style="position: absolute; top: auto; bottom: auto; max-height: 400px; overflow-y: auto;"
-                                     x-init="$el.style.top = ($el.getBoundingClientRect().bottom + $el.offsetHeight > window.innerHeight) ? 'auto' : '100%';
-                                            $el.style.bottom = ($el.getBoundingClientRect().bottom + $el.offsetHeight > window.innerHeight) ? '100%' : 'auto';"
-                                     >
+                                <!-- Weekday Headers -->
+                                <div class="grid grid-cols-7 mb-2">
+                                    <template x-for="weekDay in ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']">
+                                        <div class="text-gray-500 text-center text-xs font-medium py-1" x-text="weekDay"></div>
+                                    </template>
+                                </div>
+                                
+                                <!-- Calendar Days -->
+                                <div class="grid grid-cols-7 gap-1">
+                                    <!-- Blank days from previous month -->
+                                    <template x-for="blankDay in blankDaysInMonth" :key="blankDay">
+                                        <div class="w-8 h-8"></div>
+                                    </template>
                                     
-                                    <!-- Calendar header -->
-                                    <div class="flex items-center justify-between mb-4 pb-2 border-b border-gray-100">
-                                        <button type="button" 
-                                                @click="prevMonth" 
-                                                class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:ring-opacity-50">
-                                            <svg class="h-5 w-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-                                            </svg>
-                                        </button>
-                                        <div class="text-base font-semibold text-gray-800" x-text="monthYear"></div>
-                                        <button type="button" 
-                                                @click="nextMonth" 
-                                                class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:ring-opacity-50">
-                                            <svg class="h-5 w-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                                            </svg>
-                                        </button>
-                                    </div>
-                                    
-                                    <!-- Days of week -->
-                                    <div class="grid grid-cols-7 mb-2">
-                                        <template x-for="day in ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']" :key="day">
-                                            <div class="text-center text-xs font-medium text-gray-500 py-1">
-                                                <span x-text="day"></span>
-                                            </div>
-                                        </template>
-                                    </div>
-                                    
-                                    <!-- Calendar days -->
-                                    <div class="grid grid-cols-7 gap-1">
-                                        <template x-for="(day, index) in calendarDays" :key="index">
-                                            <div class="text-center py-1">
-                                                <button type="button"
-                                                        x-show="day.date !== ''"
-                                                        @click="selectDate(day.date)"
-                                                        :disabled="day.disabled"
-                                                        :class="{
-                                                            'bg-teal-500 text-white font-medium ring-2 ring-offset-2 ring-teal-500 selected': day.selected,
-                                                            'bg-gray-50 text-gray-300 cursor-not-allowed hover:bg-gray-50': day.disabled && !day.selected,
-                                                            'hover:bg-teal-50 hover:text-teal-600': !day.disabled && !day.selected,
-                                                            'text-gray-700': !day.disabled && !day.selected && !day.today,
-                                                            'bg-teal-50 text-teal-700 ring-1 ring-teal-300': day.today && !day.selected,
-                                                            'font-medium': day.today
-                                                        }"
-                                                        class="w-9 h-9 rounded-full flex items-center justify-center text-sm transition-all duration-150 focus:outline-none">
-                                                    <span x-text="day.date"></span>
-                                                </button>
-                                            </div>
-                                        </template>
-                                    </div>
-
-                                    <!-- Footer with Today button -->
-                                    <div class="mt-4 pt-3 border-t border-gray-100 flex justify-between items-center">
-                                        <button type="button"
-                                                @click="goToToday"
-                                                class="px-3 py-1.5 bg-teal-50 text-teal-600 rounded-md text-xs font-medium hover:bg-teal-100 hover:text-teal-700 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:ring-opacity-50">
-                                            Today
-                                        </button>
-                                        <button type="button"
-                                                @click="isOpen = false"
-                                                class="px-3 py-1.5 bg-gray-50 text-gray-600 rounded-md text-xs font-medium hover:bg-gray-100 hover:text-gray-700 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-opacity-50">
-                                            Close
-                                        </button>
-                                    </div>
+                                    <!-- Days of current month -->
+                                    <template x-for="day in daysInMonth" :key="day">
+                                        <div 
+                                            @click="selectDate(day)" 
+                                            :class="getDayClass(day)"
+                                            x-text="day"
+                                        ></div>
+                                    </template>
                                 </div>
                             </div>
                         </div>
@@ -793,161 +783,196 @@
     // Date picker function for the custom calendar
     function datePicker() {
         return {
+            dateFormat: 'YYYY-MM-DD',
             isOpen: false,
-            currentMonth: new Date().getMonth(),
-            currentYear: new Date().getFullYear(),
             selectedDate: null,
-            inputDate: '',
+            displayValue: '',
             formattedDate: '',
-            maxDate: new Date(),
-            
+            month: '',
+            year: '',
+            daysInMonth: [],
+            blankDaysInMonth: [],
+            // Initialize the date picker
             init() {
-                // Initialize the calendar with today's date
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                this.setCurrentDate(today);
+                let today = new Date();
+                this.month = today.getMonth();
+                this.year = today.getFullYear();
+                this.selectedDate = null;
+                this.displayValue = '';
+                this.formattedDate = '';
+                this.calculateDays();
             },
-            
+            // Toggle the calendar dropdown
             toggleCalendar() {
                 this.isOpen = !this.isOpen;
-                
-                if (this.isOpen && !this.selectedDate) {
-                    // If opening and no date is selected, set to current month/year
-                    this.currentMonth = new Date().getMonth();
-                    this.currentYear = new Date().getFullYear();
-                }
-                
-                // Ensure the calendar is properly positioned
                 if (this.isOpen) {
-                    setTimeout(() => {
-                        const calendar = document.querySelector('[x-show="isOpen"]');
-                        if (calendar) {
-                            const rect = calendar.getBoundingClientRect();
+                    this.$nextTick(() => {
+                        // Position the calendar properly
+                        const dropdown = this.$refs.calendarDropdown;
+                        const inputContainer = this.$el;
+                        
+                        if (dropdown && inputContainer) {
+                            // Get viewport dimensions
+                            const viewportWidth = window.innerWidth;
                             const viewportHeight = window.innerHeight;
                             
-                            // If calendar extends beyond viewport bottom, position it above the input
-                            if (rect.bottom > viewportHeight) {
-                                calendar.style.top = 'auto';
-                                calendar.style.bottom = '100%';
-                                calendar.style.marginTop = '0';
-                                calendar.style.marginBottom = '0.25rem';
+                            // Get input position
+                            const inputRect = inputContainer.getBoundingClientRect();
+                            
+                            // Make sure the dropdown has the calendar-dropdown class
+                            dropdown.classList.add('calendar-dropdown');
+                            
+                            // Calculate if we need to show above or below
+                            const spaceBelow = viewportHeight - inputRect.bottom;
+                            const spaceNeeded = 340; // Height of calendar
+                            
+                            if (spaceBelow < spaceNeeded && inputRect.top > spaceNeeded) {
+                                // Position above the input
+                                dropdown.style.bottom = inputContainer.offsetHeight + 5 + 'px';
+                                dropdown.style.top = 'auto';
                             } else {
-                                calendar.style.top = '100%';
-                                calendar.style.bottom = 'auto';
-                                calendar.style.marginTop = '0.25rem';
-                                calendar.style.marginBottom = '0';
+                                // Position below the input
+                                dropdown.style.top = inputContainer.offsetHeight + 5 + 'px';
+                                dropdown.style.bottom = 'auto';
                             }
+                            
+                            // Left align by default, but check right edge overflow
+                            const calendarWidth = 310;
+                            if (inputRect.left + calendarWidth > viewportWidth) {
+                                // Right align instead
+                                dropdown.style.right = '0';
+                                dropdown.style.left = 'auto';
+                            } else {
+                                // Left align
+                                dropdown.style.left = '0';
+                                dropdown.style.right = 'auto';
+                            }
+                            
+                            // Make sure the calendar is visible with fixed dimensions
+                            dropdown.style.width = '310px';
+                            dropdown.style.position = 'absolute';
+                            dropdown.style.zIndex = '9999';
                         }
-                    }, 10);
+                    });
                 }
             },
-            
-            get monthYear() {
-                const months = [
-                    'January', 'February', 'March', 'April', 'May', 'June', 
-                    'July', 'August', 'September', 'October', 'November', 'December'
-                ];
-                return `${months[this.currentMonth]} ${this.currentYear}`;
-            },
-            
-            prevMonth() {
-                if (this.currentMonth === 0) {
-                    this.currentMonth = 11;
-                    this.currentYear--;
-                } else {
-                    this.currentMonth--;
+            // Calculate the days for the current month and year
+            calculateDays() {
+                // Reset
+                this.daysInMonth = [];
+                this.blankDaysInMonth = [];
+    
+                // First day of the month (0-6, where 0 is Sunday)
+                let firstDay = new Date(this.year, this.month, 1).getDay();
+    
+                // Adjust blank days - we want to start from Monday (1) instead of Sunday (0)
+                firstDay = firstDay === 0 ? 6 : firstDay - 1;
+    
+                // Add blank days
+                for (let i = 0; i < firstDay; i++) {
+                    this.blankDaysInMonth.push(i);
+                }
+    
+                // Days in month
+                let daysInMonth = new Date(this.year, this.month + 1, 0).getDate();
+    
+                // Add days
+                for (let i = 1; i <= daysInMonth; i++) {
+                    this.daysInMonth.push(i);
                 }
             },
-            
-            nextMonth() {
-                if (this.currentMonth === 11) {
-                    this.currentMonth = 0;
-                    this.currentYear++;
-                } else {
-                    this.currentMonth++;
-                }
+            // Check if a day should be disabled
+            isDisabled(day) {
+                // Disable future dates
+                const currentDate = new Date();
+                const dayDate = new Date(this.year, this.month, day);
+                return dayDate > currentDate;
             },
-            
-            goToToday() {
+            // Check if a day is today
+            isToday(day) {
                 const today = new Date();
-                this.currentMonth = today.getMonth();
-                this.currentYear = today.getFullYear();
-                this.selectDate(today.getDate());
+                return day === today.getDate() && this.month === today.getMonth() && this.year === today.getFullYear();
             },
-            
-            get calendarDays() {
-                const days = [];
-                const firstDay = new Date(this.currentYear, this.currentMonth, 1);
-                const lastDay = new Date(this.currentYear, this.currentMonth + 1, 0);
-                const prevMonthLastDay = new Date(this.currentYear, this.currentMonth, 0);
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                
-                // Fill in days from previous month
-                const startingDayOfWeek = firstDay.getDay();
-                for (let i = startingDayOfWeek - 1; i >= 0; i--) {
-                    const day = prevMonthLastDay.getDate() - i;
-                    days.push({
-                        date: '', // Hide days from previous month
-                        disabled: true
-                    });
-                }
-                
-                // Fill in days of current month
-                for (let i = 1; i <= lastDay.getDate(); i++) {
-                    const date = new Date(this.currentYear, this.currentMonth, i);
-                    const isFutureDate = date > this.maxDate;
-                    
-                    days.push({
-                        date: i,
-                        disabled: isFutureDate,
-                        today: date.toDateString() === today.toDateString(),
-                        selected: this.selectedDate && 
-                                 date.toDateString() === this.selectedDate.toDateString()
-                    });
-                }
-                
-                // Fill in remaining days of next month to complete the grid
-                const totalCells = Math.ceil(days.length / 7) * 7;
-                const nextMonthDays = totalCells - days.length;
-                for (let i = 1; i <= nextMonthDays; i++) {
-                    days.push({
-                        date: '', // Hide days from next month
-                        disabled: true
-                    });
-                }
-                
-                return days;
+            // Check if a day is the selected date
+            isSelectedDate(day) {
+                if (!this.selectedDate) return false;
+                return day === this.selectedDate.getDate() && this.month === this.selectedDate.getMonth() && this.year === this.selectedDate.getFullYear();
             },
-            
+            // Get the day class based on selection, today, etc.
+            getDayClass(day) {
+                let classes = 'rounded-full flex items-center justify-center w-8 h-8 cursor-pointer';
+                
+                if (this.isDisabled(day)) {
+                    return classes + ' text-gray-300 cursor-not-allowed';
+                }
+                
+                if (this.isSelectedDate(day)) {
+                    return classes + ' bg-teal-500 text-white hover:bg-teal-600';
+                }
+                
+                if (this.isToday(day)) {
+                    return classes + ' border border-teal-500 text-teal-500 hover:bg-teal-100';
+                }
+                
+                return classes + ' hover:bg-gray-100';
+            },
+            // Select a day
             selectDate(day) {
-                if (typeof day === 'number') {
-                    const selectedDate = new Date(this.currentYear, this.currentMonth, day);
-                    
-                    // Don't allow future dates
-                    if (selectedDate > this.maxDate) {
-                        return;
-                    }
-                    
-                    this.setCurrentDate(selectedDate);
-                }
+                if (this.isDisabled(day)) return;
+                
+                this.selectedDate = new Date(this.year, this.month, day);
+                this.formattedDate = this.formatDate(this.selectedDate);
+                this.displayValue = this.formatDisplayDate(this.selectedDate);
                 this.isOpen = false;
+                
+                // Set the hidden input value with correct name
+                document.getElementById('pet_birthdate').value = this.formattedDate;
+                
+                // Dispatch a change event to trigger any validation
+                const event = new Event('change', { bubbles: true });
+                document.getElementById('pet_birthdate').dispatchEvent(event);
             },
-            
-            setCurrentDate(date) {
-                this.selectedDate = date;
-                this.currentMonth = date.getMonth();
-                this.currentYear = date.getFullYear();
+            // Format date for display
+            formatDisplayDate(date) {
+                if (!date) return '';
                 
-                // Format date for display (e.g., "January 1, 2023")
-                const options = { month: 'long', day: 'numeric', year: 'numeric' };
-                this.formattedDate = date.toLocaleDateString('en-US', options);
+                const options = { year: 'numeric', month: 'long', day: 'numeric' };
+                return date.toLocaleDateString('en-US', options);
+            },
+            // Format date for form submission (YYYY-MM-DD)
+            formatDate(date) {
+                if (!date) return '';
                 
-                // Format date for input (YYYY-MM-DD)
-                const year = date.getFullYear();
-                const month = String(date.getMonth() + 1).padStart(2, '0');
-                const day = String(date.getDate()).padStart(2, '0');
-                this.inputDate = `${year}-${month}-${day}`;
+                let day = date.getDate().toString().padStart(2, '0');
+                let month = (date.getMonth() + 1).toString().padStart(2, '0');
+                let year = date.getFullYear();
+                
+                return `${year}-${month}-${day}`;
+            },
+            // Navigate to the previous month
+            previousMonth() {
+                if (this.month === 0) {
+                    this.year--;
+                    this.month = 11;
+                } else {
+                    this.month--;
+                }
+                this.calculateDays();
+            },
+            // Navigate to the next month
+            nextMonth() {
+                if (this.month === 11) {
+                    this.year++;
+                    this.month = 0;
+                } else {
+                    this.month++;
+                }
+                this.calculateDays();
+            },
+            // Get the month name
+            getMonthName() {
+                const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+                return months[this.month];
             }
         };
     }
@@ -1027,6 +1052,14 @@
         if (petForm) {
             if (petForm.querySelector('input[name="weight"]')) {
                 petForm.addEventListener('submit', function(e) {
+                    // Check if birth date is set
+                    const birthDateInput = document.getElementById('pet_birthdate');
+                    if (!birthDateInput.value) {
+                        e.preventDefault();
+                        alert('Please select a birth date for your pet.');
+                        return false;
+                    }
+                    
                     if (!validateWeightAgainstSize()) {
                         e.preventDefault();
                         return false;
@@ -1076,6 +1109,12 @@
             const form = modal.querySelector('form');
             if (form) {
                 form.reset();
+                
+                // Reset birth date hidden input explicitly
+                const birthDateInput = document.getElementById('pet_birthdate');
+                if (birthDateInput) {
+                    birthDateInput.value = '';
+                }
                 
                 // Reset validation state
                 const submitButton = form.querySelector('button[type="submit"]');
