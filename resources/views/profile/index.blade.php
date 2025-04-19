@@ -665,16 +665,28 @@ use Illuminate\Support\Str;
         </div>
         <div class="space-y-4">
             @forelse($recentTransactions as $transaction)
-                <div class="flex justify-between items-center p-3 hover:bg-gray-50 rounded-lg transition-colors">
-                    <div class="flex flex-col">
-                        <span class="font-medium">{{ $transaction['service'] }}</span>
-                        <span class="text-sm text-gray-500">{{ $transaction['shop_name'] }}</span>
+                <a href="{{ route('appointments.show', $transaction['id']) }}" class="block">
+                    <div class="flex justify-between items-center p-3 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer">
+                        <div class="flex flex-col">
+                            <span class="font-medium">{{ $transaction['service'] }}</span>
+                            <span class="text-sm text-gray-500">{{ $transaction['shop_name'] }}</span>
+                        </div>
+                        <div class="flex flex-col items-end">
+                            <span class="font-medium text-green-600">₱{{ number_format($transaction['amount'], 2) }}</span>
+                            <div class="flex items-center">
+                                <span class="text-sm text-gray-500 mr-2">{{ $transaction['date'] }}</span>
+                                <span class="px-2 py-0.5 rounded-full text-xs font-medium
+                                    @if($transaction['status'] === 'completed') bg-green-100 text-green-800
+                                    @elseif($transaction['status'] === 'cancelled') bg-red-100 text-red-800
+                                    @elseif($transaction['status'] === 'pending') bg-yellow-100 text-yellow-800
+                                    @else bg-blue-100 text-blue-800
+                                    @endif">
+                                    {{ ucfirst($transaction['status']) }}
+                                </span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="flex flex-col items-end">
-                        <span class="font-medium text-green-600">₱{{ number_format($transaction['amount'], 2) }}</span>
-                        <span class="text-sm text-gray-500">{{ $transaction['date'] }}</span>
-                    </div>
-                </div>
+                </a>
             @empty
                 <div class="text-center text-gray-500 py-4">
                     No transactions yet
@@ -691,28 +703,40 @@ use Illuminate\Support\Str;
         </div>
         <div class="space-y-4">
             @forelse($recentVisits as $visit)
-                <div class="flex items-center space-x-4 p-3 hover:bg-gray-50 rounded-lg transition-colors">
-                    <img src="{{ $visit['image'] }}" 
-                         alt="{{ $visit['name'] }}" 
-                         class="w-16 h-16 object-cover rounded-lg">
-                    <div class="flex-1">
-                        <h3 class="font-semibold">{{ $visit['name'] }}</h3>
-                        <div class="flex items-center text-yellow-400">
-                            <span class="flex">
-                                @for($i = 1; $i <= 5; $i++)
-                                    @if($i <= floor($visit['rating']))
-                                        <span>★</span>
-                                    @else
-                                        <span class="text-gray-300">★</span>
-                                    @endif
-                                @endfor
-                            </span>
-                            <span class="ml-1 text-gray-600">{{ $visit['rating'] }}</span>
+                <a href="{{ route('booking.show', $visit['shop_id']) }}" class="block">
+                    <div class="flex items-center space-x-4 p-3 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer">
+                        <img src="{{ $visit['image'] }}" 
+                             alt="{{ $visit['name'] }}" 
+                             class="w-16 h-16 object-cover rounded-lg">
+                        <div class="flex-1">
+                            <div class="flex items-center justify-between">
+                                <h3 class="font-semibold">{{ $visit['name'] }}</h3>
+                                <span class="px-2 py-0.5 rounded-full text-xs font-medium
+                                    @if($visit['status'] === 'completed') bg-green-100 text-green-800
+                                    @elseif($visit['status'] === 'cancelled') bg-red-100 text-red-800
+                                    @elseif($visit['status'] === 'pending') bg-yellow-100 text-yellow-800
+                                    @else bg-blue-100 text-blue-800
+                                    @endif">
+                                    {{ ucfirst($visit['status']) }}
+                                </span>
+                            </div>
+                            <div class="flex items-center text-yellow-400">
+                                <span class="flex">
+                                    @for($i = 1; $i <= 5; $i++)
+                                        @if($i <= floor($visit['rating']))
+                                            <span>★</span>
+                                        @else
+                                            <span class="text-gray-300">★</span>
+                                        @endif
+                                    @endfor
+                                </span>
+                                <span class="ml-1 text-gray-600">{{ $visit['rating'] }}</span>
+                            </div>
+                            <p class="text-gray-600 text-sm">{{ $visit['address'] }}</p>
+                            <p class="text-gray-500 text-xs mt-1">Last visit: {{ $visit['last_visit'] }}</p>
                         </div>
-                        <p class="text-gray-600 text-sm">{{ $visit['address'] }}</p>
-                        <p class="text-gray-500 text-xs mt-1">Last visit: {{ $visit['last_visit'] }}</p>
                     </div>
-                </div>
+                </a>
             @empty
                 <div class="text-center text-gray-500 py-4">
                     No visits yet
