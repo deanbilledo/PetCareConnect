@@ -53,9 +53,12 @@
     /* Calendar styles */
     .calendar-dropdown {
         position: absolute;
-        max-height: 350px;
+        max-height: 400px;
         overflow-y: auto;
         z-index: 9999;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(209, 213, 219, 0.5);
     }
     
     #add-pet-modal {
@@ -74,6 +77,33 @@
     
     .date-picker-container .absolute {
         z-index: 100;
+    }
+    
+    /* Calendar day hover and transition effects */
+    .calendar-dropdown button {
+        transition: all 0.2s ease;
+    }
+    
+    .calendar-dropdown button:hover:not(:disabled) {
+        transform: translateY(-1px);
+    }
+    
+    .calendar-dropdown button:active:not(:disabled) {
+        transform: translateY(0);
+    }
+    
+    /* Selected day animation */
+    .calendar-dropdown button.selected {
+        animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    
+    @keyframes pulse {
+        0%, 100% {
+            box-shadow: 0 0 0 0 rgba(20, 184, 166, 0.5);
+        }
+        50% {
+            box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.25);
+        }
     }
     
     /* Ensure the calendar can appear outside its container */
@@ -640,14 +670,14 @@
                                        placeholder="Select date" 
                                        @click="toggleCalendar"
                                        readonly
-                                       class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 transition-colors cursor-pointer bg-white">
+                                       class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 transition-colors cursor-pointer bg-white pl-3 pr-10 py-2.5">
                                 <input type="hidden" 
                                        id="date_of_birth" 
                                        name="date_of_birth" 
                                        x-model="inputDate" 
                                        required>
-                                <div class="absolute inset-y-0 right-0 flex items-center pr-3">
-                                    <svg class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                                <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                    <svg class="h-5 w-5 text-teal-500" viewBox="0 0 20 20" fill="currentColor">
                                         <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
                                     </svg>
                                 </div>
@@ -655,32 +685,32 @@
                                 <!-- Calendar dropdown -->
                                 <div x-show="isOpen" 
                                      @click.away="isOpen = false" 
-                                     class="calendar-dropdown absolute bg-white border border-gray-200 rounded-lg shadow-lg z-[100] w-72 p-4"
+                                     class="calendar-dropdown absolute bg-white border border-gray-200 rounded-lg shadow-xl z-[100] w-80 p-5"
                                      x-transition:enter="transition ease-out duration-200"
                                      x-transition:enter-start="opacity-0 scale-95"
                                      x-transition:enter-end="opacity-100 scale-100"
                                      x-transition:leave="transition ease-in duration-150"
                                      x-transition:leave-start="opacity-100 scale-100"
                                      x-transition:leave-end="opacity-0 scale-95"
-                                     style="position: absolute; top: auto; bottom: auto; max-height: 350px; overflow-y: auto;"
+                                     style="position: absolute; top: auto; bottom: auto; max-height: 400px; overflow-y: auto;"
                                      x-init="$el.style.top = ($el.getBoundingClientRect().bottom + $el.offsetHeight > window.innerHeight) ? 'auto' : '100%';
                                             $el.style.bottom = ($el.getBoundingClientRect().bottom + $el.offsetHeight > window.innerHeight) ? '100%' : 'auto';"
                                      >
                                     
                                     <!-- Calendar header -->
-                                    <div class="flex items-center justify-between mb-2">
+                                    <div class="flex items-center justify-between mb-4 pb-2 border-b border-gray-100">
                                         <button type="button" 
                                                 @click="prevMonth" 
-                                                class="p-1 rounded-full hover:bg-gray-100">
-                                            <svg class="h-5 w-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:ring-opacity-50">
+                                            <svg class="h-5 w-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
                                             </svg>
                                         </button>
-                                        <div class="text-sm font-medium" x-text="monthYear"></div>
+                                        <div class="text-base font-semibold text-gray-800" x-text="monthYear"></div>
                                         <button type="button" 
                                                 @click="nextMonth" 
-                                                class="p-1 rounded-full hover:bg-gray-100">
-                                            <svg class="h-5 w-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:ring-opacity-50">
+                                            <svg class="h-5 w-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                                             </svg>
                                         </button>
@@ -698,36 +728,36 @@
                                     <!-- Calendar days -->
                                     <div class="grid grid-cols-7 gap-1">
                                         <template x-for="(day, index) in calendarDays" :key="index">
-                                            <div class="text-center">
+                                            <div class="text-center py-1">
                                                 <button type="button"
                                                         x-show="day.date !== ''"
                                                         @click="selectDate(day.date)"
                                                         :disabled="day.disabled"
                                                         :class="{
-                                                            'bg-teal-100 text-teal-800 font-medium': day.selected,
-                                                            'bg-gray-50 text-gray-400 cursor-not-allowed': day.disabled && !day.selected,
-                                                            'hover:bg-gray-100': !day.disabled && !day.selected,
-                                                            'text-gray-800': !day.disabled && !day.selected && !day.today,
-                                                            'bg-gray-100 border border-teal-500': day.today && !day.selected,
+                                                            'bg-teal-500 text-white font-medium ring-2 ring-offset-2 ring-teal-500 selected': day.selected,
+                                                            'bg-gray-50 text-gray-300 cursor-not-allowed hover:bg-gray-50': day.disabled && !day.selected,
+                                                            'hover:bg-teal-50 hover:text-teal-600': !day.disabled && !day.selected,
+                                                            'text-gray-700': !day.disabled && !day.selected && !day.today,
+                                                            'bg-teal-50 text-teal-700 ring-1 ring-teal-300': day.today && !day.selected,
                                                             'font-medium': day.today
                                                         }"
-                                                        class="w-8 h-8 rounded-full flex items-center justify-center text-sm focus:outline-none">
+                                                        class="w-9 h-9 rounded-full flex items-center justify-center text-sm transition-all duration-150 focus:outline-none">
                                                     <span x-text="day.date"></span>
                                                 </button>
                                             </div>
                                         </template>
                                     </div>
 
-                                    <!-- Today button -->
-                                    <div class="mt-4 flex justify-between">
+                                    <!-- Footer with Today button -->
+                                    <div class="mt-4 pt-3 border-t border-gray-100 flex justify-between items-center">
                                         <button type="button"
                                                 @click="goToToday"
-                                                class="text-xs font-medium text-teal-600 hover:text-teal-700">
+                                                class="px-3 py-1.5 bg-teal-50 text-teal-600 rounded-md text-xs font-medium hover:bg-teal-100 hover:text-teal-700 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:ring-opacity-50">
                                             Today
                                         </button>
                                         <button type="button"
                                                 @click="isOpen = false"
-                                                class="text-xs font-medium text-gray-600 hover:text-gray-700">
+                                                class="px-3 py-1.5 bg-gray-50 text-gray-600 rounded-md text-xs font-medium hover:bg-gray-100 hover:text-gray-700 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-opacity-50">
                                             Close
                                         </button>
                                     </div>
