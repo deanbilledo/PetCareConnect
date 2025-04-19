@@ -49,6 +49,37 @@
             transform: translateY(0);
         }
     }
+    
+    /* Calendar styles */
+    .calendar-dropdown {
+        position: absolute;
+        max-height: 350px;
+        overflow-y: auto;
+        z-index: 9999;
+    }
+    
+    #add-pet-modal {
+        overflow-y: auto;
+    }
+    
+    #add-pet-modal .modal-content {
+        overflow: visible !important;
+        position: relative;
+    }
+    
+    /* Fix for date picker positioning */
+    .date-picker-container {
+        position: static;
+    }
+    
+    .date-picker-container .absolute {
+        z-index: 100;
+    }
+    
+    /* Ensure the calendar can appear outside its container */
+    .overflow-visible {
+        overflow: visible !important;
+    }
 </style>
 @endsection
 
@@ -379,10 +410,10 @@
 </div>
 
 <!-- Add Pet Modal -->
-<div id="add-pet-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 hidden z-50" x-data="{ petType: '' }">
-    <div class="flex items-center justify-center min-h-screen px-4">
-        <div class="bg-white rounded-xl shadow-xl max-w-2xl w-full fade-in">
-            <div class="p-6">
+<div id="add-pet-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 hidden z-50 overflow-y-auto" x-data="{ petType: '' }">
+    <div class="flex items-center justify-center min-h-screen px-4 py-8">
+        <div class="bg-white rounded-xl shadow-xl max-w-2xl w-full fade-in relative">
+            <div class="p-6 overflow-visible">
                 <div class="flex justify-between items-center mb-6">
                     <h3 class="text-xl font-bold text-gray-900">Add New Pet</h3>
                     <button onclick="closeAddPetModal()" class="text-gray-400 hover:text-gray-500 transition-colors">
@@ -452,7 +483,14 @@
                                 <option value="Dog">Dog</option>
                                 <option value="Cat">Cat</option>
                                 <option value="Bird">Bird</option>
+                                <option value="Rabbit">Rabbit</option>
+                                <option value="Hamster">Hamster</option>
+                                <option value="Guinea Pig">Guinea Pig</option>
+                                <option value="Fish">Fish</option>
+                                <option value="Ferret">Ferret</option>
+                                <option value="Turtle">Turtle</option>
                                 <option value="Exotic">Exotic</option>
+                                <option value="Other">Other</option>
                             </select>
                         </div>
 
@@ -493,15 +531,63 @@
                             </select>
                         </div>
 
+                        <div x-show="petType === 'Other'" class="slide-down">
+                            <label for="other_species" class="block text-sm font-medium text-gray-700">Specify Pet Type</label>
+                            <input type="text" id="other_species" name="other_species" 
+                                   x-bind:required="petType === 'Other'"
+                                   class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 transition-colors">
+                        </div>
+
                         <div>
                             <label for="breed" class="block text-sm font-medium text-gray-700">Breed</label>
-                            <input type="text" id="breed" name="breed" required
+                            <input type="text" id="breed" name="breed" required list="breed-list"
                                    class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 transition-colors">
+                            <!-- Dynamic breed datalists based on pet type -->
+                            <datalist id="breed-list" x-data="{
+                                dogBreeds: ['Labrador Retriever', 'German Shepherd', 'Golden Retriever', 'Bulldog', 'Beagle', 'Poodle', 'Rottweiler', 'Yorkshire Terrier', 'Boxer', 'Dachshund', 'Shih Tzu', 'Siberian Husky', 'Great Dane', 'Chihuahua', 'Pomeranian', 'Border Collie', 'French Bulldog', 'Australian Shepherd', 'Cocker Spaniel', 'Doberman Pinscher', 'Mixed Breed'],
+                                catBreeds: ['Domestic Shorthair', 'Domestic Longhair', 'Siamese', 'Persian', 'Maine Coon', 'Ragdoll', 'Bengal', 'Sphynx', 'British Shorthair', 'Scottish Fold', 'Abyssinian', 'Russian Blue', 'Norwegian Forest Cat', 'Burmese', 'Himalayan', 'Bombay', 'American Shorthair', 'Devon Rex', 'Cornish Rex', 'Mixed Breed'],
+                                birdBreeds: ['Canary', 'Budgerigar (Budgie)', 'Cockatiel', 'Lovebird', 'Finch', 'Parrot', 'Conure', 'Macaw', 'African Grey', 'Cockatoo', 'Parakeet', 'Amazon Parrot', 'Dove', 'Lory', 'Mynah Bird'],
+                                rabbitBreeds: ['Dutch', 'Holland Lop', 'Mini Rex', 'Netherland Dwarf', 'Lionhead', 'Jersey Wooly', 'Flemish Giant', 'Mini Lop', 'English Lop', 'French Lop'],
+                                hamsterBreeds: ['Syrian', 'Dwarf Campbell Russian', 'Dwarf Winter White Russian', 'Roborovski Dwarf', 'Chinese', 'Hybrid'],
+                                guineaPigBreeds: ['American', 'Abyssinian', 'Peruvian', 'Silkie', 'Teddy', 'Texel', 'Skinny Pig', 'Rex'],
+                                fishBreeds: ['Betta', 'Goldfish', 'Guppy', 'Angelfish', 'Neon Tetra', 'Molly', 'Platy', 'Swordtail', 'Discus', 'Oscar'],
+                                ferretBreeds: ['Sable', 'Albino', 'Cinnamon', 'Champagne', 'Silver', 'Black Sable', 'Chocolate', 'Panda'],
+                                turtleBreeds: ['Red-Eared Slider', 'Painted Turtle', 'Box Turtle', 'Map Turtle', 'Mud Turtle', 'Musk Turtle', 'Softshell Turtle', 'Snapping Turtle'],
+                                activeBreeds: []
+                            }"
+                            x-init="activeBreeds = dogBreeds; $watch('petType', value => {
+                                switch(value) {
+                                    case 'Dog': activeBreeds = dogBreeds; break;
+                                    case 'Cat': activeBreeds = catBreeds; break;
+                                    case 'Bird': activeBreeds = birdBreeds; break;
+                                    case 'Rabbit': activeBreeds = rabbitBreeds; break;
+                                    case 'Hamster': activeBreeds = hamsterBreeds; break;
+                                    case 'Guinea Pig': activeBreeds = guineaPigBreeds; break;
+                                    case 'Fish': activeBreeds = fishBreeds; break;
+                                    case 'Ferret': activeBreeds = ferretBreeds; break;
+                                    case 'Turtle': activeBreeds = turtleBreeds; break;
+                                    default: activeBreeds = [];
+                                }
+                                
+                                // Clear and recreate datalist options
+                                const breedList = document.getElementById('breed-list');
+                                while (breedList.firstChild) {
+                                    breedList.removeChild(breedList.firstChild);
+                                }
+                                
+                                activeBreeds.forEach(breed => {
+                                    const option = document.createElement('option');
+                                    option.value = breed;
+                                    breedList.appendChild(option);
+                                });
+                            })">
+                            </datalist>
                         </div>
 
                         <div>
                             <label for="size_category" class="block text-sm font-medium text-gray-700">Size Category</label>
                             <select id="size_category" name="size_category" required
+                                    onchange="validateWeightAgainstSize()"
                                     class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 transition-colors">
                                 <option value="">Select Size</option>
                                 <option value="Small">Small (0-15 kg)</option>
@@ -515,7 +601,7 @@
                             <div class="relative mt-1">
                                 <input type="number" id="weight" name="weight" step="0.1" required
                                        min="0.1" max="100"
-                                       oninput="validateWeight(this)"
+                                       oninput="validateWeightAgainstSize()"
                                        class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 transition-colors">
                                 <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                                     <span class="text-gray-500 sm:text-sm">kg</span>
@@ -545,12 +631,108 @@
                             </select>
                         </div>
 
-                        <div>
+                        <div x-data="datePicker()" class="relative date-picker-container">
                             <label for="date_of_birth" class="block text-sm font-medium text-gray-700">Date of Birth</label>
-                            <input type="date" id="date_of_birth" name="date_of_birth" required max="{{ date('Y-m-d') }}"
-                                   class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 transition-colors"
-                                   x-data
-                                   x-init="$el.max = new Date().toISOString().split('T')[0]">
+                            <div class="mt-1 relative">
+                                <input type="text" 
+                                       id="date_of_birth_display" 
+                                       x-model="formattedDate" 
+                                       placeholder="Select date" 
+                                       @click="toggleCalendar"
+                                       readonly
+                                       class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 transition-colors cursor-pointer bg-white">
+                                <input type="hidden" 
+                                       id="date_of_birth" 
+                                       name="date_of_birth" 
+                                       x-model="inputDate" 
+                                       required>
+                                <div class="absolute inset-y-0 right-0 flex items-center pr-3">
+                                    <svg class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                                
+                                <!-- Calendar dropdown -->
+                                <div x-show="isOpen" 
+                                     @click.away="isOpen = false" 
+                                     class="calendar-dropdown absolute bg-white border border-gray-200 rounded-lg shadow-lg z-[100] w-72 p-4"
+                                     x-transition:enter="transition ease-out duration-200"
+                                     x-transition:enter-start="opacity-0 scale-95"
+                                     x-transition:enter-end="opacity-100 scale-100"
+                                     x-transition:leave="transition ease-in duration-150"
+                                     x-transition:leave-start="opacity-100 scale-100"
+                                     x-transition:leave-end="opacity-0 scale-95"
+                                     style="position: absolute; top: auto; bottom: auto; max-height: 350px; overflow-y: auto;"
+                                     x-init="$el.style.top = ($el.getBoundingClientRect().bottom + $el.offsetHeight > window.innerHeight) ? 'auto' : '100%';
+                                            $el.style.bottom = ($el.getBoundingClientRect().bottom + $el.offsetHeight > window.innerHeight) ? '100%' : 'auto';"
+                                     >
+                                    
+                                    <!-- Calendar header -->
+                                    <div class="flex items-center justify-between mb-2">
+                                        <button type="button" 
+                                                @click="prevMonth" 
+                                                class="p-1 rounded-full hover:bg-gray-100">
+                                            <svg class="h-5 w-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                                            </svg>
+                                        </button>
+                                        <div class="text-sm font-medium" x-text="monthYear"></div>
+                                        <button type="button" 
+                                                @click="nextMonth" 
+                                                class="p-1 rounded-full hover:bg-gray-100">
+                                            <svg class="h-5 w-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                    
+                                    <!-- Days of week -->
+                                    <div class="grid grid-cols-7 mb-2">
+                                        <template x-for="day in ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']" :key="day">
+                                            <div class="text-center text-xs font-medium text-gray-500 py-1">
+                                                <span x-text="day"></span>
+                                            </div>
+                                        </template>
+                                    </div>
+                                    
+                                    <!-- Calendar days -->
+                                    <div class="grid grid-cols-7 gap-1">
+                                        <template x-for="(day, index) in calendarDays" :key="index">
+                                            <div class="text-center">
+                                                <button type="button"
+                                                        x-show="day.date !== ''"
+                                                        @click="selectDate(day.date)"
+                                                        :disabled="day.disabled"
+                                                        :class="{
+                                                            'bg-teal-100 text-teal-800 font-medium': day.selected,
+                                                            'bg-gray-50 text-gray-400 cursor-not-allowed': day.disabled && !day.selected,
+                                                            'hover:bg-gray-100': !day.disabled && !day.selected,
+                                                            'text-gray-800': !day.disabled && !day.selected && !day.today,
+                                                            'bg-gray-100 border border-teal-500': day.today && !day.selected,
+                                                            'font-medium': day.today
+                                                        }"
+                                                        class="w-8 h-8 rounded-full flex items-center justify-center text-sm focus:outline-none">
+                                                    <span x-text="day.date"></span>
+                                                </button>
+                                            </div>
+                                        </template>
+                                    </div>
+
+                                    <!-- Today button -->
+                                    <div class="mt-4 flex justify-between">
+                                        <button type="button"
+                                                @click="goToToday"
+                                                class="text-xs font-medium text-teal-600 hover:text-teal-700">
+                                            Today
+                                        </button>
+                                        <button type="button"
+                                                @click="isOpen = false"
+                                                class="text-xs font-medium text-gray-600 hover:text-gray-700">
+                                            Close
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -578,6 +760,168 @@
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
 <script>
+    // Date picker function for the custom calendar
+    function datePicker() {
+        return {
+            isOpen: false,
+            currentMonth: new Date().getMonth(),
+            currentYear: new Date().getFullYear(),
+            selectedDate: null,
+            inputDate: '',
+            formattedDate: '',
+            maxDate: new Date(),
+            
+            init() {
+                // Initialize the calendar with today's date
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                this.setCurrentDate(today);
+            },
+            
+            toggleCalendar() {
+                this.isOpen = !this.isOpen;
+                
+                if (this.isOpen && !this.selectedDate) {
+                    // If opening and no date is selected, set to current month/year
+                    this.currentMonth = new Date().getMonth();
+                    this.currentYear = new Date().getFullYear();
+                }
+                
+                // Ensure the calendar is properly positioned
+                if (this.isOpen) {
+                    setTimeout(() => {
+                        const calendar = document.querySelector('[x-show="isOpen"]');
+                        if (calendar) {
+                            const rect = calendar.getBoundingClientRect();
+                            const viewportHeight = window.innerHeight;
+                            
+                            // If calendar extends beyond viewport bottom, position it above the input
+                            if (rect.bottom > viewportHeight) {
+                                calendar.style.top = 'auto';
+                                calendar.style.bottom = '100%';
+                                calendar.style.marginTop = '0';
+                                calendar.style.marginBottom = '0.25rem';
+                            } else {
+                                calendar.style.top = '100%';
+                                calendar.style.bottom = 'auto';
+                                calendar.style.marginTop = '0.25rem';
+                                calendar.style.marginBottom = '0';
+                            }
+                        }
+                    }, 10);
+                }
+            },
+            
+            get monthYear() {
+                const months = [
+                    'January', 'February', 'March', 'April', 'May', 'June', 
+                    'July', 'August', 'September', 'October', 'November', 'December'
+                ];
+                return `${months[this.currentMonth]} ${this.currentYear}`;
+            },
+            
+            prevMonth() {
+                if (this.currentMonth === 0) {
+                    this.currentMonth = 11;
+                    this.currentYear--;
+                } else {
+                    this.currentMonth--;
+                }
+            },
+            
+            nextMonth() {
+                if (this.currentMonth === 11) {
+                    this.currentMonth = 0;
+                    this.currentYear++;
+                } else {
+                    this.currentMonth++;
+                }
+            },
+            
+            goToToday() {
+                const today = new Date();
+                this.currentMonth = today.getMonth();
+                this.currentYear = today.getFullYear();
+                this.selectDate(today.getDate());
+            },
+            
+            get calendarDays() {
+                const days = [];
+                const firstDay = new Date(this.currentYear, this.currentMonth, 1);
+                const lastDay = new Date(this.currentYear, this.currentMonth + 1, 0);
+                const prevMonthLastDay = new Date(this.currentYear, this.currentMonth, 0);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                
+                // Fill in days from previous month
+                const startingDayOfWeek = firstDay.getDay();
+                for (let i = startingDayOfWeek - 1; i >= 0; i--) {
+                    const day = prevMonthLastDay.getDate() - i;
+                    days.push({
+                        date: '', // Hide days from previous month
+                        disabled: true
+                    });
+                }
+                
+                // Fill in days of current month
+                for (let i = 1; i <= lastDay.getDate(); i++) {
+                    const date = new Date(this.currentYear, this.currentMonth, i);
+                    const isFutureDate = date > this.maxDate;
+                    
+                    days.push({
+                        date: i,
+                        disabled: isFutureDate,
+                        today: date.toDateString() === today.toDateString(),
+                        selected: this.selectedDate && 
+                                 date.toDateString() === this.selectedDate.toDateString()
+                    });
+                }
+                
+                // Fill in remaining days of next month to complete the grid
+                const totalCells = Math.ceil(days.length / 7) * 7;
+                const nextMonthDays = totalCells - days.length;
+                for (let i = 1; i <= nextMonthDays; i++) {
+                    days.push({
+                        date: '', // Hide days from next month
+                        disabled: true
+                    });
+                }
+                
+                return days;
+            },
+            
+            selectDate(day) {
+                if (typeof day === 'number') {
+                    const selectedDate = new Date(this.currentYear, this.currentMonth, day);
+                    
+                    // Don't allow future dates
+                    if (selectedDate > this.maxDate) {
+                        return;
+                    }
+                    
+                    this.setCurrentDate(selectedDate);
+                }
+                this.isOpen = false;
+            },
+            
+            setCurrentDate(date) {
+                this.selectedDate = date;
+                this.currentMonth = date.getMonth();
+                this.currentYear = date.getFullYear();
+                
+                // Format date for display (e.g., "January 1, 2023")
+                const options = { month: 'long', day: 'numeric', year: 'numeric' };
+                this.formattedDate = date.toLocaleDateString('en-US', options);
+                
+                // Format date for input (YYYY-MM-DD)
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                this.inputDate = `${year}-${month}-${day}`;
+            }
+        };
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
         // Initialize modal functionality
         const addPetModal = document.getElementById('add-pet-modal');
@@ -618,6 +962,8 @@
         if (petTypeSelect) {
             petTypeSelect.addEventListener('change', function() {
                 const speciesField = document.querySelector('div[x-show="petType === \'Exotic\'"]');
+                const otherField = document.querySelector('div[x-show="petType === \'Other\'"]');
+                
                 if (speciesField) {
                     if (this.value === 'Exotic') {
                         speciesField.style.display = 'block';
@@ -632,6 +978,17 @@
                         }
                     }
                 }
+                
+                if (otherField) {
+                    otherField.style.display = this.value === 'Other' ? 'block' : 'none';
+                }
+                
+                // Update breed suggestions
+                const breedInput = document.getElementById('breed');
+                if (breedInput) {
+                    // Clear input value when type changes
+                    breedInput.value = '';
+                }
             });
         }
         
@@ -640,8 +997,7 @@
         if (petForm) {
             if (petForm.querySelector('input[name="weight"]')) {
                 petForm.addEventListener('submit', function(e) {
-                    const weightInput = this.querySelector('input[name="weight"]');
-                    if (!validateWeight(weightInput)) {
+                    if (!validateWeightAgainstSize()) {
                         e.preventDefault();
                         return false;
                     }
@@ -690,6 +1046,26 @@
             const form = modal.querySelector('form');
             if (form) {
                 form.reset();
+                
+                // Reset validation state
+                const submitButton = form.querySelector('button[type="submit"]');
+                if (submitButton) {
+                    submitButton.disabled = false;
+                    submitButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
+                
+                // Reset date picker display
+                setTimeout(() => {
+                    const datePicker = document.getElementById('date_of_birth_display');
+                    if (datePicker) {
+                        // Set to empty or today's date based on Alpine.js initialization
+                        // This will be picked up by Alpine's x-model
+                        if (window.Alpine) {
+                            window.Alpine.raw(datePicker).$el._x_dataStack[0].formattedDate = '';
+                            window.Alpine.raw(datePicker).$el._x_dataStack[0].inputDate = '';
+                        }
+                    }
+                }, 100);
             }
             
             // Clear error messages
@@ -720,6 +1096,71 @@
             return false;
         }
         
+        weightError.classList.add('hidden');
+        submitButton.disabled = false;
+        submitButton.classList.remove('opacity-50', 'cursor-not-allowed');
+        return true;
+    }
+    
+    function validateWeightAgainstSize() {
+        const weightInput = document.getElementById('weight');
+        const sizeSelect = document.getElementById('size_category');
+        const weightError = document.getElementById('weight-error');
+        const submitButton = weightInput.closest('form').querySelector('button[type="submit"]');
+        const weight = parseFloat(weightInput.value);
+        const size = sizeSelect.value;
+        
+        // First do basic weight validation
+        if (weight <= 0) {
+            weightError.textContent = 'Weight must be greater than 0 kg';
+            weightError.classList.remove('hidden');
+            submitButton.disabled = true;
+            submitButton.classList.add('opacity-50', 'cursor-not-allowed');
+            return false;
+        }
+        
+        if (weight > 100) {
+            weightError.textContent = 'Please enter a valid weight (less than 100 kg)';
+            weightError.classList.remove('hidden');
+            submitButton.disabled = true;
+            submitButton.classList.add('opacity-50', 'cursor-not-allowed');
+            return false;
+        }
+        
+        // Then validate against size category if both values are present
+        if (weight && size) {
+            let isValid = true;
+            
+            switch (size) {
+                case 'Small':
+                    if (weight > 15) {
+                        weightError.textContent = 'Small pets should weigh 15 kg or less';
+                        isValid = false;
+                    }
+                    break;
+                case 'Medium':
+                    if (weight <= 15 || weight > 30) {
+                        weightError.textContent = 'Medium pets should weigh between 15-30 kg';
+                        isValid = false;
+                    }
+                    break;
+                case 'Large':
+                    if (weight <= 30) {
+                        weightError.textContent = 'Large pets should weigh more than 30 kg';
+                        isValid = false;
+                    }
+                    break;
+            }
+            
+            if (!isValid) {
+                weightError.classList.remove('hidden');
+                submitButton.disabled = true;
+                submitButton.classList.add('opacity-50', 'cursor-not-allowed');
+                return false;
+            }
+        }
+        
+        // If we get here, everything is valid
         weightError.classList.add('hidden');
         submitButton.disabled = false;
         submitButton.classList.remove('opacity-50', 'cursor-not-allowed');
