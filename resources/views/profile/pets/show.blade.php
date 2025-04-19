@@ -264,22 +264,24 @@ use Illuminate\Support\Str;
         <h2 class="text-xl font-semibold mb-6">Recent Appointments</h2>
         <div class="bg-gray-50 rounded-lg p-4">
             @forelse($pet->appointments as $appointment)
-                <div class="flex justify-between items-center {{ !$loop->last ? 'border-b pb-4 mb-4' : '' }}">
-                    <div>
-                        <p class="font-medium">{{ $appointment->service_type }}</p>
-                        <p class="text-sm text-gray-600">{{ $appointment->shop->name }}</p>
+                <a href="{{ route('appointments.show', $appointment) }}" class="block hover:bg-gray-100 transition-colors rounded-md -mx-2 px-2 py-2">
+                    <div class="flex justify-between items-center {{ !$loop->last ? 'border-b pb-4 mb-4' : '' }}">
+                        <div>
+                            <p class="font-medium">{{ $appointment->service_type }}</p>
+                            <p class="text-sm text-gray-600">{{ $appointment->shop->name }}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-sm text-gray-600">{{ $appointment->appointment_date->format('M d, Y g:i A') }}</p>
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                @if($appointment->status === 'completed') bg-green-100 text-green-800
+                                @elseif($appointment->status === 'cancelled') bg-red-100 text-red-800
+                                @else bg-blue-100 text-blue-800
+                                @endif">
+                                {{ Str::title($appointment->status) }}
+                            </span>
+                        </div>
                     </div>
-                    <div class="text-right">
-                        <p class="text-sm text-gray-600">{{ $appointment->appointment_date->format('M d, Y g:i A') }}</p>
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                            @if($appointment->status === 'completed') bg-green-100 text-green-800
-                            @elseif($appointment->status === 'cancelled') bg-red-100 text-red-800
-                            @else bg-blue-100 text-blue-800
-                            @endif">
-                            {{ Str::title($appointment->status) }}
-                        </span>
-                    </div>
-                </div>
+                </a>
             @empty
                 <p class="text-gray-500 text-center py-2">No recent appointments</p>
             @endforelse
