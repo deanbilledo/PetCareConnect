@@ -185,7 +185,7 @@
             @if($appointment->discount_amount > 0)
                 <p>Discount: -₱{{ number_format($appointment->discount_amount, 2) }}</p>
             @endif
-            <p class="total-amount">Total Amount Paid: ₱{{ number_format($appointment->service_price, 2) }}</p>
+            <p class="total-amount">Total Amount: ₱{{ number_format($appointment->service_price, 2) }}</p>
         </div>
 
         <div class="footer">
